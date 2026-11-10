@@ -1,0 +1,381 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Cassiano Veículos — design tokens
+   Fonte da verdade: DESIGN.md
+   ============================================================ */
+
+:root {
+  --primary: #b56e35; /* Marrom Caramelo Premium */
+  --primary-hover: #9c5c29;
+  /* Caramelo pra TEXTO pequeno sobre fundo escuro: o #b56e35 dá só 4,13:1 no
+     grafite (abaixo do AA 4,5:1). Este tom sobe pra ~5,2:1 e fecha o AA, sem
+     perder a marca. Usar em eyebrow/label caramelo sobre seção escura. */
+  --primary-on-dark: #c9803f;
+  --secondary: #2f3136; /* Grafite Escuro — TINTA (títulos, texto forte) */
+  /* Superfície escura de destaque: a fita de meta, o toast. É papel de FUNDO,
+     não de tinta. Vivia no --secondary, mas os dois papéis se separam no tema
+     escuro — lá a tinta precisa clarear e o fundo precisa continuar escuro.
+     Juntos, a fita virava clara com texto branco por cima. */
+  --inverso: #2f3136;
+  /* Véu dos modais e do menu do celular. Token próprio, com a opacidade DENTRO
+     dele, porque o papel do véu muda de tema pra tema e a cor sozinha não
+     resolve: véu é sombra, não superfície. Toda superfície do tema escuro
+     (--inverso incluída) é mais CLARA que o fundo — usar qualquer uma delas
+     como véu clareava a tela em vez de escurecer, e o menu do celular abria
+     com o funil por trás lavado de cinza leitoso. */
+  --veu: rgb(47 49 54 / 0.55);
+  --background: #f5f3ee; /* Cinza Areia claro */
+  --sand: #e7e4dd; /* Cinza Areia */
+  --surface: #ffffff; /* Branco */
+  --text: #222222; /* Texto de corpo */
+  --muted: #7c7c7c; /* Cinza médio */
+  /* Metadado do painel interno lido o dia todo: um passo mais escuro que
+     --muted pra fechar o AA 4.5:1 em texto pequeno. Não é a marca pública
+     (essa continua --muted); é o token de densidade do ferramental. */
+  --muted-strong: #6b6b6b;
+  --line: #d8d8d8; /* Cinza claro (bordas) */
+  --whatsapp: #25d366;
+  --whatsapp-hover: #1eb958;
+
+  /* Status semânticos — SÓ do painel do gestor (ferramental interno).
+     Contidos e premium: nunca entram na cara pública da marca. Verde-fechado
+     pra lucro/OK (não o verde-WhatsApp), âmbar pra alerta, terroso pro perigo. */
+  --success: #2e7d5b; /* verde-fechado — lucro, margem OK, disponível */
+  --success-bg: #eaf3ee;
+  --success-ink: #1f5b41;
+  --warning: #b7791f; /* âmbar — sem margem, atenção */
+  --warning-bg: #fbf1dd;
+  --warning-ink: #8a5a15;
+  --danger: #a8432f; /* terroso contido — remover, perigo (nunca liquidação) */
+  --danger-bg: #f6eae7;
+  --danger-ink: #86331f;
+
+  --radius: 12px;
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.1);
+
+  /* Superfície um degrau acima do branco (cabeçalhos de bloco, barra fixa).
+     No claro é a areia; no escuro é quem separa plano, já que sombra some. */
+  --surface-2: #faf9f6;
+
+  /* Easing de assinatura capturado da referência (ease-out-expo) */
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Durações — o painel se move em dois tempos só, pra não virar cada
+     componente com seu número mágico. Rápida = resposta ao toque/hover;
+     média = mudança de estado que a pessoa precisa acompanhar. */
+  --dur-rapida: 160ms;
+  --dur-media: 320ms;
+}
+
+/* ============================================================
+   Modo escuro — SÓ a área /gestao (ferramental interno usado o dia
+   inteiro). O site público segue claro sempre.
+
+   Regra do escuro: quem separa os planos é a LUMINOSIDADE, não a
+   sombra — sombra sobre fundo escuro praticamente não aparece. Por
+   isso fundo < superfície < superfície-2 sobem de brilho, e a borda
+   fica mais clara que o fundo em vez de mais escura.
+
+   Contraste: todo par abaixo foi conferido pra AA (4,5:1 em texto
+   pequeno) sobre a superfície em que é usado.
+   ============================================================ */
+:root[data-tema="escuro"] {
+  --background: #16171a; /* fundo da área */
+  --surface: #1e2024; /* cards, sidebar */
+  --surface-2: #26282d; /* cabeçalho de bloco, hover */
+  --sand: #2b2e33; /* o "areia" vira o cinza de apoio */
+  --line: #34373d;
+
+  /* Caramelo puro (#b56e35) dá 4,13:1 no grafite — mesma razão pela qual
+     --primary-on-dark existe. No escuro o tom claro passa a ser o padrão. */
+  --primary: #c9803f;
+  --primary-hover: #d89355;
+  --primary-on-dark: #d89355;
+
+  /* "secondary" é a cor de texto forte no claro; no escuro precisa inverter,
+     senão todo título fica grafite sobre grafite (invisível). */
+  --secondary: #f0eee9;
+  /* Continua escura no tema escuro — é fundo, não tinta. Um degrau acima do
+     surface pra a fita ainda se destacar do card. */
+  --inverso: #303338;
+  /* Precisa ser mais escuro que --background (#16171a), senão não é véu. Preto
+     puro com um pouco mais de carga: no escuro o contraste entre o fundo
+     apagado e o painel (--surface #1e2024) é curto, e é o véu que compra essa
+     separação. */
+  --veu: rgb(0 0 0 / 0.66);
+  --text: #e8e6e1;
+  --muted: #9b9791;
+  --muted-strong: #b3afa8;
+
+  /* Status: fundo escurecido, tinta clara — mantém o significado sem
+     acender um bloco pastel no meio da tela escura. */
+  --success: #4aa87d;
+  --success-bg: #1a2b23;
+  --success-ink: #7fcfa5;
+  --warning: #d19a3c;
+  --warning-bg: #2e2517;
+  --warning-ink: #e6b968;
+  --danger: #c96952;
+  --danger-bg: #2e1d19;
+  --danger-ink: #e29079;
+
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-on-dark: var(--primary-on-dark);
+  --color-secondary: var(--secondary);
+  --color-inverso: var(--inverso);
+  /* Sem modificador de opacidade no uso (`bg-veu`, não `bg-veu/55`): a
+     opacidade faz parte do token e cada tema calibra a sua. */
+  --color-veu: var(--veu);
+  --color-background: var(--background);
+  --color-sand: var(--sand);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-line: var(--line);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-hover: var(--whatsapp-hover);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-ink: var(--success-ink);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-ink: var(--warning-ink);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-ink: var(--danger-ink);
+
+  --font-sans: var(--font-poppins), system-ui, sans-serif;
+
+  --radius-brand: var(--radius);
+  --shadow-soft: var(--shadow-soft);
+  --ease-brand: var(--ease-brand);
+}
+
+* {
+  border-color: var(--line);
+}
+
+/* Troca de asset por tema (a logo tem versão escura e clara — a de traço
+   escuro some no fundo escuro). Só o par visível é exibido. */
+:root[data-tema="escuro"] .so-tema-claro {
+  display: none;
+}
+:root:not([data-tema="escuro"]) .so-tema-escuro {
+  display: none;
+}
+
+/* Gate de hover positivo: em dispositivos de toque (sem ponteiro fino),
+   neutraliza os efeitos de hover que dependem de movimento, pra o tap não
+   disparar falso-hover "grudado". Complementa o motion-reduce dos componentes. */
+@media (hover: none), (pointer: coarse) {
+  a:hover,
+  button:hover,
+  .group:hover * {
+    translate: none !important;
+    scale: none !important;
+  }
+}
+
+/* Reserva a canaleta da barra de rolagem SEMPRE.
+
+   Todo modal do projeto trava a rolagem com `overflow: hidden` enquanto está
+   aberto. No Windows a barra ocupa ~15px de largura de verdade (diferente do
+   Mac, onde ela flutua por cima): quando ela some, a página inteira alarga
+   esses 15px e tudo salta de lado — e qualquer elemento animado por posição
+   reage a esse salto piscando. Reservando o espaço, abrir modal não muda mais
+   a largura de nada. */
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* Tipografia base */
+/* Headings herdam a cor do contexto por padrão (grafite no claro, branco
+   nas seções escuras via text-white). Em @layer base pra que utilitários
+   do Tailwind (text-white, text-primary) sempre vençam. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--secondary);
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Título do hero: line-height explícito e sem balance. */
+.hero-title {
+  line-height: 1.1;
+  text-wrap: initial;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Seleção */
+::selection {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Foco visível consistente. Sem `border-radius` aqui: o outline moderno já
+   acompanha o raio do próprio elemento, e forçar um valor fixo "quadra" o canto
+   de campos/botões arredondados no foco (bug de craft que aparecia nos inputs). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Scroll reveal — visível por padrão, o reveal só realça.
+   O `.reveal` cru NÃO esconde nada: só o `.reveal--armed` (que o JS
+   coloca, e apenas em elemento abaixo da dobra) começa invisível e
+   sobe. Sem JS, sem armar → conteúdo sempre visível. É isso que
+   impede a seção de sair em branco no celular/headless.
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal--armed {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.7s var(--ease-brand),
+      transform 0.7s var(--ease-brand);
+    transition-delay: var(--reveal-delay, 0s);
+  }
+  .reveal--armed.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Entrada dos blocos da gestão — CSS puro, de propósito.
+
+   Feito com animation (e não com estado do React) porque animação de
+   entrada em JS serializa `opacity: 0` no HTML do servidor: se o JS
+   não rodar — e isso ACONTECEU aqui, quando o Next bloqueava os
+   chunks por origem cruzada — a tela chega montada e invisível.
+   Com keyframes, o pior caso é o conteúdo aparecer sem animar.
+
+   `both` mantém o estado inicial antes do delay, senão o bloco pisca
+   visível e some pra reaparecer.
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  .entra {
+    animation: entra-suave 0.5s var(--ease-brand) both;
+    animation-delay: var(--entra-atraso, 0s);
+  }
+}
+
+@keyframes entra-suave {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Impressão: o "Exportar PDF" dos Relatórios é window.print(). Sem isto, o
+   que ainda não animou sairia em branco no PDF. */
+@media print {
+  .entra {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================================
+   Glow radial caramelo — atmosfera das seções escuras (equipe,
+   garantia). Referência usa glow da cor da marca atrás do conteúdo.
+   ============================================================ */
+.glow-caramelo {
+  background:
+    radial-gradient(
+      60% 70% at 22% 45%,
+      rgba(181, 110, 53, 0.22),
+      transparent 70%
+    );
+}
+
+/* ============================================================
+   Marquee dos selos de confiança (rolagem contínua da referência)
+   ============================================================ */
+.marquee {
+  overflow: hidden;
+  width: 100%;
+}
+.marquee__track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 32s linear infinite;
+}
+.marquee:hover .marquee__track {
+  animation-play-state: paused;
+}
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* "Gentler, not zero": derruba o MOVIMENTO, mantém crossfade de
+     opacidade/cor. Zera animações em loop e transforms; preserva
+     transições de opacity/color pra a mudança de estado continuar legível. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-property: opacity, background-color, color, border-color !important;
+    transition-duration: 0.2s !important;
+  }
+  /* Reveal: crossfade curto de opacidade, sem translate. */
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  /* Marquee para: vira lista estática centrada, SEM as cópias duplicadas.
+     A 2ª metade (aria-hidden) só existe pra alimentar o loop; sem scroll,
+     ela vira ruído visual (itens repetidos empilhados). Escondemos ela e
+     deixamos só os selos reais numa linha, com wrap no mobile. */
+  .marquee__track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+  .marquee__track > [aria-hidden="true"] {
+    display: none;
+  }
+}

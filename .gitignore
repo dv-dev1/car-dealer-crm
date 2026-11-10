@@ -1,0 +1,29 @@
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+
+# Dependências
+node_modules/
+
+# Arquivos temporários
+*.log
+*.tmp
+
+# Next.js
+/.next/
+/out/
+/build
+/coverage
+next-env.d.ts
+*.tsbuildinfo
+
+# env (chaves do Supabase etc.: nunca versionar). O .env.example é modelo e vai versionado.
+.env*
+!.env.example
+
+# Vercel
+.vercel
