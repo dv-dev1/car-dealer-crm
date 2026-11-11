@@ -11,7 +11,10 @@ import { signOutAction } from "@/features/auth/actions";
 import { requireMember, requireRole } from "@/features/auth/guard";
 import { NoAccessView } from "@/features/auth/view";
 import { seedTwoStores } from "../db/fixtures.ts";
+import { useDatabase } from "../setup/hyperdrive.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
+
+vi.mock("@opennextjs/cloudflare", () => import("../setup/hyperdrive.ts"));
 
 const authkit = vi.hoisted(() => ({ withAuth: vi.fn() }));
 vi.mock("@workos-inc/authkit-nextjs", () => authkit);
@@ -38,11 +41,10 @@ beforeAll(async () => {
 afterAll(() => admin.end());
 
 beforeEach(async () => {
-  vi.stubEnv("APP_DATABASE_URL", TEST_APP_URL);
+  useDatabase(TEST_APP_URL);
   seed = await seedTwoStores();
 });
 afterEach(() => {
-  vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
 
@@ -97,7 +99,7 @@ describe("requireMember", () => {
   });
 
   it("lets a database error through instead of redirecting", async () => {
-    vi.stubEnv("APP_DATABASE_URL", "postgres://nobody@127.0.0.1:1/none");
+    useDatabase("postgres://nobody@127.0.0.1:1/none");
     signIn({ id: "user_ana", email: seed.a.ana.email, emailVerified: true });
     await expect(requireMember()).rejects.toMatchObject({ code: "ECONNREFUSED" });
     expect(nav.redirect).not.toHaveBeenCalled();

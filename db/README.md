@@ -49,8 +49,6 @@ em `hyperdrive[0].id` do `wrangler.jsonc`. `npx wrangler hyperdrive list` deve m
 
 ## Regras
 
-- Nunca defina `APP_DATABASE_URL` no Worker, nem por `wrangler secret`: ela passa na frente do
-  Hyperdrive (`src/shared/db/connection.ts`). Ela existe só para testes e scripts.
 - WorkOS: deixe ligados só Magic Auth e Google. Cadastre o redirecionamento de saída (sign-out
   redirect): `http://localhost:8787/entrar` no Worker local e, depois, o `/entrar` de produção.
 - Turnstile: em produção, use as chaves reais do site, nunca as de teste.

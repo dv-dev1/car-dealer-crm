@@ -8,22 +8,17 @@ import {
   type Role,
 } from "@/shared/db/client";
 import { seedTwoStores } from "../db/fixtures.ts";
+import { useDatabase } from "../setup/hyperdrive.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL, TEST_DATABASE, TEST_PORT } from "../setup/urls.ts";
 
-// Like the real module outside a Worker, it throws unless a test hands it a context.
-const getCloudflareContext = vi.hoisted(() =>
-  vi.fn((): unknown => {
-    throw new Error("no Worker context");
-  }),
-);
-vi.mock("@opennextjs/cloudflare", () => ({ getCloudflareContext }));
+vi.mock("@opennextjs/cloudflare", () => import("../setup/hyperdrive.ts"));
 
 const UNREACHABLE_URL = "postgres://nobody@127.0.0.1:1/none";
 const urlFor = (login: string) => `postgres://${login}@127.0.0.1:${TEST_PORT}/${TEST_DATABASE}`;
 
 let seed: Awaited<ReturnType<typeof seedTwoStores>>;
 beforeEach(async () => {
-  vi.stubEnv("APP_DATABASE_URL", TEST_APP_URL);
+  useDatabase(TEST_APP_URL);
   seed = await seedTwoStores();
 });
 afterEach(() => {
@@ -102,7 +97,7 @@ it("does not leak the store between calls", async () => {
 });
 
 it("refuses an unsafe role before running fn", async () => {
-  vi.stubEnv("APP_DATABASE_URL", TEST_ADMIN_URL);
+  useDatabase(TEST_ADMIN_URL);
   const fn = vi.fn();
   await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toBeInstanceOf(
     UnsafeDatabaseRoleError,
@@ -114,7 +109,7 @@ it("refuses an unsafe role before running fn", async () => {
 async function expectLoginRefused(login: string, setup: string, teardown: string) {
   await adminQuery(setup);
   try {
-    vi.stubEnv("APP_DATABASE_URL", urlFor(login));
+    useDatabase(urlFor(login));
     const fn = vi.fn();
     await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toBeInstanceOf(
       UnsafeDatabaseRoleError,
@@ -161,7 +156,7 @@ it("UnsafeDatabaseRoleError names itself in logs", () => {
 });
 
 it("rejects a store id that is not a uuid before connecting", async () => {
-  vi.stubEnv("APP_DATABASE_URL", UNREACHABLE_URL);
+  useDatabase(UNREACHABLE_URL);
   const fn = vi.fn();
   for (const storeId of ["", "not-a-uuid", `${seed.a.storeId}' or true --`, ` ${seed.a.storeId}`]) {
     await expect(withStore({ storeId, role: "owner" }, fn)).rejects.toThrow(/storeId/);
@@ -170,7 +165,7 @@ it("rejects a store id that is not a uuid before connecting", async () => {
 });
 
 it("rejects a role outside owner, manager and seller before connecting", async () => {
-  vi.stubEnv("APP_DATABASE_URL", UNREACHABLE_URL);
+  useDatabase(UNREACHABLE_URL);
   const fn = vi.fn();
   for (const role of ["", "admin", "Owner", "owner "]) {
     await expect(withStore({ storeId: seed.a.storeId, role: role as Role }, fn)).rejects.toThrow(/role/);
@@ -179,7 +174,7 @@ it("rejects a role outside owner, manager and seller before connecting", async (
 });
 
 it("surfaces the connection error when the database is unreachable", async () => {
-  vi.stubEnv("APP_DATABASE_URL", UNREACHABLE_URL);
+  useDatabase(UNREACHABLE_URL);
   const fn = vi.fn();
   await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toMatchObject({
     code: "ECONNREFUSED",
@@ -199,9 +194,9 @@ it("closes its connection whether fn succeeds or throws", async () => {
   });
 });
 
-it("reads the Hyperdrive binding when APP_DATABASE_URL is unset", async () => {
-  vi.stubEnv("APP_DATABASE_URL", undefined);
-  getCloudflareContext.mockReturnValueOnce({ env: { HYPERDRIVE: { connectionString: TEST_APP_URL } } });
+// The old test-and-scripts override must not steer the Worker off Hyperdrive.
+it("ignores APP_DATABASE_URL and reads only the Hyperdrive binding", async () => {
+  vi.stubEnv("APP_DATABASE_URL", UNREACHABLE_URL);
   expect(await emails(seed.b.storeId)).toEqual(["carla@lojab.com"]);
 });
 
@@ -225,7 +220,7 @@ it("isLoginEmailAllowed is true only for invited emails", async () => {
 
 it("login lookups refuse an unsafe role before calling the database function", async () => {
   const { ana } = seed.a;
-  vi.stubEnv("APP_DATABASE_URL", TEST_ADMIN_URL);
+  useDatabase(TEST_ADMIN_URL);
   await expect(
     resolveMembership({ workosUserId: "user_1", email: ana.email, emailVerified: true }),
   ).rejects.toBeInstanceOf(UnsafeDatabaseRoleError);
