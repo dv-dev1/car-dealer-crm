@@ -44,16 +44,20 @@ create policy stores_select on stores for select to app_user
 
 create policy memberships_select on memberships for select to app_user
   using (store_id = app_store_id());
+-- An owner manages anyone in the store; a manager only sellers, before and after the change.
 create policy memberships_insert on memberships for insert to app_user
-  with check (store_id = app_store_id() and app_role() in ('owner', 'manager'));
+  with check (store_id = app_store_id() and (app_role() = 'owner' or (app_role() = 'manager' and role = 'seller')));
 create policy memberships_update on memberships for update to app_user
-  using (store_id = app_store_id() and app_role() in ('owner', 'manager'))
-  with check (store_id = app_store_id() and app_role() in ('owner', 'manager'));
+  using (store_id = app_store_id() and (app_role() = 'owner' or (app_role() = 'manager' and role = 'seller')))
+  with check (store_id = app_store_id() and (app_role() = 'owner' or (app_role() = 'manager' and role = 'seller')));
 create policy memberships_delete on memberships for delete to app_user
-  using (store_id = app_store_id() and app_role() in ('owner', 'manager'));
+  using (store_id = app_store_id() and (app_role() = 'owner' or (app_role() = 'manager' and role = 'seller')));
 
 grant select on stores to app_user;
-grant select, insert, update, delete on memberships to app_user;
+-- created_at and workos_user_id are left to defaults and resolve_membership, which trusts them.
+-- An e-mail is not edited: changing one is remove + add.
+grant select, delete on memberships to app_user;
+grant insert (store_id, email, name, role), update (name, role) on memberships to app_user;
 
 -- Login runs before any store is known: as the table owner this bypasses RLS and sees every store.
 create function resolve_membership(p_workos_user_id text, p_email text, p_email_verified boolean)

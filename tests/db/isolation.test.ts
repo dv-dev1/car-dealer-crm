@@ -39,7 +39,7 @@ async function adminQuery(sql: string, params: unknown[] = []) {
 }
 
 const ids = (result: pg.QueryResult) => result.rows.map((row) => row.id);
-const insertDani = "insert into memberships (store_id, name, email, role) values ($1, 'Dani', 'dani@x.com', 'seller')";
+const insertDani = "insert into memberships (store_id, name, email, role) values ($1, 'Dani', 'dani@x.com', $2)";
 const resolve = async (workosUserId: string, email: string, verified: boolean) =>
   (await app.query("select * from resolve_membership($1, $2, $3)", [workosUserId, email, verified])).rows;
 const linkOf = async (membershipId: string) =>
@@ -77,16 +77,14 @@ it("returns zero rows on a pooled connection after a store transaction ended", a
 
 it("seller cannot insert a member", async () => {
   const { a } = seed;
-  await expect(asApp(a.storeId, "seller", (db) => db.query(insertDani, [a.storeId]))).rejects.toMatchObject({
-    code: "42501",
-  });
+  const add = (db: pg.PoolClient) => db.query(insertDani, [a.storeId, "seller"]);
+  await expect(asApp(a.storeId, "seller", add)).rejects.toMatchObject({ code: "42501" });
 });
 
 it("owner of A cannot insert into store B", async () => {
   const { a, b } = seed;
-  await expect(asApp(a.storeId, "owner", (db) => db.query(insertDani, [b.storeId]))).rejects.toMatchObject({
-    code: "42501",
-  });
+  const add = (db: pg.PoolClient) => db.query(insertDani, [b.storeId, "seller"]);
+  await expect(asApp(a.storeId, "owner", add)).rejects.toMatchObject({ code: "42501" });
 });
 
 it("owner of A cannot move a member to store B", async () => {
@@ -128,6 +126,48 @@ it("seller cannot change or remove a member", async () => {
   expect(counts).toEqual([0, 0]);
 });
 
+it("manager can add a seller", async () => {
+  const { a } = seed;
+  const result = await asApp(a.storeId, "manager", (db) => db.query(insertDani, [a.storeId, "seller"]));
+  expect(result.rowCount).toBe(1);
+});
+
+it("manager cannot add a manager", async () => {
+  const { a } = seed;
+  const add = (db: pg.PoolClient) => db.query(insertDani, [a.storeId, "manager"]);
+  await expect(asApp(a.storeId, "manager", add)).rejects.toMatchObject({ code: "42501" });
+});
+
+it("manager cannot promote a seller to owner", async () => {
+  const { a } = seed;
+  const promote = (db: pg.PoolClient) => db.query("update memberships set role = 'owner' where id = $1", [a.beto.id]);
+  await expect(asApp(a.storeId, "manager", promote)).rejects.toMatchObject({ code: "42501" });
+});
+
+it("manager cannot change or remove an owner", async () => {
+  const { a } = seed;
+  const counts = await asApp(a.storeId, "manager", async (db) => [
+    (await db.query("update memberships set name = 'Ana X' where id = $1", [a.ana.id])).rowCount,
+    (await db.query("delete from memberships where id = $1", [a.ana.id])).rowCount,
+  ]);
+  expect(counts).toEqual([0, 0]);
+  const ana = await adminQuery("select name, role from memberships where id = $1", [a.ana.id]);
+  expect(ana.rows).toEqual([{ name: "Ana", role: "owner" }]);
+});
+
+it("owner can add, promote, change and remove any member", async () => {
+  const { a } = seed;
+  const insertEva = "insert into memberships (store_id, name, email, role) values ($1, 'Eva', 'eva@x.com', 'manager')";
+  const counts = await asApp(a.storeId, "owner", async (db) => [
+    (await db.query(insertDani, [a.storeId, "seller"])).rowCount,
+    (await db.query(insertEva, [a.storeId])).rowCount,
+    (await db.query("update memberships set role = 'owner' where id = $1", [a.beto.id])).rowCount,
+    (await db.query("update memberships set name = 'Beto X' where id = $1", [a.beto.id])).rowCount,
+    (await db.query("delete from memberships where id = $1", [a.beto.id])).rowCount,
+  ]);
+  expect(counts).toEqual([1, 1, 1, 1, 1]);
+});
+
 it("app login is not superuser, has no BYPASSRLS and owns no table", async () => {
   // Owning through an inherited role also bypasses RLS, hence pg_has_role instead of relowner = current_user.
   const { rows } = await app.query(`
@@ -158,14 +198,34 @@ it("resolve never overwrites an existing link", async () => {
   expect(await linkOf(ana.id)).toBe("user_1");
 });
 
-// Known gap, reported: app_user may write created_at, and resolve trusts it to pick the oldest store.
-it.skip("owner of A cannot make a B member's login land in store A", async () => {
+// resolve trusts created_at ("oldest wins") and workos_user_id, so the app must not write either.
+it("owner of A cannot make a B member's login land in store A", async () => {
   const { a, b } = seed;
   await resolve("user_c", b.carla.email, true);
   const backdated =
     "insert into memberships (store_id, name, email, role, created_at) values ($1, 'Carla', $2, 'seller', '1900-01-01')";
-  await asApp(a.storeId, "owner", (db) => db.query(backdated, [a.storeId, b.carla.email]));
+  const plant = (db: pg.PoolClient) => db.query(backdated, [a.storeId, b.carla.email]);
+  await expect(asApp(a.storeId, "owner", plant)).rejects.toMatchObject({ code: "42501" });
   expect((await resolve("user_c", b.carla.email, true))[0].store_id).toBe(b.storeId);
+});
+
+it("owner cannot set workos_user_id on insert or update", async () => {
+  const { a } = seed;
+  const preLinked =
+    "insert into memberships (store_id, name, email, role, workos_user_id) " +
+    "values ($1, 'Dani', 'dani@x.com', 'seller', 'user_c')";
+  const plant = (db: pg.PoolClient) => db.query(preLinked, [a.storeId]);
+  await expect(asApp(a.storeId, "owner", plant)).rejects.toMatchObject({ code: "42501" });
+  const link = (db: pg.PoolClient) =>
+    db.query("update memberships set workos_user_id = 'user_c' where id = $1", [a.beto.id]);
+  await expect(asApp(a.storeId, "owner", link)).rejects.toMatchObject({ code: "42501" });
+});
+
+it("owner cannot change a member's e-mail", async () => {
+  const { a } = seed;
+  const rename = (db: pg.PoolClient) =>
+    db.query("update memberships set email = 'beto2@lojaa.com' where id = $1", [a.beto.id]);
+  await expect(asApp(a.storeId, "owner", rename)).rejects.toMatchObject({ code: "42501" });
 });
 
 it("resolve returns nothing for an unknown email", async () => {
