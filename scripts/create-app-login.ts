@@ -6,7 +6,8 @@ import pg from "pg";
 import { createPool } from "../db/migrate.ts";
 
 const USAGE = "Usage: MIGRATE_DATABASE_URL=<url> node scripts/create-app-login.ts --out <file>";
-const ATTRIBUTES = "login nosuperuser nobypassrls nocreatedb nocreaterole noreplication inherit";
+// No NOSUPERUSER here: in ALTER ROLE it needs a superuser even as a no-op, and Neon's owner is not one.
+const ATTRIBUTES = "login nobypassrls nocreatedb nocreaterole noreplication inherit";
 
 // The server stores this verifier as given, so the plaintext never reaches the SQL text, the server log or pg_stat_activity.
 // The password is base64url, hence ASCII: SASLprep would leave it unchanged.
@@ -18,7 +19,30 @@ function scramVerifier(password: string): string {
   return `SCRAM-SHA-256$4096:${salt.toString("base64")}$${storedKey}:${hmac("Server Key").toString("base64")}`;
 }
 
-// Creates the `crm_app` login (or rotates its password) and returns its connection URL; `adminUrl` must be a superuser.
+// Proves the new password logs in, as the app would, and that the login sees no row without a store.
+async function checkAppLogin(appUrl: string): Promise<void> {
+  const pool = createPool(appUrl);
+  let me: { login: string; rolsuper: boolean; rolbypassrls: boolean; visible: number };
+  try {
+    const { rows } = await pool.query<typeof me>(
+      `select current_user as login, rolsuper, rolbypassrls, (select count(*) from memberships)::int as visible
+         from pg_roles where rolname = current_user`,
+    );
+    me = rows[0];
+  } catch (error) {
+    // pg names the user and the host in its messages, never the password
+    throw new Error(`The new crm_app login failed its check: ${(error as Error).message}`);
+  } finally {
+    await pool.end();
+  }
+  if (me.login !== "crm_app" || me.rolsuper || me.rolbypassrls || me.visible !== 0) {
+    const expected = "crm_app, no SUPERUSER, no BYPASSRLS, 0 rows visible without a store";
+    throw new Error(`The new crm_app login failed its check: expected ${expected}, got ${JSON.stringify(me)}`);
+  }
+}
+
+// Creates the `crm_app` login (or rotates its password) and returns its connection URL.
+// `adminUrl` needs CREATEROLE with ADMIN OPTION on app_user and crm_app, as Neon's owner has; not a superuser.
 export async function createAppLogin(adminUrl: string): Promise<string> {
   const password = randomBytes(32).toString("base64url");
   const pool = createPool(adminUrl);
@@ -26,14 +50,17 @@ export async function createAppLogin(adminUrl: string): Promise<string> {
     const client = await pool.connect();
     try {
       await client.query("begin");
-      const { rows } = await client.query<{ group_exists: boolean; login_exists: boolean }>(
+      const { rows } = await client.query<{ group_exists: boolean; login_super: boolean | null }>(
         `select exists (select from pg_roles where rolname = 'app_user') as group_exists,
-                exists (select from pg_roles where rolname = 'crm_app') as login_exists`,
+                (select rolsuper from pg_roles where rolname = 'crm_app') as login_super`,
       );
-      if (!rows[0].group_exists) throw new Error("Role app_user does not exist: run the migrations first (npm run db:migrate)");
+      const [{ group_exists, login_super }] = rows;
+      if (!group_exists) throw new Error("Role app_user does not exist: run the migrations first (npm run db:migrate)");
+      // Only a superuser may alter a superuser role, so this one is fixed by hand.
+      if (login_super) throw new Error('Role crm_app is a superuser: a superuser must run "alter role crm_app nosuperuser" first');
       // create/alter role take no bind parameters, so the verifier goes in as an escaped literal
-      const verb = rows[0].login_exists ? "alter" : "create";
-      await client.query(`${verb} role crm_app ${ATTRIBUTES} password ${pg.escapeLiteral(scramVerifier(password))}`);
+      const role = login_super === null ? "create role crm_app nosuperuser" : "alter role crm_app";
+      await client.query(`${role} ${ATTRIBUTES} password ${pg.escapeLiteral(scramVerifier(password))}`);
       await client.query("grant app_user to crm_app");
       await client.query("commit");
     } catch (error) {
@@ -48,6 +75,7 @@ export async function createAppLogin(adminUrl: string): Promise<string> {
   const url = new URL(adminUrl);
   url.username = "crm_app";
   url.password = password;
+  await checkAppLogin(url.toString());
   return url.toString();
 }
 

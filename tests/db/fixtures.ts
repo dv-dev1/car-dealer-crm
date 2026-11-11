@@ -35,3 +35,27 @@ export async function seedTwoStores(): Promise<{
     await admin.end();
   }
 }
+
+// Neon's database owner is not a superuser; these are the attributes it has there.
+export async function createNeonLikeAdmin(name: string): Promise<{ url: string; drop(): Promise<void> }> {
+  const run = async (sql: string) => {
+    const admin = new pg.Client({ connectionString: TEST_ADMIN_URL });
+    await admin.connect();
+    try {
+      await admin.query(sql);
+    } finally {
+      await admin.end();
+    }
+  };
+  await run(`create role ${name} login createrole createdb bypassrls replication`);
+  // On Neon the owner creates app_user and so holds ADMIN OPTION on it; here the superuser created it.
+  await run(`grant app_user to ${name} with admin option`);
+  const url = new URL(TEST_ADMIN_URL);
+  url.username = name;
+  // DROP OWNED also revokes the memberships this role granted, which would otherwise block DROP ROLE.
+  const drop = async () => {
+    await run(`drop owned by ${name}`);
+    await run(`drop role ${name}`);
+  };
+  return { url: url.toString(), drop };
+}

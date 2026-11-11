@@ -5,9 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createAppLogin } from "../../scripts/create-app-login.ts";
 import { createStore } from "../../scripts/create-store.ts";
+import { createNeonLikeAdmin } from "../db/fixtures.ts";
 import { TEST_ADMIN_URL, TEST_APP_PASSWORD } from "../setup/urls.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -182,10 +183,26 @@ describe("createAppLogin", () => {
 
   it("restores the attributes and the membership when it rotates", async () => {
     await createAppLogin(TEST_ADMIN_URL);
-    await query("alter role crm_app nologin superuser bypassrls createdb createrole replication noinherit");
+    await query("alter role crm_app nologin bypassrls createdb createrole replication noinherit");
     await query("revoke app_user from crm_app");
     await createAppLogin(TEST_ADMIN_URL);
     expect(await roleState()).toEqual(CLEAN_ROLE);
+  });
+
+  it("fails clearly, without the URL or the password, when the new login can see rows", async () => {
+    await createStore(TEST_ADMIN_URL, { ...owner, slug: "ops-test-leak" }); // a row the login must not see
+    await query("create policy ops_test_leak on memberships for select to crm_app using (true)");
+    try {
+      const error = await createAppLogin(TEST_ADMIN_URL).then(
+        () => new Error("resolved"),
+        (reason: Error) => reason,
+      );
+      expect(error.message).toMatch(/crm_app login failed its check/);
+      expect(error.message).not.toContain("postgres://");
+      expect(error.message).not.toMatch(/[A-Za-z0-9_-]{43}/); // the shape of the password
+    } finally {
+      await query("drop policy ops_test_leak on memberships");
+    }
   });
 
   it("fails clearly when app_user does not exist", async () => {
@@ -194,6 +211,43 @@ describe("createAppLogin", () => {
       await expect(createAppLogin(TEST_ADMIN_URL)).rejects.toThrow(/run the migrations first/);
     } finally {
       await query("alter role app_user_off rename to app_user");
+    }
+  });
+});
+
+describe("createAppLogin as a non-superuser owner, like Neon's", () => {
+  let neon: Awaited<ReturnType<typeof createNeonLikeAdmin>>;
+  beforeAll(async () => {
+    neon = await createNeonLikeAdmin("ops_test_neon_owner");
+  });
+  afterAll(async () => {
+    await neon.drop(); // the file's afterAll then restores crm_app
+  });
+
+  it("creates the login and then rotates it", async () => {
+    await query("drop role crm_app");
+    await createAppLogin(neon.url);
+    expect(await roleState()).toEqual(CLEAN_ROLE);
+    const rotated = await createAppLogin(neon.url);
+    expect(await roleState()).toEqual(CLEAN_ROLE);
+    expect((await query("select current_user as login", [], rotated)).rows).toEqual([{ login: "crm_app" }]);
+  });
+
+  it("refuses to rotate a superuser login and changes nothing", async () => {
+    const state = async () =>
+      (
+        await query(
+          `select rolsuper, rolpassword, pg_has_role('crm_app', 'app_user', 'member') as member
+             from pg_authid where rolname = 'crm_app'`,
+        )
+      ).rows;
+    await query("alter role crm_app superuser");
+    try {
+      const before = await state();
+      await expect(createAppLogin(neon.url)).rejects.toThrow(/crm_app is a superuser/);
+      expect(await state()).toEqual(before);
+    } finally {
+      await query("alter role crm_app nosuperuser");
     }
   });
 });
