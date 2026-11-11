@@ -7,9 +7,10 @@ import { promisify } from "node:util";
 import pg from "pg";
 import { migrate } from "./migrate.ts";
 
-const PG_BIN = "/opt/homebrew/bin";
 const exec = promisify(execFile);
-const pgBin = (command: string, args: string[]) => exec(join(PG_BIN, command), args);
+// initdb and pg_ctl come from the PATH (see db/README.md); PG_BIN points at another bin directory.
+const pgBin = (command: string, args: string[]) =>
+  exec(process.env.PG_BIN ? join(process.env.PG_BIN, command) : command, args);
 
 type ClusterOptions = { dataDir: string; port: number; database: string; appPassword: string };
 type Cluster = { adminUrl: string; appUrl: string; stop(): Promise<void> };
