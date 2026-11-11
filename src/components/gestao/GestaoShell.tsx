@@ -5,10 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Plus, Menu, X, Sun, Moon } from "lucide-react";
+import { Plus, Menu, X, Sun, Moon, LogOut } from "lucide-react";
 import { secoes, EVENTO_NOVO_CLIENTE } from "./secoes";
 import { useTema } from "@/lib/tema";
 import { VEU, EASE_MARCA as EASE } from "./motion/sobreposicao";
+import { signOutAction } from "@/features/auth/actions";
 
 const LARGURA = "260px";
 
@@ -120,7 +121,18 @@ function ConteudoSidebar({
         })}
       </nav>
 
-      <BotaoTema />
+      <div className="mt-auto flex flex-col gap-1">
+        <BotaoTema />
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-[var(--radius)] px-3.5 py-2.5 text-sm font-medium text-secondary/70 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary"
+          >
+            <LogOut size={18} strokeWidth={1.9} className="shrink-0" />
+            Sair
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -139,7 +151,7 @@ function BotaoTema() {
       // mismatch de hidratação.
       suppressHydrationWarning
       aria-label={escuro ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
-      className="mt-auto flex items-center gap-3 rounded-[var(--radius)] px-3.5 py-2.5 text-sm font-medium text-secondary/70 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary"
+      className="flex items-center gap-3 rounded-[var(--radius)] px-3.5 py-2.5 text-sm font-medium text-secondary/70 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary"
     >
       {/* tema === null enquanto não montou: mostra o sol como neutro */}
       {escuro ? (
