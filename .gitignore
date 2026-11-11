@@ -27,3 +27,6 @@ next-env.d.ts
 
 # Vercel
 .vercel
+
+# Local Postgres cluster (npm run db:dev)
+/.pgdata/
