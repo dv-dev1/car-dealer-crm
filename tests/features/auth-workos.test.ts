@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAuthDeps, sessionToSave } from "@/features/auth/workos";
+import { createAuthDeps } from "@/features/auth/workos";
 import { isLoginEmailAllowed } from "@/shared/db/client";
 
 const workos = vi.hoisted(() => ({
@@ -26,6 +26,24 @@ let consoleError: ReturnType<typeof vi.spyOn>;
 // What WorkOS's SDK builds from an API error: the message comes from the API and may echo input.
 function workosError(message: string, fields: Record<string, unknown>) {
   return Object.assign(new Error(message), { name: "UnprocessableEntityException", ...fields });
+}
+
+const user = { id: "u", email: EMAIL, emailVerified: true };
+const impersonator = { email: "admin@workos.test", reason: null };
+
+// WorkOS's whole AuthenticationResponse, Google tokens and fields we do not know included.
+function fullResponse(authenticationMethod: string) {
+  return {
+    accessToken: "a",
+    refreshToken: "r",
+    user,
+    impersonator,
+    authenticationMethod,
+    organizationId: "org_1",
+    sealedSession: "sealed",
+    oauthTokens: { accessToken: "google-access", refreshToken: "google-refresh", expiresAt: 1, scopes: [] },
+    somethingNew: "x",
+  };
 }
 
 function logged(): string {
@@ -100,11 +118,10 @@ describe("createMagicAuth", () => {
 });
 
 describe("authenticate calls", () => {
-  it("authenticateWithMagicAuth returns the whole WorkOS response", async () => {
-    const response = { accessToken: "a", refreshToken: "r", user: { id: "u" }, authenticationMethod: "MagicAuth" };
-    workos.userManagement.authenticateWithMagicAuth.mockResolvedValue(response);
+  it("authenticateWithMagicAuth asks WorkOS with the client id, e-mail and code", async () => {
+    workos.userManagement.authenticateWithMagicAuth.mockResolvedValue(fullResponse("MagicAuth"));
 
-    await expect(createAuthDeps().authenticateWithMagicAuth(EMAIL, CODE)).resolves.toBe(response);
+    await createAuthDeps().authenticateWithMagicAuth(EMAIL, CODE);
     expect(workos.userManagement.authenticateWithMagicAuth).toHaveBeenCalledWith({
       clientId: "client_test",
       email: EMAIL,
@@ -112,11 +129,10 @@ describe("authenticate calls", () => {
     });
   });
 
-  it("authenticateWithCode returns the whole WorkOS response", async () => {
-    const response = { accessToken: "a", refreshToken: "r", user: { id: "u" }, authenticationMethod: "GoogleOAuth" };
-    workos.userManagement.authenticateWithCode.mockResolvedValue(response);
+  it("authenticateWithCode asks WorkOS with the client id and code", async () => {
+    workos.userManagement.authenticateWithCode.mockResolvedValue(fullResponse("GoogleOAuth"));
 
-    await expect(createAuthDeps().authenticateWithCode("authcode")).resolves.toBe(response);
+    await createAuthDeps().authenticateWithCode("authcode");
     expect(workos.userManagement.authenticateWithCode).toHaveBeenCalledWith({ clientId: "client_test", code: "authcode" });
   });
 
@@ -148,28 +164,21 @@ describe("authenticate calls", () => {
   });
 });
 
-describe("sessionToSave", () => {
-  it("keeps only the fields authkit seals, dropping Google tokens and anything unknown", () => {
-    const user = { id: "u", email: EMAIL, emailVerified: true };
-    const impersonator = { email: "admin@workos.test", reason: null };
-    const response = {
-      accessToken: "a",
-      refreshToken: "r",
-      user,
-      impersonator,
-      authenticationMethod: "GoogleOAuth",
-      organizationId: "org_1",
-      sealedSession: "sealed",
-      oauthTokens: { accessToken: "google-access", refreshToken: "google-refresh", expiresAt: 1, scopes: [] },
-      somethingNew: "x",
-    } as unknown as Parameters<typeof sessionToSave>[0];
+// Only what authkit's own callback seals leaves the adapter: Google tokens and unknown fields would
+// bloat the cookie past the 4 KB a browser keeps.
+describe("the session the authenticate calls return", () => {
+  it.each([
+    ["authenticateWithMagicAuth", "MagicAuth", () => createAuthDeps().authenticateWithMagicAuth(EMAIL, CODE)],
+    ["authenticateWithCode", "GoogleOAuth", () => createAuthDeps().authenticateWithCode("authcode")],
+  ] as const)("%s keeps only the fields authkit seals", async (call, method, authenticate) => {
+    workos.userManagement[call].mockResolvedValue(fullResponse(method));
 
-    const session = sessionToSave(response);
+    const session = await authenticate();
 
     expect(Object.keys(session).sort()).toEqual(
       ["accessToken", "authenticationMethod", "impersonator", "refreshToken", "user"].sort(),
     );
-    expect(session).toEqual({ accessToken: "a", refreshToken: "r", user, impersonator, authenticationMethod: "GoogleOAuth" });
+    expect(session).toEqual({ accessToken: "a", refreshToken: "r", user, impersonator, authenticationMethod: method });
     expect(JSON.stringify(session)).not.toContain("google-");
   });
 });

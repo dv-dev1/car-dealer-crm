@@ -2,7 +2,7 @@ import { saveSession } from "@workos-inc/authkit-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { completeGoogleLogin, newOAuthState } from "./model";
-import { createAuthDeps, sessionToSave } from "./workos";
+import { createAuthDeps } from "./workos";
 
 // Ties the Google callback to the browser that started the login; it lives only for the round trip.
 const STATE_COOKIE = { name: "oauth_state", httpOnly: true, secure: true, sameSite: "lax", maxAge: 600 } as const;
@@ -27,7 +27,7 @@ export async function finishGoogleLogin(request: NextRequest): Promise<NextRespo
   let saved = false;
   if (result.ok) {
     try {
-      await saveSession(sessionToSave(result.session), request);
+      await saveSession(result.session, request);
       saved = true;
     } catch (error) {
       // saveSession verifies the token against WorkOS's JWKS; its message may carry user data.

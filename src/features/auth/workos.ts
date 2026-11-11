@@ -16,14 +16,6 @@ function logWorkOSError(operation: string, error: unknown): void {
   console.error(`WorkOS ${operation} failed`, { name, status, code: code ?? oauthError });
 }
 
-async function sendMagicAuth(email: string): Promise<void> {
-  try {
-    await getWorkOS().userManagement.createMagicAuth({ email });
-  } catch (error) {
-    logWorkOSError("createMagicAuth", error);
-  }
-}
-
 async function logged<T>(operation: string, call: () => Promise<T>): Promise<T> {
   try {
     return await call();
@@ -35,32 +27,40 @@ async function logged<T>(operation: string, call: () => Promise<T>): Promise<T> 
 
 // The shape authkit's own callback seals and its refresh rewrites. The rest of the response
 // (Google oauthTokens, organizationId, new fields) would bloat the cookie past the 4 KB a browser keeps.
-export function sessionToSave(response: AuthenticationResponse): Session {
+function sessionToSave(response: AuthenticationResponse): Session {
   const { accessToken, refreshToken, user, impersonator, authenticationMethod } = response;
   return { accessToken, refreshToken, user, impersonator, authenticationMethod };
 }
 
-export function createAuthDeps(): AuthDeps<AuthenticationResponse> {
+export function createAuthDeps(): AuthDeps<Session> {
   const clientId = process.env.WORKOS_CLIENT_ID ?? "";
   const redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "";
 
   return {
     async createMagicAuth(email) {
-      // Not awaited: invited and uninvited e-mails must answer in the same time.
-      const send = sendMagicAuth(email);
+      // Not awaited: invited and uninvited e-mails must answer in the same time. logged() already
+      // reported a failure (a synchronous getWorkOS() throw included), so the rejection stops here.
+      const send = logged("createMagicAuth", () => getWorkOS().userManagement.createMagicAuth({ email })).then(
+        () => {},
+        () => {},
+      );
       try {
         getCloudflareContext().ctx.waitUntil(send);
       } catch {
         // No Worker context (plain `next dev`): the promise keeps running on its own.
       }
     },
-    // The full AuthenticationResponse is returned; sessionToSave picks what goes into the cookie.
-    authenticateWithMagicAuth: (email, code) =>
-      logged("authenticateWithMagicAuth", () =>
-        getWorkOS().userManagement.authenticateWithMagicAuth({ clientId, email, code }),
+    // Only the cookie's fields leave the adapter: Google tokens never reach the callers.
+    authenticateWithMagicAuth: async (email, code) =>
+      sessionToSave(
+        await logged("authenticateWithMagicAuth", () =>
+          getWorkOS().userManagement.authenticateWithMagicAuth({ clientId, email, code }),
+        ),
       ),
-    authenticateWithCode: (code) =>
-      logged("authenticateWithCode", () => getWorkOS().userManagement.authenticateWithCode({ clientId, code })),
+    authenticateWithCode: async (code) =>
+      sessionToSave(
+        await logged("authenticateWithCode", () => getWorkOS().userManagement.authenticateWithCode({ clientId, code })),
+      ),
     googleAuthorizationUrl: (state) =>
       getWorkOS().userManagement.getAuthorizationUrl({ provider: "GoogleOAuth", clientId, redirectUri, state }),
     isLoginEmailAllowed,

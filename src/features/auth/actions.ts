@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { text } from "@/shared/form";
 
 import { requestLoginCode, verifyLoginCode } from "./model";
-import { createAuthDeps, sessionToSave } from "./workos";
+import { createAuthDeps } from "./workos";
 
 export type LoginState = { step: "email" | "code"; email: string; error: string | null };
 
@@ -36,7 +36,7 @@ export async function verifyCodeAction(_prev: LoginState, form: FormData): Promi
   const result = await verifyLoginCode(createAuthDeps(), { email, code: text(form, "code"), ip });
   if (!result.ok) return { step: "code", email, error: result.error };
 
-  await saveSession(sessionToSave(result.session), process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "");
+  await saveSession(result.session, process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "");
   redirect("/gestao");
 }
 
