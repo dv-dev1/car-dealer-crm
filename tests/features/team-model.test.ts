@@ -133,7 +133,7 @@ it("gives one ok and one duplicate when the same email is added at once", async 
 it("throws on a role outside owner, manager and seller", async () => {
   const marta = await seedMember("manager", "Marta", "marta@lojaa.com");
   for (const caller of [ana, marta, beto]) {
-    await expect(addMember(caller, { ...dani, role: "admin" as Role })).rejects.toThrow(/role/);
+    await expect(addMember(caller, { ...dani, role: "admin" as Role })).rejects.toThrow(/addMember: role/);
   }
   expect(await names(ana)).toEqual(["Ana", "Beto", "Marta"]);
 });
