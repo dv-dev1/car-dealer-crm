@@ -1,15 +1,17 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { createHash, createHmac, pbkdf2Sync } from "node:crypto";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { createAppLogin } from "../../scripts/create-app-login.ts";
 import { createStore } from "../../scripts/create-store.ts";
 import { TEST_ADMIN_URL, TEST_APP_PASSWORD } from "../setup/urls.ts";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
+const UNREACHABLE = "postgres://postgres:hunter2@127.0.0.1:1/crm_test"; // nothing listens on port 1
 const dirs: string[] = [];
 
 async function query(sql: string, params: unknown[] = [], url = TEST_ADMIN_URL) {
@@ -37,22 +39,24 @@ const CLEAN_ROLE = {
   rolbypassrls: false,
   rolcreatedb: false,
   rolcreaterole: false,
+  rolreplication: false,
+  rolinherit: true,
   member: true,
 };
 
 async function roleState() {
   const { rows } = await query(
-    `select rolcanlogin, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole,
+    `select rolcanlogin, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole, rolreplication, rolinherit,
             pg_has_role('crm_app', 'app_user', 'member') as member
        from pg_roles where rolname = 'crm_app'`,
   );
   return rows[0];
 }
 
-function run(script: string, args: string[]) {
+function run(script: string, args: string[], adminUrl = TEST_ADMIN_URL) {
   return spawnSync(process.execPath, [join(ROOT, "scripts", script), ...args], {
     encoding: "utf8",
-    env: { ...process.env, MIGRATE_DATABASE_URL: TEST_ADMIN_URL },
+    env: { ...process.env, MIGRATE_DATABASE_URL: adminUrl },
   });
 }
 
@@ -148,9 +152,37 @@ describe("createAppLogin", () => {
     expect(await verifier()).not.toEqual(before); // trust auth never checks the old password, so compare the stored verifier
   });
 
+  it("stores a SCRAM-SHA-256 verifier derived from the password in the returned URL", async () => {
+    const url = await createAppLogin(TEST_ADMIN_URL);
+    const { rows } = await query("select rolpassword from pg_authid where rolname = 'crm_app'");
+    const stored = rows[0].rolpassword as string;
+    const parts = stored.match(/^SCRAM-SHA-256\$4096:([^$]+)\$([^:]+):(.+)$/);
+    expect(parts).not.toBeNull();
+    const [, salt, storedKey, serverKey] = parts!;
+    // Independent of the script: the same derivation `psql \password` does.
+    const salted = pbkdf2Sync(new URL(url).password, Buffer.from(salt, "base64"), 4096, 32, "sha256");
+    const hmac = (data: string) => createHmac("sha256", salted).update(data).digest();
+    expect(storedKey).toBe(createHash("sha256").update(hmac("Client Key")).digest("base64"));
+    expect(serverKey).toBe(hmac("Server Key").toString("base64"));
+  });
+
+  it("never sends the password in the SQL it runs", async () => {
+    const spy = vi.spyOn(pg.Client.prototype, "query");
+    let url: string;
+    let sent: string[];
+    try {
+      url = await createAppLogin(TEST_ADMIN_URL);
+      sent = spy.mock.calls.map(([sql]) => String(sql)); // mockRestore clears the calls
+    } finally {
+      spy.mockRestore();
+    }
+    expect(sent.some((sql) => sql.includes("SCRAM-SHA-256$"))).toBe(true); // the spy saw the role statement
+    for (const sql of sent) expect(sql).not.toContain(new URL(url).password);
+  });
+
   it("restores the attributes and the membership when it rotates", async () => {
     await createAppLogin(TEST_ADMIN_URL);
-    await query("alter role crm_app nologin superuser bypassrls createdb createrole");
+    await query("alter role crm_app nologin superuser bypassrls createdb createrole replication noinherit");
     await query("revoke app_user from crm_app");
     await createAppLogin(TEST_ADMIN_URL);
     expect(await roleState()).toEqual(CLEAN_ROLE);
@@ -188,6 +220,25 @@ describe("create-app-login CLI", () => {
       expect(text).not.toContain(url);
       expect(text).not.toContain(new URL(url).password);
     }
+  });
+
+  it("exits 1, prints no credentials and leaves no file behind when the database step fails", () => {
+    const out = tempFile();
+    const result = run("create-app-login.ts", ["--out", out], UNREACHABLE);
+    expect(result.status).toBe(1);
+    expect(result.stderr).not.toBe("");
+    for (const text of [result.stdout, result.stderr]) {
+      expect(text).not.toContain("hunter2");
+      expect(text).not.toContain("postgres://");
+    }
+    expect(existsSync(out)).toBe(false);
+  });
+
+  it("leaves an existing file untouched when the database step fails", () => {
+    const out = tempFile();
+    writeFileSync(out, "keep me");
+    expect(run("create-app-login.ts", ["--out", out], UNREACHABLE).status).toBe(1);
+    expect(readFileSync(out, "utf8")).toBe("keep me");
   });
 
   it("requires --out", () => {
