@@ -4,9 +4,12 @@ begin
   if not exists (select from pg_roles where rolname = 'app_user') then
     create role app_user nologin nobypassrls;
   end if;
-  -- Naming NOSUPERUSER in ALTER ROLE needs a superuser, which Neon's owner is not, so alter only on drift.
-  if exists (select from pg_roles where rolname = 'app_user' and (rolsuper or rolbypassrls or rolcanlogin)) then
-    alter role app_user nologin nosuperuser nobypassrls;
+  -- Neon's owner is not a superuser: it can neither alter a superuser role nor name NOSUPERUSER in ALTER ROLE.
+  if exists (select from pg_roles where rolname = 'app_user' and rolsuper) then
+    raise exception 'role app_user is a superuser: a superuser must run "alter role app_user nosuperuser" first';
+  end if;
+  if exists (select from pg_roles where rolname = 'app_user' and (rolbypassrls or rolcanlogin)) then
+    alter role app_user nologin nobypassrls;
   end if;
 end
 $$;
