@@ -7,6 +7,8 @@ export type AuthSession = {
 };
 
 export type AuthDeps = {
+  // Must return without waiting on the network: the adapter schedules the send in the background
+  // (ctx.waitUntil) and logs failures there, so invited and uninvited emails take the same time.
   createMagicAuth(email: string): Promise<void>;
   authenticateWithMagicAuth(email: string, code: string): Promise<AuthSession>;
   authenticateWithCode(code: string): Promise<AuthSession>;

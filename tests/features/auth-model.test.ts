@@ -70,6 +70,20 @@ describe("requestLoginCode", () => {
     expect(deps.createMagicAuth).toHaveBeenCalledWith("ana@lojaa.com");
   });
 
+  it("calls createMagicAuth exactly once, last, after every check", async () => {
+    const deps = makeDeps();
+
+    await requestLoginCode(deps, request);
+
+    const [sendOrder, ...extraSends] = deps.createMagicAuth.mock.invocationCallOrder;
+    const checkOrders = [deps.verifyTurnstile, deps.rateLimit, deps.isLoginEmailAllowed].flatMap(
+      (fn) => fn.mock.invocationCallOrder,
+    );
+    expect(extraSends).toEqual([]);
+    expect(deps.isLoginEmailAllowed.mock.invocationCallOrder[0]).toBeLessThan(sendOrder);
+    expect(Math.max(...checkOrders)).toBeLessThan(sendOrder);
+  });
+
   it("answers ok and sends nothing to an email that was not invited", async () => {
     const deps = makeDeps();
     deps.isLoginEmailAllowed.mockResolvedValue(false);
