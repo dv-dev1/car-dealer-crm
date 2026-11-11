@@ -5,29 +5,21 @@ import {
   veiculoGestaoPorSlug,
 } from "@/data/gestao-mock";
 import { CarroGestao } from "./CarroGestao";
+import { requireMember } from "@/features/auth/guard";
 
-export function generateStaticParams() {
-  return estoqueGestao.map((v) => ({ slug: v.slug }));
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
-  const v = veiculoGestaoPorSlug(slug);
-  return {
-    title: v ? `${v.titulo} — Gestão` : "Veículo — Gestão",
-    robots: { index: false, follow: false },
-  };
-}
+// No generateStaticParams: a prerendered page would ship cost and margin in the build output.
+// A static title: one per car would read the stock before the guard and reach the redirect response.
+export const metadata: Metadata = {
+  title: "Veículo — Gestão",
+  robots: { index: false, follow: false },
+};
 
 export default async function CarroGestaoPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  await requireMember();
   const { slug } = await params;
   const veiculo = veiculoGestaoPorSlug(slug);
   if (!veiculo) notFound();

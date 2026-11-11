@@ -27,3 +27,14 @@ next-env.d.ts
 
 # Vercel
 .vercel
+
+# Local Postgres cluster (npm run db:dev)
+/.pgdata/
+
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

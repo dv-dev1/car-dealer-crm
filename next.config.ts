@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1440, 1920, 2048, 2560],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384, 512, 640, 768],
     // Placeholders de estoque (Unsplash) enquanto restar algum. Quando as fotos
-    // reais forem hospedadas (Supabase Storage), adicionar o host aqui.
+    // reais forem hospedadas, adicionar o host aqui.
     remotePatterns: [
       {
         protocol: "https",
@@ -36,3 +36,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev());

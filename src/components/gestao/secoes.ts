@@ -4,6 +4,7 @@ import {
   Users,
   Calendar,
   FileText,
+  UserCog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,4 +29,5 @@ export const secoes: Secao[] = [
   { label: "Clientes", href: "/gestao/clientes", icon: Users },
   { label: "Agenda", href: "/gestao/agenda", icon: Calendar },
   { label: "Relatórios", href: "/gestao/relatorios", icon: FileText },
+  { label: "Equipe", href: "/gestao/equipe", icon: UserCog },
 ];
