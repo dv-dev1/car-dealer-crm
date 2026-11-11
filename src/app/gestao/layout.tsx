@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { GestaoShell } from "@/components/gestao/GestaoShell";
 import { TemaGestao } from "@/components/gestao/TemaGestao";
+import { requireMember } from "@/features/auth/guard";
 
 // Área interna dos vendedores. `noindex` reforça que o público nunca a
-// encontra por busca (a trava de login real entra com o Supabase, próxima fase).
+// encontra por busca.
 export const metadata: Metadata = {
   title: "Gestão",
   robots: { index: false, follow: false },
@@ -20,11 +21,13 @@ try {
 } catch (e) {}
 `;
 
-export default function GestaoLayout({
+export default async function GestaoLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Next skips layouts on soft navigation, so every page calls requireMember() too.
+  await requireMember();
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL }} />

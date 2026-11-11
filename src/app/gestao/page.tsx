@@ -13,8 +13,10 @@ import { AvisoMeta, AvisoSemMargem } from "@/components/gestao/painel/PainelAvis
 import { LojaAgora } from "@/components/gestao/painel/LojaAgora";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
+import { requireMember } from "@/features/auth/guard";
 
-export default function PainelPage() {
+export default async function PainelPage() {
+  await requireMember();
   const estoque = estoqueGestao;
   const resumo = resumoEstoque(estoque);
   const loja = resumoLoja(estoque);
