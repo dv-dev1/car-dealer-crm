@@ -160,14 +160,14 @@ describe("createAppLogin", () => {
     const parts = stored.match(/^SCRAM-SHA-256\$4096:([^$]+)\$([^:]+):(.+)$/);
     expect(parts).not.toBeNull();
     const [, salt, storedKey, serverKey] = parts!;
-    // Independent of the script: the same derivation `psql \password` does.
+    // The server derived the verifier from the plaintext; recompute it here, independent of the script.
     const salted = pbkdf2Sync(new URL(url).password, Buffer.from(salt, "base64"), 4096, 32, "sha256");
     const hmac = (data: string) => createHmac("sha256", salted).update(data).digest();
     expect(storedKey).toBe(createHash("sha256").update(hmac("Client Key")).digest("base64"));
     expect(serverKey).toBe(hmac("Server Key").toString("base64"));
   });
 
-  it("never sends the password in the SQL it runs", async () => {
+  it("sends the password in exactly one statement, the create or alter, as Neon accepts only plaintext", async () => {
     const spy = vi.spyOn(pg.Client.prototype, "query");
     let url: string;
     let sent: string[];
@@ -177,8 +177,10 @@ describe("createAppLogin", () => {
     } finally {
       spy.mockRestore();
     }
-    expect(sent.some((sql) => sql.includes("SCRAM-SHA-256$"))).toBe(true); // the spy saw the role statement
-    for (const sql of sent) expect(sql).not.toContain(new URL(url).password);
+    const withPassword = sent.filter((sql) => sql.includes(new URL(url).password));
+    expect(withPassword).toHaveLength(1);
+    expect(withPassword[0]).toMatch(/^(create|alter) role crm_app /);
+    expect(sent.some((sql) => sql.includes("SCRAM-SHA-256$"))).toBe(false); // no client-side verifier any more
   });
 
   it("restores the attributes and the membership when it rotates", async () => {
