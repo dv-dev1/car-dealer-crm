@@ -118,6 +118,13 @@ describe("createStore", () => {
     expect(await counts()).toEqual(before);
   });
 
+  it("rejects an owner e-mail longer than the app accepts", async () => {
+    const before = await counts();
+    const ownerEmail = `${"a".repeat(245)}@lojaops.com`; // 257 characters, over the 254 normalizeEmail allows
+    await expect(createStore(TEST_ADMIN_URL, { ...owner, slug: "ops-test-long", ownerEmail })).rejects.toThrow(/e-mail/);
+    expect(await counts()).toEqual(before);
+  });
+
   it("rejects a slug outside a-z, 0-9 and hyphen", async () => {
     const before = await counts();
     await expect(createStore(TEST_ADMIN_URL, { ...owner, slug: "Ops Test" })).rejects.toThrow(/stores_slug_check/);

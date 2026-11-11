@@ -73,6 +73,20 @@ describe("check-bundle-secrets CLI", () => {
     expect(result.stderr).not.toContain("sk_test_abcdef123");
   });
 
+  // Nothing to look for would print the all-clear without checking anything.
+  it("exits 1 without .dev.vars", () => {
+    const result = runCli(repoWith({ "worker.js": "export default {};" }));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("No .dev.vars");
+  });
+
+  it("exits 1 when .dev.vars holds no secret value to look for", () => {
+    const vars = "NEXTJS_ENV=development\nWORKOS_API_KEY=\nNEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:8787/callback\n";
+    const result = runCli(repoWith({ "worker.js": "export default {};" }, { ".dev.vars": vars }));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(".dev.vars has no secret");
+  });
+
   it("exits 1 when an .env file other than .env.example exists at the root", () => {
     const root = repoWith({ "worker.js": "export default {};" }, { ".env.local": "X=1" });
     const result = runCli(root);

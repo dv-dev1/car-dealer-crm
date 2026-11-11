@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import { createPool } from "../db/migrate.ts";
+import { normalizeEmail } from "../src/shared/email.ts";
 
 type StoreInput = { name: string; slug: string; ownerName: string; ownerEmail: string };
 
@@ -7,8 +8,8 @@ const USAGE = "Usage: MIGRATE_DATABASE_URL=<url> node scripts/create-store.ts --
 
 // Creates a store and its owner in one transaction; `adminUrl` must be a role that bypasses RLS.
 export async function createStore(adminUrl: string, input: StoreInput): Promise<{ storeId: string }> {
-  const ownerEmail = input.ownerEmail.trim().toLowerCase(); // memberships.email is checked to be lower(btrim(email))
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) throw new Error(`Invalid owner e-mail: "${input.ownerEmail}"`);
+  const ownerEmail = normalizeEmail(input.ownerEmail);
+  if (!ownerEmail) throw new Error(`Invalid owner e-mail: "${input.ownerEmail}"`);
   const pool = createPool(adminUrl);
   try {
     const client = await pool.connect();

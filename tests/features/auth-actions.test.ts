@@ -22,16 +22,14 @@ vi.mock("@/features/auth/workos", async (importOriginal) => ({
 }));
 
 const EMAIL = "ana@lojaa.com";
-// The adapter hands back WorkOS's whole AuthenticationResponse, Google tokens and unknown fields included.
+// What the adapter hands back (it already dropped Google tokens and unknown fields): callers save it as is.
 const user = { id: "user_1", email: EMAIL, emailVerified: true, firstName: "Ana" };
 const response = {
   accessToken: "access",
   refreshToken: "refresh",
   user,
+  impersonator: undefined,
   authenticationMethod: "MagicAuth",
-  organizationId: "org_1",
-  oauthTokens: { accessToken: "google-access", refreshToken: "google-refresh", expiresAt: 1, scopes: [] },
-  somethingNew: "x",
 };
 // What authkit's own callback seals: nothing else may reach saveSession.
 const SAVED_KEYS = ["accessToken", "authenticationMethod", "impersonator", "refreshToken", "user"];

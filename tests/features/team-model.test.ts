@@ -4,7 +4,10 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { addMember, listMembers, removeMember } from "@/features/team/model";
 import type { MemberContext, Role } from "@/shared/db/client";
 import { seedTwoStores } from "../db/fixtures.ts";
+import { useDatabase } from "../setup/hyperdrive.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
+
+vi.mock("@opennextjs/cloudflare", () => import("../setup/hyperdrive.ts"));
 
 const UNREACHABLE_URL = "postgres://nobody@127.0.0.1:1/none";
 
@@ -13,14 +16,11 @@ let ana: MemberContext;
 let beto: MemberContext;
 let carla: MemberContext;
 beforeEach(async () => {
-  vi.stubEnv("APP_DATABASE_URL", TEST_APP_URL);
+  useDatabase(TEST_APP_URL);
   seed = await seedTwoStores();
   ana = { membershipId: seed.a.ana.id, storeId: seed.a.storeId, role: "owner", name: "Ana" };
   beto = { membershipId: seed.a.beto.id, storeId: seed.a.storeId, role: "seller", name: "Beto" };
   carla = { membershipId: seed.b.carla.id, storeId: seed.b.storeId, role: "owner", name: "Carla" };
-});
-afterEach(() => {
-  vi.unstubAllEnvs();
 });
 
 async function adminQuery(sql: string, params: unknown[] = []) {
@@ -189,7 +189,7 @@ it("removing an id that no longer exists is not_found", async () => {
 });
 
 it("answers not_found for an id that is not a uuid without touching the database", async () => {
-  vi.stubEnv("APP_DATABASE_URL", UNREACHABLE_URL);
+  useDatabase(UNREACHABLE_URL);
   for (const id of ["", "not-a-uuid", `${beto.membershipId}' or true --`, ` ${beto.membershipId}`]) {
     expect(await removeMember(ana, id)).toEqual({ ok: false, error: "not_found" });
   }

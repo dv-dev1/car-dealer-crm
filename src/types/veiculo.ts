@@ -1,4 +1,4 @@
-// Tipos do domínio — espelham o schema em supabase/schema.sql.
+// Tipos do domínio usados pelo site e pelos mocks; o banco ainda não tem tabela de veículos.
 // O site consome `Veiculo`; o admin (Fase 2) usa também Venda e Lead.
 
 export type StatusVeiculo = "disponivel" | "reservado" | "vendido";

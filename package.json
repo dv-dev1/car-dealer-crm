@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "node --import ./scripts/load-dev-vars.mjs node_modules/next/dist/bin/next dev",
     "build": "next build",

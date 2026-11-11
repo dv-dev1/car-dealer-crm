@@ -1,5 +1,29 @@
 # Banco no Neon e Hyperdrive
 
+## Rodar local
+
+Precisa de Node 22.18 ou mais novo e do Postgres 17 no PATH (o `postgresql@17` do Homebrew não entra
+no PATH sozinho; `PG_BIN=<pasta bin>` também serve). Nada aqui leva segredo: os valores ficam só no `.dev.vars`.
+
+```bash
+export PATH="$(brew --prefix postgresql@17)/bin:$PATH"
+npm ci
+cp .dev.vars.example .dev.vars   # preencha com os valores do ambiente de staging da WorkOS
+npm run db:dev                   # Postgres local na porta 54328, banco crm_dev; para com: pg_ctl -D .pgdata stop
+MIGRATE_DATABASE_URL=postgres://postgres@127.0.0.1:54328/crm_dev npm run store:create -- --name "Loja Teste" --slug loja-teste --owner-name "Seu Nome" --owner-email voce@exemplo.com
+npm run preview                  # http://localhost:8787
+```
+
+No `.dev.vars`, preencha `WORKOS_API_KEY`, `WORKOS_CLIENT_ID` e `WORKOS_COOKIE_PASSWORD` (32+ caracteres)
+do staging; `NEXT_PUBLIC_WORKOS_REDIRECT_URI` e as chaves de teste do Turnstile já vêm certas. No painel
+da WorkOS (staging), cadastre o redirecionamento `http://localhost:8787/callback` e o de saída
+`http://localhost:8787/entrar`. Depois entre em http://localhost:8787/entrar com o e-mail do dono.
+
+O login só funciona pelo preview (porta 8787). O `npm run dev` puro não recebe o `cf-connecting-ip`
+da Cloudflare, e o formulário de login recusa sem ele de propósito (falha fechada); o site público roda nele.
+
+## Neon
+
 Roteiro para aplicar a migração no Neon e ligar o Worker a ele. Rode tudo de dentro de `repo/`.
 Nenhum comando leva URL ou senha digitada: a do administrador vem do `neon connection-string` para uma
 variável de ambiente; a do app fica só no arquivo `--out` (JSON `{ "url": ... }`, modo 0600, em `secrets/`).
@@ -49,8 +73,6 @@ em `hyperdrive[0].id` do `wrangler.jsonc`. `npx wrangler hyperdrive list` deve m
 
 ## Regras
 
-- Nunca defina `APP_DATABASE_URL` no Worker, nem por `wrangler secret`: ela passa na frente do
-  Hyperdrive (`src/shared/db/connection.ts`). Ela existe só para testes e scripts.
 - WorkOS: deixe ligados só Magic Auth e Google. Cadastre o redirecionamento de saída (sign-out
   redirect): `http://localhost:8787/entrar` no Worker local e, depois, o `/entrar` de produção.
 - Turnstile: em produção, use as chaves reais do site, nunca as de teste.
