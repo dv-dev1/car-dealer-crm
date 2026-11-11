@@ -12,7 +12,8 @@ export function listMembers(ctx: MemberContext): Promise<Member[]> {
   return withStore(ctx, (db) =>
     db.query<Member>(
       `select id, name, email, role, workos_user_id is not null as linked
-         from memberships order by name, email`,
+         from memberships where store_id = $1 order by name, email`,
+      [ctx.storeId],
     ),
   );
 }
