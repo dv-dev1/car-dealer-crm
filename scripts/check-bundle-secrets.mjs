@@ -16,12 +16,16 @@ function* filesIn(dir) {
   }
 }
 
-/** Returns the keys whose value appears in some file under `bundleDir`. */
-export function findLeaks(bundleDir, secrets) {
-  const candidates = Object.entries(secrets).filter(
+// Public keys and short values are not secrets: they may appear in the bundle.
+const secretEntries = (secrets) =>
+  Object.entries(secrets).filter(
     ([key, value]) =>
       !key.startsWith("NEXT_PUBLIC_") && key !== "NEXTJS_ENV" && value.length >= MIN_SECRET_LENGTH,
   );
+
+/** Returns the keys whose value appears in some file under `bundleDir`. */
+export function findLeaks(bundleDir, secrets) {
+  const candidates = secretEntries(secrets);
   const leaked = new Set();
   for (const file of filesIn(bundleDir)) {
     const content = readFileSync(file);
@@ -47,8 +51,17 @@ function main(root) {
     return 1;
   }
 
+  // The scan looks for the values in .dev.vars: without them it would pass without checking anything.
   const varsFile = join(root, ".dev.vars");
-  const secrets = existsSync(varsFile) ? parseEnv(readFileSync(varsFile, "utf8")) : {};
+  if (!existsSync(varsFile)) {
+    console.error("No .dev.vars: nothing to look for. Copy .dev.vars.example to .dev.vars and fill it in.");
+    return 1;
+  }
+  const secrets = parseEnv(readFileSync(varsFile, "utf8"));
+  if (secretEntries(secrets).length === 0) {
+    console.error(`.dev.vars has no secret value of ${MIN_SECRET_LENGTH}+ characters to look for: fill it in.`);
+    return 1;
+  }
   const leaks = findLeaks(bundleDir, secrets);
   if (leaks.length > 0) {
     console.error(`Secret value found inside .open-next/ for: ${leaks.join(", ")}`);
