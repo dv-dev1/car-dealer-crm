@@ -6,12 +6,13 @@ export type AuthSession = {
   user: { id: string; email: string; emailVerified: boolean };
 };
 
-export type AuthDeps = {
+// S is the adapter's session type: the model reads only AuthSession, callers get S back untouched.
+export type AuthDeps<S extends AuthSession = AuthSession> = {
   // Must return without waiting on the network: the adapter schedules the send in the background
   // (ctx.waitUntil) and logs failures there, so invited and uninvited emails take the same time.
   createMagicAuth(email: string): Promise<void>;
-  authenticateWithMagicAuth(email: string, code: string): Promise<AuthSession>;
-  authenticateWithCode(code: string): Promise<AuthSession>;
+  authenticateWithMagicAuth(email: string, code: string): Promise<S>;
+  authenticateWithCode(code: string): Promise<S>;
   googleAuthorizationUrl(state: string): string;
   isLoginEmailAllowed(email: string): Promise<boolean>;
   rateLimit(key: string): Promise<boolean>; // true = allowed
@@ -50,10 +51,10 @@ export async function requestLoginCode(
   return { ok: true };
 }
 
-export async function verifyLoginCode(
-  deps: AuthDeps,
+export async function verifyLoginCode<S extends AuthSession>(
+  deps: AuthDeps<S>,
   input: { email: string; code: string; ip: string },
-): Promise<{ ok: true; session: AuthSession } | { ok: false; error: "invalid_code" | "rate_limited" }> {
+): Promise<{ ok: true; session: S } | { ok: false; error: "invalid_code" | "rate_limited" }> {
   const email = normalizeEmail(input.email);
   const code = input.code.trim();
   if (!email || !LOGIN_CODE_PATTERN.test(code)) return { ok: false, error: "invalid_code" };
@@ -78,10 +79,10 @@ function sameState(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-export async function completeGoogleLogin(
-  deps: AuthDeps,
+export async function completeGoogleLogin<S extends AuthSession>(
+  deps: AuthDeps<S>,
   input: { code: string | null; state: string | null; cookieState: string | null },
-): Promise<{ ok: true; session: AuthSession } | { ok: false; error: "state_mismatch" | "auth_failed" }> {
+): Promise<{ ok: true; session: S } | { ok: false; error: "state_mismatch" | "auth_failed" }> {
   const { code, state, cookieState } = input;
   if (!state || !cookieState || !sameState(state, cookieState)) return { ok: false, error: "state_mismatch" };
   if (!code) return { ok: false, error: "auth_failed" };
