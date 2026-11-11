@@ -57,7 +57,10 @@ export async function removeMember(
   if (!UUID.test(membershipId)) return { ok: false, error: "not_found" }; // PostgreSQL would raise 22P02
 
   return withStore(ctx, async (db) => {
-    const [target] = await db.query<{ role: Role }>("select role from memberships where id = $1", [membershipId]);
+    const [target] = await db.query<{ role: Role }>(
+      "select role from memberships where id = $1 and store_id = $2",
+      [membershipId, ctx.storeId],
+    );
     if (!target) return { ok: false, error: "not_found" };
     if (ctx.role === "manager" && target.role !== "seller") return { ok: false, error: "owner_only" };
 
@@ -72,7 +75,10 @@ export async function removeMember(
     }
 
     // A concurrent removal of the same person leaves nothing to delete.
-    const removed = await db.query("delete from memberships where id = $1 returning id", [membershipId]);
+    const removed = await db.query("delete from memberships where id = $1 and store_id = $2 returning id", [
+      membershipId,
+      ctx.storeId,
+    ]);
     return removed.length ? { ok: true } : { ok: false, error: "not_found" };
   });
 }
