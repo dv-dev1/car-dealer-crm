@@ -4,33 +4,43 @@ import { getConnectionString } from "./connection";
 export type Role = "owner" | "manager" | "seller";
 export type MemberContext = { membershipId: string; storeId: string; role: Role; name: string };
 export type Db = { query<T>(text: string, params?: unknown[]): Promise<T[]> };
-export class UnsafeDatabaseRoleError extends Error {}
+export class UnsafeDatabaseRoleError extends Error {
+  name = "UnsafeDatabaseRoleError";
+}
 
 const ROLES: Role[] = ["owner", "manager", "seller"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// A superuser, a BYPASSRLS role or a table owner (directly or through an inherited role) skips RLS.
-const UNSAFE_ROLE = `(select rolsuper or rolbypassrls from pg_roles where rolname = current_user)
-  or exists (select from pg_tables where schemaname = 'public' and pg_has_role(current_user, tableowner, 'usage'))`;
+// Superuser, BYPASSRLS and table ownership skip RLS. Any membership counts, even NOINHERIT: SET ROLE reaches it.
+const UNSAFE_ROLE = `exists (select from pg_roles where (rolsuper or rolbypassrls) and pg_has_role(current_user, oid, 'member'))
+  or exists (select from pg_tables where schemaname = 'public' and pg_has_role(current_user, tableowner, 'member'))`;
 const ENTER_STORE = `select set_config('app.store_id', $1, true), set_config('app.role', $2, true), ${UNSAFE_ROLE} as unsafe`;
 const ENTER_LOGIN = `select ${UNSAFE_ROLE} as unsafe`;
 
 // One client per call: a Worker cannot reuse a socket across requests.
 async function transaction<T>(enter: string, params: string[], fn: (db: Db) => Promise<T>): Promise<T> {
   const client = new pg.Client({ connectionString: getConnectionString() });
+  let dropped: Error | undefined;
+  // Without a listener, a dropped socket or a server FATAL is thrown as an uncaught exception.
+  client.on("error", (error) => {
+    dropped ??= error;
+  });
   try {
     await client.connect();
-    await client.query("begin");
     try {
+      await client.query("begin");
       const [{ unsafe }] = (await client.query<{ unsafe: boolean }>(enter, params)).rows;
-      // Fails closed: a null answer counts as unsafe.
-      if (unsafe !== false) throw new UnsafeDatabaseRoleError("database role bypasses row level security");
+      if (unsafe) throw new UnsafeDatabaseRoleError("database role bypasses row level security");
       const result = await fn({ query: async (text, values) => (await client.query(text, values)).rows });
-      await client.query("commit");
+      // After a failed statement PostgreSQL answers COMMIT with ROLLBACK, not with an error.
+      if ((await client.query("commit")).command !== "COMMIT") {
+        throw new Error("transaction was aborted by a failed statement and rolled back");
+      }
       return result;
     } catch (error) {
+      const cause = dropped ?? error; // the server's reason, not pg's generic "not queryable"
       await client.query("rollback").catch(() => {}); // a dead connection must not hide the real error
-      throw error;
+      throw cause;
     }
   } finally {
     await client.end();

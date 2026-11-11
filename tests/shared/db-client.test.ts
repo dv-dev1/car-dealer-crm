@@ -63,6 +63,38 @@ it("rolls back when fn throws", async () => {
   expect(await emails(a.storeId)).toEqual(["ana@lojaa.com", "beto@lojaa.com"]);
 });
 
+// PostgreSQL answers COMMIT with ROLLBACK, and no error, once a statement failed.
+it("rejects instead of committing when fn swallowed a database error", async () => {
+  const { a } = seed;
+  const swallowed = withStore({ storeId: a.storeId, role: "owner" }, async (db) => {
+    await db.query(insertDani, [a.storeId]);
+    await db.query("select 1/0").catch(() => {});
+    return "ok";
+  });
+  await expect(swallowed).rejects.toThrow(/aborted/);
+  expect(await emails(a.storeId)).toEqual(["ana@lojaa.com", "beto@lojaa.com"]);
+});
+
+it("rejects with the server's error when the connection drops inside fn", async () => {
+  const dropped = withStore({ storeId: seed.a.storeId, role: "seller" }, async (db) => {
+    const [{ pid }] = await db.query<{ pid: number }>("select pg_backend_pid() as pid");
+    await adminQuery("select pg_terminate_backend($1, 5000)", [pid]);
+    return db.query("select 1");
+  });
+  await expect(dropped).rejects.toMatchObject({ code: "57P01" });
+});
+
+// Hyperdrive hands the same origin connection to later requests, so the store must end with the transaction.
+it("keeps the store setting local to the transaction", async () => {
+  const after = await withStore({ storeId: seed.a.storeId, role: "owner" }, async (db) => {
+    await db.query("commit");
+    return db.query(`select current_setting('app.store_id', true) as store_id,
+                            current_setting('app.role', true) as role,
+                            (select count(*)::int from memberships) as members`);
+  });
+  expect(after).toEqual([{ store_id: "", role: "", members: 0 }]);
+});
+
 it("does not leak the store between calls", async () => {
   const { a, b } = seed;
   expect(await emails(a.storeId)).toEqual(["ana@lojaa.com", "beto@lojaa.com"]);
@@ -78,37 +110,54 @@ it("refuses an unsafe role before running fn", async () => {
   expect(fn).not.toHaveBeenCalled();
 });
 
-// Roles are cluster-wide, so each of these tests drops what it creates.
-it("refuses a role with BYPASSRLS", async () => {
-  await adminQuery("create role crm_bypass login bypassrls");
+// Roles are cluster-wide, so the teardown runs even when the check fails.
+async function expectLoginRefused(login: string, setup: string, teardown: string) {
+  await adminQuery(setup);
   try {
-    vi.stubEnv("APP_DATABASE_URL", urlFor("crm_bypass"));
+    vi.stubEnv("APP_DATABASE_URL", urlFor(login));
     const fn = vi.fn();
     await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toBeInstanceOf(
       UnsafeDatabaseRoleError,
     );
     expect(fn).not.toHaveBeenCalled();
   } finally {
-    await adminQuery("drop role crm_bypass");
+    await adminQuery(teardown);
   }
-});
+}
 
-it("refuses a role that owns a table through an inherited role", async () => {
-  await adminQuery(`
-    create role crm_owners nologin;
-    create role crm_heir login in role crm_owners;
-    create table public.owned_probe (id int);
-    alter table public.owned_probe owner to crm_owners`);
-  try {
-    vi.stubEnv("APP_DATABASE_URL", urlFor("crm_heir"));
-    const fn = vi.fn();
-    await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toBeInstanceOf(
-      UnsafeDatabaseRoleError,
-    );
-    expect(fn).not.toHaveBeenCalled();
-  } finally {
-    await adminQuery("drop table public.owned_probe; drop role crm_heir; drop role crm_owners");
-  }
+it("refuses a role with BYPASSRLS", () =>
+  expectLoginRefused("crm_bypass", "create role crm_bypass login bypassrls", "drop role crm_bypass"));
+
+// SET ROLE needs no INHERIT, so any membership in a BYPASSRLS role is as good as having it.
+it("refuses a login that can switch to a BYPASSRLS role", () =>
+  expectLoginRefused(
+    "crm_climber",
+    "create role crm_bypassers nologin bypassrls; create role crm_climber login noinherit in role crm_bypassers",
+    "drop role crm_climber; drop role crm_bypassers",
+  ));
+
+it("refuses a role that owns a table through an inherited role", () =>
+  expectLoginRefused(
+    "crm_heir",
+    `create role crm_owners nologin;
+     create role crm_heir login in role crm_owners;
+     create table public.owned_probe (id int);
+     alter table public.owned_probe owner to crm_owners`,
+    "drop table public.owned_probe; drop role crm_heir; drop role crm_owners",
+  ));
+
+it("refuses a login with a NOINHERIT membership in a table owner", () =>
+  expectLoginRefused(
+    "crm_noinherit",
+    `create role crm_owners_ni nologin;
+     create role crm_noinherit login noinherit in role crm_owners_ni;
+     create table public.owned_probe_ni (id int);
+     alter table public.owned_probe_ni owner to crm_owners_ni`,
+    "drop table public.owned_probe_ni; drop role crm_noinherit; drop role crm_owners_ni",
+  ));
+
+it("UnsafeDatabaseRoleError names itself in logs", () => {
+  expect(String(new UnsafeDatabaseRoleError("x"))).toBe("UnsafeDatabaseRoleError: x");
 });
 
 it("rejects a store id that is not a uuid before connecting", async () => {
