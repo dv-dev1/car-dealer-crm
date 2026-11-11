@@ -1,11 +1,13 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { resolveMembership, type MemberContext, type Role } from "@/shared/db/client";
 
-// Read on every call, never cached: a removed member loses access on the next request.
+// cache() shares one read among the layout and the page of one request; a new request reads again,
+// so a removed member loses access on the next request. Outside a React server render it does not memoize.
 // No try/catch: redirect() throws for control flow, and a database error must reach Next as an error.
-export async function requireMember(): Promise<MemberContext> {
+export const requireMember = cache(async (): Promise<MemberContext> => {
   const { user } = await withAuth();
   if (!user) redirect("/entrar");
   const member = await resolveMembership({
@@ -15,7 +17,7 @@ export async function requireMember(): Promise<MemberContext> {
   });
   if (!member) redirect("/sem-acesso");
   return member;
-}
+});
 
 export async function requireRole(allowed: Role[]): Promise<MemberContext> {
   const member = await requireMember();

@@ -8,19 +8,11 @@ import { CarroGestao } from "./CarroGestao";
 import { requireMember } from "@/features/auth/guard";
 
 // No generateStaticParams: a prerendered page would ship cost and margin in the build output.
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  await requireMember(); // the title would otherwise reach the redirect response
-  const { slug } = await params;
-  const v = veiculoGestaoPorSlug(slug);
-  return {
-    title: v ? `${v.titulo} — Gestão` : "Veículo — Gestão",
-    robots: { index: false, follow: false },
-  };
-}
+// A static title: one per car would read the stock before the guard and reach the redirect response.
+export const metadata: Metadata = {
+  title: "Veículo — Gestão",
+  robots: { index: false, follow: false },
+};
 
 export default async function CarroGestaoPage({
   params,

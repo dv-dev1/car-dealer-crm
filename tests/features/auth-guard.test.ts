@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import type { ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import ts from "typescript";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SemAcessoPage from "@/app/sem-acesso/page";
@@ -115,19 +116,134 @@ describe("requireRole", () => {
   });
 });
 
-// Next skips layouts on soft navigation, so a check only in the layout is not a lock. Each exported
-// function counts: generateMetadata renders into the redirect response too.
-it("every page, layout and route handler under src/app/gestao awaits requireMember or requireRole", () => {
-  const files = readdirSync(GESTAO_DIR, { recursive: true, encoding: "utf8" }).filter((file) =>
-    /(^|\/)(page|layout|route)\.tsx?$/.test(file),
+// `await requireMember()` or `[const x =] await requireRole(...)` as the first statement of the body.
+function startsWithGuard(fn: ts.FunctionLikeDeclaration): boolean {
+  const first = fn.body && ts.isBlock(fn.body) ? fn.body.statements[0] : undefined;
+  const value =
+    first && ts.isExpressionStatement(first)
+      ? first.expression
+      : first && ts.isVariableStatement(first) && first.declarationList.declarations.length === 1
+        ? first.declarationList.declarations[0].initializer
+        : undefined;
+  if (!value || !ts.isAwaitExpression(value) || !ts.isCallExpression(value.expression)) return false;
+  const callee = value.expression.expression;
+  return ts.isIdentifier(callee) && (callee.text === "requireMember" || callee.text === "requireRole");
+}
+
+const isFunction = (node: ts.Node): node is ts.FunctionLikeDeclaration =>
+  ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isArrowFunction(node);
+
+function isData(node: ts.Expression): boolean {
+  while (ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isParenthesizedExpression(node)) {
+    node = node.expression;
+  }
+  return (
+    ts.isObjectLiteralExpression(node) ||
+    ts.isArrayLiteralExpression(node) ||
+    ts.isStringLiteralLike(node) ||
+    ts.isNumericLiteral(node) ||
+    node.kind === ts.SyntaxKind.TrueKeyword ||
+    node.kind === ts.SyntaxKind.FalseKeyword
   );
-  expect(files.length).toBeGreaterThanOrEqual(8);
-  const count = (source: string, pattern: RegExp) => source.match(pattern)?.length ?? 0;
-  const unguarded = files.filter((file) => {
-    const source = readFileSync(GESTAO_DIR + file, "utf8");
-    const guards = count(source, /await (requireMember|requireRole)\(/g);
-    return guards === 0 || guards < count(source, /export (default )?(async )?function/g);
+}
+
+// Names of the exports that are functions not starting with the guard. Fails closed: an export it
+// cannot follow (an imported name, a wrapper call, `export { … }`, a re-export) is reported too.
+function unguardedExports(source: string): string[] {
+  const file = ts.createSourceFile("check.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const locals = new Map<string, ts.Node>();
+  for (const statement of file.statements) {
+    if (ts.isFunctionDeclaration(statement) && statement.name) locals.set(statement.name.text, statement);
+    if (ts.isVariableStatement(statement)) {
+      for (const d of statement.declarationList.declarations) {
+        if (ts.isIdentifier(d.name) && d.initializer) locals.set(d.name.text, d.initializer);
+      }
+    }
+  }
+  const unguarded: string[] = [];
+  const check = (name: string, node: ts.Node | undefined) => {
+    if (node && ts.isIdentifier(node)) node = locals.get(node.text) ?? node;
+    const ok = node && (isFunction(node) ? startsWithGuard(node) : ts.isExpression(node) && isData(node));
+    if (!ok) unguarded.push(name);
+  };
+  for (const statement of file.statements) {
+    const exported =
+      ts.canHaveModifiers(statement) &&
+      ts.getModifiers(statement)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+    if (ts.isExportAssignment(statement)) check("default", statement.expression);
+    else if (ts.isExportDeclaration(statement)) {
+      if (!statement.isTypeOnly) unguarded.push(statement.getText(file));
+    } else if (!exported || ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) continue;
+    else if (ts.isFunctionDeclaration(statement)) check(statement.name?.text ?? "default", statement);
+    else if (ts.isVariableStatement(statement)) {
+      for (const d of statement.declarationList.declarations) check(d.name.getText(file), d.initializer);
+    } else unguarded.push(statement.getText(file).split("\n")[0]);
+  }
+  return unguarded;
+}
+
+describe("the gestao guard scan", () => {
+  it.each([
+    ["a commented-out guard", "export default async function Page() {\n  // await requireMember();\n  return null;\n}", ["Page"]],
+    [
+      "a return before the guard",
+      "export default async function Page({ v }: { v?: string }) {\n  if (v) return v;\n  await requireMember();\n  return null;\n}",
+      ["Page"],
+    ],
+    [
+      "two guards in generateMetadata and none in the page",
+      "export async function generateMetadata() {\n  await requireMember();\n  await requireMember();\n  return {};\n}\n" +
+        "export default async function Page() {\n  return null;\n}",
+      ["Page"],
+    ],
+    [
+      "an exported arrow function",
+      'export const generateMetadata = async () => ({ title: "x" });\n' +
+        "export default async function Page() {\n  await requireMember();\n  return null;\n}",
+      ["generateMetadata"],
+    ],
+  ])("flags %s", (_case, source, expected) => {
+    expect(unguardedExports(source)).toEqual(expected);
   });
+
+  it("flags export forms it cannot follow", () => {
+    expect(unguardedExports("function Page() {\n  return null;\n}\nexport default Page;")).toEqual(["default"]);
+    expect(unguardedExports("export default withAuthPage(Page);")).toEqual(["default"]);
+    expect(unguardedExports('export { default } from "./other";')).toEqual(['export { default } from "./other";']);
+  });
+
+  it("accepts guarded functions and plain data exports", () => {
+    const source = `
+      export const metadata: Metadata = { title: "x" };
+      export const dynamic = "force-dynamic";
+      export type Props = { slug: string };
+      export async function generateMetadata() {
+        await requireMember();
+        return {};
+      }
+      export const GET = async () => {
+        const member = await requireRole(["owner"]);
+        return Response.json(member);
+      };
+      const Page = async () => {
+        await requireMember(); // a trailing comment is fine
+        return null;
+      };
+      export default Page;`;
+    expect(unguardedExports(source)).toEqual([]);
+  });
+});
+
+// Next skips layouts on soft navigation, so a check only in the layout is not a lock.
+// loading, error and not-found render no data, so they stay out.
+const SPECIAL_FILE = /(^|\/)(page|layout|route|template|default|opengraph-image|twitter-image|icon|apple-icon)\.tsx?$/;
+
+it("every exported function of each Next special file under src/app/gestao starts with the guard", () => {
+  const files = readdirSync(GESTAO_DIR, { recursive: true, encoding: "utf8" }).filter((file) => SPECIAL_FILE.test(file));
+  expect(files.length).toBeGreaterThanOrEqual(8);
+  const unguarded = files.flatMap((file) =>
+    unguardedExports(readFileSync(GESTAO_DIR + file, "utf8")).map((name) => `${file}: ${name}`),
+  );
   expect(unguarded).toEqual([]);
 });
 
