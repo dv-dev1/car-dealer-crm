@@ -1,5 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
+import { normalizeEmail } from "@/shared/email";
+
 export type AuthSession = {
   accessToken: string;
   refreshToken: string;
@@ -19,13 +21,7 @@ export type AuthDeps<S extends AuthSession = AuthSession> = {
   verifyTurnstile(token: string, ip: string): Promise<boolean>;
 };
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOGIN_CODE_PATTERN = /^\d{6}$/;
-
-export function normalizeEmail(raw: string): string | null {
-  const email = raw.trim().toLowerCase();
-  return email.length <= 254 && EMAIL_PATTERN.test(email) ? email : null;
-}
 
 export async function requestLoginCode(
   deps: AuthDeps,

@@ -1,15 +1,14 @@
 import pg from "pg";
 import { getConnectionString } from "./connection";
 
-export type Role = "owner" | "manager" | "seller";
+export const ROLES = ["owner", "manager", "seller"] as const;
+export type Role = (typeof ROLES)[number];
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type MemberContext = { membershipId: string; storeId: string; role: Role; name: string };
 export type Db = { query<T>(text: string, params?: unknown[]): Promise<T[]> };
 export class UnsafeDatabaseRoleError extends Error {
   name = "UnsafeDatabaseRoleError";
 }
-
-const ROLES: Role[] = ["owner", "manager", "seller"];
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Superuser, BYPASSRLS and table ownership skip RLS. Any membership counts, even NOINHERIT: SET ROLE reaches it.
 const UNSAFE_ROLE = `exists (select from pg_roles where (rolsuper or rolbypassrls) and pg_has_role(current_user, oid, 'member'))

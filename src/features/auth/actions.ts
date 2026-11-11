@@ -4,16 +4,12 @@ import { saveSession, signOut } from "@workos-inc/authkit-nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { text } from "@/shared/form";
+
 import { requestLoginCode, verifyLoginCode } from "./model";
 import { createAuthDeps, sessionToSave } from "./workos";
 
 export type LoginState = { step: "email" | "code"; email: string; error: string | null };
-
-// FormData values can be null or a File: anything that is not a string counts as empty.
-function text(form: FormData, name: string): string {
-  const value = form.get(name);
-  return typeof value === "string" ? value : "";
-}
 
 async function clientIp(): Promise<string> {
   return (await headers()).get("cf-connecting-ip")?.trim() ?? "";

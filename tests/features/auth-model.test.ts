@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   completeGoogleLogin,
   newOAuthState,
-  normalizeEmail,
   requestLoginCode,
   verifyLoginCode,
   type AuthDeps,
@@ -37,26 +36,6 @@ function makeDeps() {
 
 const request = { email: "  Ana@LojaA.com ", turnstileToken: "tok", ip: "1.2.3.4" };
 const verify = { email: "  Ana@LojaA.com ", code: "123456", ip: "1.2.3.4" };
-
-describe("normalizeEmail", () => {
-  it.each([
-    ["  Ana@LojaA.com ", "ana@lojaa.com"],
-    ["abc", null],
-    ["a@b", null],
-    ["", null],
-    ["ana @lojaa.com", null],
-    ["a@@b.com", null],
-  ])("%s → %s", (raw, expected) => {
-    expect(normalizeEmail(raw)).toBe(expected);
-  });
-
-  it("accepts 254 characters and rejects 255", () => {
-    const atLimit = `${"a".repeat(244)}@lojaa.com`;
-
-    expect(normalizeEmail(atLimit)).toBe(atLimit);
-    expect(normalizeEmail(`a${atLimit}`)).toBeNull();
-  });
-});
 
 describe("requestLoginCode", () => {
   it("sends a code to an invited email, normalized", async () => {

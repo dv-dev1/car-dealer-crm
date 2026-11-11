@@ -1,10 +1,8 @@
-import { normalizeEmail } from "@/features/auth/model";
-import { withStore, type MemberContext, type Role } from "@/shared/db/client";
+import { ROLES, UUID, withStore, type MemberContext, type Role } from "@/shared/db/client";
+import { normalizeEmail } from "@/shared/email";
 
 export type Member = { id: string; name: string; email: string; role: Role; linked: boolean };
 
-const ROLES: Role[] = ["owner", "manager", "seller"];
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_NAME_LENGTH = 120;
 const UNIQUE_VIOLATION = "23505";
 
