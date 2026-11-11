@@ -1,0 +1,10 @@
+# Local secrets for `npm run dev` and `npm run preview`. Copy to .dev.vars (git-ignored)
+# and fill in. Never put these values in an .env* file: OpenNext bundles those.
+NEXTJS_ENV=development
+WORKOS_API_KEY=
+WORKOS_CLIENT_ID=
+WORKOS_COOKIE_PASSWORD=
+NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:8787/callback
+# Cloudflare Turnstile public test keys: they always pass.
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
