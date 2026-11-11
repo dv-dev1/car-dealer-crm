@@ -17,6 +17,8 @@
     "check:secrets": "node scripts/check-bundle-secrets.mjs"
   },
   "dependencies": {
+    "@workos-inc/authkit-nextjs": "4.6.3",
+    "@workos-inc/node": "12.2.0",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.25.0",
     "next": "16.4.6",
