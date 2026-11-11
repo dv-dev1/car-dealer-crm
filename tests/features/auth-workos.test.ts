@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAuthDeps } from "@/features/auth/workos";
+import { createAuthDeps, sessionToSave } from "@/features/auth/workos";
 import { isLoginEmailAllowed } from "@/shared/db/client";
 
 const workos = vi.hoisted(() => ({
@@ -145,6 +145,32 @@ describe("authenticate calls", () => {
     expect(consoleError).toHaveBeenCalledTimes(1);
     expect(logged()).toContain("invalid_grant");
     expect(logged()).not.toContain("authcode-secret");
+  });
+});
+
+describe("sessionToSave", () => {
+  it("keeps only the fields authkit seals, dropping Google tokens and anything unknown", () => {
+    const user = { id: "u", email: EMAIL, emailVerified: true };
+    const impersonator = { email: "admin@workos.test", reason: null };
+    const response = {
+      accessToken: "a",
+      refreshToken: "r",
+      user,
+      impersonator,
+      authenticationMethod: "GoogleOAuth",
+      organizationId: "org_1",
+      sealedSession: "sealed",
+      oauthTokens: { accessToken: "google-access", refreshToken: "google-refresh", expiresAt: 1, scopes: [] },
+      somethingNew: "x",
+    } as unknown as Parameters<typeof sessionToSave>[0];
+
+    const session = sessionToSave(response);
+
+    expect(Object.keys(session).sort()).toEqual(
+      ["accessToken", "authenticationMethod", "impersonator", "refreshToken", "user"].sort(),
+    );
+    expect(session).toEqual({ accessToken: "a", refreshToken: "r", user, impersonator, authenticationMethod: "GoogleOAuth" });
+    expect(JSON.stringify(session)).not.toContain("google-");
   });
 });
 

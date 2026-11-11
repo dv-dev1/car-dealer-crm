@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { requestCodeAction, signOutAction, verifyCodeAction, type LoginState } from "@/features/auth/actions";
 import type { AuthDeps } from "@/features/auth/model";
 import { GET as callback } from "@/app/callback/route";
-import { GET as googleStart } from "@/app/entrar/google/route";
+import { dynamic, GET as googleStart } from "@/app/entrar/google/route";
 
 const authkit = vi.hoisted(() => ({ saveSession: vi.fn(), signOut: vi.fn() }));
 vi.mock("@workos-inc/authkit-nextjs", () => authkit);
@@ -16,16 +16,33 @@ const requestHeaders = vi.hoisted(() => ({ value: new Headers() }));
 vi.mock("next/headers", () => ({ headers: async () => requestHeaders.value }));
 
 const deps = vi.hoisted(() => ({}) as { [K in keyof AuthDeps]: ReturnType<typeof vi.fn> });
-vi.mock("@/features/auth/workos", () => ({ createAuthDeps: () => deps }));
+vi.mock("@/features/auth/workos", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/auth/workos")>()),
+  createAuthDeps: () => deps,
+}));
 
 const EMAIL = "ana@lojaa.com";
-// The adapter hands back WorkOS's whole AuthenticationResponse, more than AuthSession.
+// The adapter hands back WorkOS's whole AuthenticationResponse, Google tokens and unknown fields included.
+const user = { id: "user_1", email: EMAIL, emailVerified: true, firstName: "Ana" };
 const response = {
   accessToken: "access",
   refreshToken: "refresh",
-  user: { id: "user_1", email: EMAIL, emailVerified: true, firstName: "Ana" },
+  user,
   authenticationMethod: "MagicAuth",
+  organizationId: "org_1",
+  oauthTokens: { accessToken: "google-access", refreshToken: "google-refresh", expiresAt: 1, scopes: [] },
+  somethingNew: "x",
 };
+// What authkit's own callback seals: nothing else may reach saveSession.
+const SAVED_KEYS = ["accessToken", "authenticationMethod", "impersonator", "refreshToken", "user"];
+
+function savedSession(): Record<string, unknown> {
+  expect(authkit.saveSession).toHaveBeenCalledTimes(1);
+  const session = authkit.saveSession.mock.calls[0][0];
+  expect(Object.keys(session).sort()).toEqual(SAVED_KEYS);
+  expect(JSON.stringify(session)).not.toContain("google-");
+  return session;
+}
 const emailStep: LoginState = { step: "email", email: "", error: null };
 const codeStep: LoginState = { step: "code", email: EMAIL, error: null };
 
@@ -108,12 +125,11 @@ describe("requestCodeAction", () => {
 });
 
 describe("verifyCodeAction", () => {
-  it("saves the full WorkOS response as the session and redirects to /gestao", async () => {
+  it("saves only the session fields authkit seals and redirects to /gestao", async () => {
     await expect(verifyCodeAction(codeStep, form({ email: EMAIL, code: "123456" }))).rejects.toThrow("NEXT_REDIRECT");
 
     expect(deps.authenticateWithMagicAuth).toHaveBeenCalledWith(EMAIL, "123456");
-    expect(authkit.saveSession).toHaveBeenCalledTimes(1);
-    expect(authkit.saveSession.mock.calls[0][0]).toBe(response);
+    expect(savedSession()).toEqual({ accessToken: "access", refreshToken: "refresh", user, authenticationMethod: "MagicAuth" });
     expect(authkit.saveSession.mock.calls[0][1]).toBe("http://localhost:8787/callback");
     expect(nav.redirect).toHaveBeenCalledWith("/gestao");
   });
@@ -160,6 +176,14 @@ describe("signOutAction", () => {
 
     expect(authkit.signOut).toHaveBeenCalledWith({ returnTo: "http://localhost:8787/entrar" });
   });
+
+  it.each([undefined, "", "not a url"])("still signs out when the redirect URI is %j", async (redirectUri) => {
+    vi.stubEnv("NEXT_PUBLIC_WORKOS_REDIRECT_URI", redirectUri);
+
+    await signOutAction();
+
+    expect(authkit.signOut).toHaveBeenCalledWith({ returnTo: "/entrar" });
+  });
 });
 
 describe("GET /entrar/google", () => {
@@ -176,6 +200,10 @@ describe("GET /entrar/google", () => {
     expect(setCookie).toMatch(/SameSite=lax/i);
     expect(setCookie).toMatch(/Max-Age=600/i);
     expect(setCookie).toMatch(/Path=\//i);
+  });
+
+  it("is never prerendered, so every visit gets a fresh state", () => {
+    expect(dynamic).toBe("force-dynamic");
   });
 });
 
@@ -214,14 +242,29 @@ describe("GET /callback", () => {
     expect(authkit.saveSession).not.toHaveBeenCalled();
   });
 
-  it("saves the session from the request, clears the cookie and redirects to /gestao", async () => {
+  it("redirects to /entrar?erro=google, clears the cookie and logs only the error name when saving fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    authkit.saveSession.mockRejectedValue(Object.assign(new Error(`JWKS down for ${EMAIL}`), { name: "JWKSTimeout" }));
+
+    const res = await callback(callbackRequest("?code=authcode&state=abc", "abc"));
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("http://localhost:8787/entrar?erro=google");
+    expect(clearsStateCookie(res)).toBe(true);
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(consoleError.mock.calls)).toContain("JWKSTimeout");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(EMAIL);
+    consoleError.mockRestore();
+  });
+
+  it("saves only the session fields authkit seals, clears the cookie and redirects to /gestao", async () => {
     const request = callbackRequest("?code=authcode&state=abc", "abc");
 
     const res = await callback(request);
 
     expect(deps.authenticateWithCode).toHaveBeenCalledWith("authcode");
-    expect(authkit.saveSession).toHaveBeenCalledWith(response, request);
-    expect(authkit.saveSession.mock.calls[0][0]).toBe(response);
+    expect(savedSession()).toEqual({ accessToken: "access", refreshToken: "refresh", user, authenticationMethod: "MagicAuth" });
+    expect(authkit.saveSession.mock.calls[0][1]).toBe(request);
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe("http://localhost:8787/gestao");
     expect(clearsStateCookie(res)).toBe(true);

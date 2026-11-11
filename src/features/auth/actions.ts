@@ -1,12 +1,11 @@
 "use server";
 
 import { saveSession, signOut } from "@workos-inc/authkit-nextjs";
-import type { AuthenticationResponse } from "@workos-inc/node";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { requestLoginCode, verifyLoginCode } from "./model";
-import { createAuthDeps } from "./workos";
+import { createAuthDeps, sessionToSave } from "./workos";
 
 export type LoginState = { step: "email" | "code"; email: string; error: string | null };
 
@@ -41,11 +40,11 @@ export async function verifyCodeAction(_prev: LoginState, form: FormData): Promi
   const result = await verifyLoginCode(createAuthDeps(), { email, code: text(form, "code"), ip });
   if (!result.ok) return { step: "code", email, error: result.error };
 
-  // The adapter returns WorkOS's full AuthenticationResponse; AuthSession is only what the model reads.
-  await saveSession(result.session as AuthenticationResponse, process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "");
+  await saveSession(sessionToSave(result.session), process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "");
   redirect("/gestao");
 }
 
 export async function signOutAction(): Promise<void> {
-  await signOut({ returnTo: new URL("/entrar", process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI).toString() });
+  // A missing or broken redirect URI must not stop signOut from deleting the session cookie.
+  await signOut({ returnTo: URL.parse("/entrar", process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI)?.href ?? "/entrar" });
 }

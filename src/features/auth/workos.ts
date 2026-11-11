@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { getWorkOS } from "@workos-inc/authkit-nextjs";
+import { getWorkOS, type Session } from "@workos-inc/authkit-nextjs";
+import type { AuthenticationResponse } from "@workos-inc/node";
 
 import { isLoginEmailAllowed } from "@/shared/db/client";
 import type { AuthDeps } from "./model";
@@ -32,7 +33,14 @@ async function logged<T>(operation: string, call: () => Promise<T>): Promise<T> 
   }
 }
 
-export function createAuthDeps(): AuthDeps {
+// The shape authkit's own callback seals and its refresh rewrites. The rest of the response
+// (Google oauthTokens, organizationId, new fields) would bloat the cookie past the 4 KB a browser keeps.
+export function sessionToSave(response: AuthenticationResponse): Session {
+  const { accessToken, refreshToken, user, impersonator, authenticationMethod } = response;
+  return { accessToken, refreshToken, user, impersonator, authenticationMethod };
+}
+
+export function createAuthDeps(): AuthDeps<AuthenticationResponse> {
   const clientId = process.env.WORKOS_CLIENT_ID ?? "";
   const redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "";
 
@@ -46,7 +54,7 @@ export function createAuthDeps(): AuthDeps {
         // No Worker context (plain `next dev`): the promise keeps running on its own.
       }
     },
-    // The full AuthenticationResponse is returned: saveSession needs more than AuthSession.
+    // The full AuthenticationResponse is returned; sessionToSave picks what goes into the cookie.
     authenticateWithMagicAuth: (email, code) =>
       logged("authenticateWithMagicAuth", () =>
         getWorkOS().userManagement.authenticateWithMagicAuth({ clientId, email, code }),

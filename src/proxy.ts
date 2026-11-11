@@ -4,5 +4,6 @@ import { authkitProxy } from "@workos-inc/authkit-nextjs";
 export default authkitProxy({ middlewareAuth: { enabled: false, unauthenticatedPaths: [] } });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico)$).*)"],
+  // Only the routes that read or write the session; the public site and static files skip it.
+  matcher: ["/entrar/:path*", "/callback", "/gestao/:path*", "/sem-acesso"],
 };
