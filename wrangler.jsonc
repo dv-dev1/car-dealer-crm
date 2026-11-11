@@ -29,9 +29,8 @@
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
-			// Placeholder: the real id comes from `wrangler hyperdrive create` (task 9).
-			// Create it with caching disabled.
-			"id": "00000000000000000000000000000000",
+			// Neon main branch (sa-east-1) as crm_app, caching disabled. See db/README.md.
+			"id": "baddb970113c4401ba4b498ebbf95589",
 			"localConnectionString": "postgresql://crm_app:dev@localhost:54328/crm_dev"
 		}
 	],
