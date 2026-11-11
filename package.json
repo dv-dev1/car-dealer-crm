@@ -10,6 +10,8 @@
     "test": "vitest run",
     "db:migrate": "node db/migrate.ts",
     "db:dev": "node db/local-cluster.ts",
+    "db:app-login": "node scripts/create-app-login.ts",
+    "store:create": "node scripts/create-store.ts",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "check:secrets": "node scripts/check-bundle-secrets.mjs"

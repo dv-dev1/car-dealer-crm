@@ -7,7 +7,7 @@ import pg from "pg";
 const DEFAULT_DIR = fileURLToPath(new URL("./migrations", import.meta.url));
 
 // Port 5432 is blocked on some networks; Neon is reached through its WebSocket driver on 443.
-function createPool(databaseUrl: string): pg.Pool {
+export function createPool(databaseUrl: string): pg.Pool {
   const isNeon = new URL(databaseUrl).hostname.endsWith(".neon.tech");
   const Pool = isNeon ? (NeonPool as unknown as typeof pg.Pool) : pg.Pool;
   return new Pool({ connectionString: databaseUrl });
