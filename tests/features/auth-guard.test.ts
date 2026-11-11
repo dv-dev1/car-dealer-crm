@@ -9,6 +9,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import SemAcessoPage from "@/app/sem-acesso/page";
 import { signOutAction } from "@/features/auth/actions";
 import { requireMember, requireRole } from "@/features/auth/guard";
+import { NoAccessView } from "@/features/auth/view";
 import { seedTwoStores } from "../db/fixtures.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
 
@@ -266,7 +267,8 @@ describe("/sem-acesso", () => {
     const page = await SemAcessoPage();
     const html = renderToStaticMarkup(page);
     expect(html).toContain("Seu e-mail ainda não tem acesso a nenhuma loja. Peça ao dono da loja para cadastrar você.");
-    const [form] = forms(page);
+    expect(page.type).toBe(NoAccessView);
+    const [form] = forms(NoAccessView());
     expect(form.props.action).toBe(signOutAction);
     expect(renderToStaticMarkup(form)).toMatch(/<button[^>]*type="submit"[^>]*>Sair<\/button>/);
   });

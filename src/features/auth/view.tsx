@@ -3,7 +3,7 @@
 import Script from "next/script";
 import { useActionState, useEffect, useRef, useState } from "react";
 
-import { requestCodeAction, verifyCodeAction, type LoginState } from "./actions";
+import { requestCodeAction, signOutAction, verifyCodeAction, type LoginState } from "./actions";
 
 declare global {
   interface Window {
@@ -23,6 +23,8 @@ const ERRORS: Record<string, string> = {
 const GOOGLE_ERROR = "Não foi possível entrar com o Google. Tente de novo.";
 const INITIAL: LoginState = { step: "email", email: "", error: null };
 
+const screen = "flex min-h-screen items-center justify-center px-4 py-12";
+const card = "w-full max-w-sm space-y-6 rounded-[var(--radius)] border border-line bg-surface p-6";
 const field = "w-full rounded-[var(--radius)] border border-line bg-surface px-3 py-2 text-secondary";
 const button = "w-full rounded-[var(--radius)] bg-primary px-4 py-2 font-semibold text-surface disabled:opacity-60";
 
@@ -57,8 +59,8 @@ export function LoginView({ turnstileSiteKey, googleFailed }: { turnstileSiteKey
   const error = state.error ? ERRORS[state.error] : googleFailed && state === INITIAL ? GOOGLE_ERROR : null;
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm space-y-6 rounded-[var(--radius)] border border-line bg-surface p-6">
+    <main className={screen}>
+      <div className={card}>
         <h1 className="text-xl font-semibold text-secondary">Entrar na Central de Gestão</h1>
 
         {error && <p role="alert">{error}</p>}
@@ -121,6 +123,24 @@ export function LoginView({ turnstileSiteKey, googleFailed }: { turnstileSiteKey
             </a>
           </form>
         )}
+      </div>
+    </main>
+  );
+}
+
+// Shown at /sem-acesso to a signed-in person whom no store has invited.
+export function NoAccessView() {
+  return (
+    <main className={screen}>
+      <div className={card}>
+        <p className="text-secondary">
+          Seu e-mail ainda não tem acesso a nenhuma loja. Peça ao dono da loja para cadastrar você.
+        </p>
+        <form action={signOutAction}>
+          <button type="submit" className={button}>
+            Sair
+          </button>
+        </form>
       </div>
     </main>
   );
