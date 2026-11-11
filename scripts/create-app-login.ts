@@ -1,4 +1,4 @@
-import { createHash, createHmac, pbkdf2Sync, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { open, rm } from "node:fs/promises";
 import { parseArgs } from "node:util";
@@ -8,16 +8,6 @@ import { createPool } from "../db/migrate.ts";
 const USAGE = "Usage: MIGRATE_DATABASE_URL=<url> node scripts/create-app-login.ts --out <file>";
 // No NOSUPERUSER here: in ALTER ROLE it needs a superuser even as a no-op, and Neon's owner is not one.
 const ATTRIBUTES = "login nobypassrls nocreatedb nocreaterole noreplication inherit";
-
-// The server stores this verifier as given, so the plaintext never reaches the SQL text, the server log or pg_stat_activity.
-// The password is base64url, hence ASCII: SASLprep would leave it unchanged.
-function scramVerifier(password: string): string {
-  const salt = randomBytes(16);
-  const salted = pbkdf2Sync(password, salt, 4096, 32, "sha256");
-  const hmac = (data: string) => createHmac("sha256", salted).update(data).digest();
-  const storedKey = createHash("sha256").update(hmac("Client Key")).digest("base64");
-  return `SCRAM-SHA-256$4096:${salt.toString("base64")}$${storedKey}:${hmac("Server Key").toString("base64")}`;
-}
 
 // Proves the new password logs in, as the app would, and that the login sees no row without a store.
 async function checkAppLogin(appUrl: string): Promise<void> {
@@ -58,9 +48,9 @@ export async function createAppLogin(adminUrl: string): Promise<string> {
       if (!group_exists) throw new Error("Role app_user does not exist: run the migrations first (npm run db:migrate)");
       // Only a superuser may alter a superuser role, so this one is fixed by hand.
       if (login_super) throw new Error('Role crm_app is a superuser: a superuser must run "alter role crm_app nosuperuser" first');
-      // create/alter role take no bind parameters, so the verifier goes in as an escaped literal
+      // Plaintext because Neon refuses a verifier ("Neon only supports being given plaintext passwords"); no bind parameters here, so an escaped literal.
       const role = login_super === null ? "create role crm_app nosuperuser" : "alter role crm_app";
-      await client.query(`${role} ${ATTRIBUTES} password ${pg.escapeLiteral(scramVerifier(password))}`);
+      await client.query(`${role} ${ATTRIBUTES} password ${pg.escapeLiteral(password)}`);
       await client.query("grant app_user to crm_app");
       await client.query("commit");
     } catch (error) {
