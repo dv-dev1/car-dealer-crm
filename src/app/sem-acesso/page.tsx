@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { NoAccessView } from "@/features/auth/view";
+import { ThemeScope } from "@/themes/ThemeScope";
 
 export const metadata: Metadata = { title: "Sem acesso", robots: { index: false, follow: false } };
 
@@ -10,5 +11,9 @@ export const metadata: Metadata = { title: "Sem acesso", robots: { index: false,
 export default async function SemAcessoPage() {
   const { user } = await withAuth();
   if (!user) redirect("/entrar");
-  return <NoAccessView />;
+  return (
+    <ThemeScope theme="autohub">
+      <NoAccessView />
+    </ThemeScope>
+  );
 }

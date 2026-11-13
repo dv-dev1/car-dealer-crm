@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { useActionState, useEffect, useRef, useState } from "react";
 
+import { AutoHubLogo } from "@/themes/autohub/Logo";
 import { requestCodeAction, signOutAction, verifyCodeAction, type LoginState } from "./actions";
 
 declare global {
@@ -25,8 +26,9 @@ const INITIAL: LoginState = { step: "email", email: "", error: null };
 
 const screen = "flex min-h-screen items-center justify-center px-4 py-12";
 const card = "w-full max-w-sm space-y-6 rounded-[var(--radius)] border border-line bg-surface p-6";
-const field = "w-full rounded-[var(--radius)] border border-line bg-surface px-3 py-2 text-secondary";
-const button = "w-full rounded-[var(--radius)] bg-primary px-4 py-2 font-semibold text-surface disabled:opacity-60";
+const field = "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2 text-secondary";
+const button = "w-full rounded-[var(--radius-control)] bg-primary px-4 py-2 font-semibold text-on-primary disabled:opacity-60";
+const logo = "h-7 w-auto text-secondary";
 
 function submit(prev: LoginState, form: FormData): Promise<LoginState> {
   return prev.step === "email" ? requestCodeAction(prev, form) : verifyCodeAction(prev, form);
@@ -61,6 +63,7 @@ export function LoginView({ turnstileSiteKey, googleFailed }: { turnstileSiteKey
   return (
     <main className={screen}>
       <div className={card}>
+        <AutoHubLogo className={logo} />
         <h1 className="text-xl font-semibold text-secondary">Entrar na Central de Gestão</h1>
 
         {error && <p role="alert">{error}</p>}
@@ -90,7 +93,7 @@ export function LoginView({ turnstileSiteKey, googleFailed }: { turnstileSiteKey
             {/* A link, not a form: the route sets the state cookie and redirects to WorkOS. */}
             <a
               href="/entrar/google"
-              className="block w-full rounded-[var(--radius)] border border-line bg-surface px-4 py-2 text-center font-semibold text-secondary"
+              className="block w-full rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2 text-center font-semibold text-secondary"
             >
               Entrar com Google
             </a>
@@ -133,6 +136,7 @@ export function NoAccessView() {
   return (
     <main className={screen}>
       <div className={card}>
+        <AutoHubLogo className={logo} />
         <p className="text-secondary">
           Seu e-mail ainda não tem acesso a nenhuma loja. Peça ao dono da loja para cadastrar você.
         </p>

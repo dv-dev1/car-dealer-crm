@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { GestaoShell } from "@/components/gestao/GestaoShell";
-import { TemaGestao } from "@/components/gestao/TemaGestao";
 import { requireMember } from "@/features/auth/guard";
+import { ThemeScope } from "@/themes/ThemeScope";
 
 // Área interna dos vendedores. `noindex` reforça que o público nunca a
 // encontra por busca.
@@ -10,17 +10,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Aplica o tema salvo ANTES da primeira pintura. Sem isso a tela pisca branca
-// a cada navegação pra quem usa o escuro (o React só assumiria depois de
-// hidratar). Fica inline de propósito: um arquivo externo chegaria tarde.
-// `escuro` é o único valor que liga o tema; qualquer outra coisa cai no claro.
-const TEMA_INICIAL = `
-try {
-  var t = localStorage.getItem("cassiano.tema");
-  if (t === "escuro") document.documentElement.dataset.tema = "escuro";
-} catch (e) {}
-`;
-
 export default async function GestaoLayout({
   children,
 }: {
@@ -28,11 +17,10 @@ export default async function GestaoLayout({
 }) {
   // Next skips layouts on soft navigation, so every page calls requireMember() too.
   await requireMember();
+  // Every store gets the Auto Hub theme until a client store has its own; then it comes from the member's store.
   return (
-    <>
-      <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL }} />
-      <TemaGestao />
+    <ThemeScope theme="autohub">
       <GestaoShell>{children}</GestaoShell>
-    </>
+    </ThemeScope>
   );
 }

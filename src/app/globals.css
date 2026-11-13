@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Panel themes: each redefines the tokens below under :root[data-theme="<name>"]. */
+@import "../themes/autohub/theme.css";
 
 /* ============================================================
    Cassiano Veículos — design tokens
@@ -35,6 +37,14 @@
      (essa continua --muted); é o token de densidade do ferramental. */
   --muted-strong: #6b6b6b;
   --line: #d8d8d8; /* Cinza claro (bordas) */
+  /* Texto sobre --primary. Tema que inverte a tinta (primary claro no
+     escuro) precisa de texto escuro aqui; text-white sumiria. */
+  --on-primary: #ffffff;
+  /* Sinal da marca: item ativo do menu. */
+  --signal: var(--primary);
+  /* Estágio neutro do funil e da agenda. */
+  --neutral: #5e7186;
+  --neutral-ink: #3e4a57;
   --whatsapp: #25d366;
   --whatsapp-hover: #1eb958;
 
@@ -52,6 +62,9 @@
   --danger-ink: #86331f;
 
   --radius: 12px;
+  /* Botão, aba, chip, selo, barra de progresso. */
+  --radius-control: 9999px;
+  --font-body: var(--font-poppins), system-ui, sans-serif;
   --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.06);
   --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.1);
 
@@ -131,6 +144,10 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-on-dark: var(--primary-on-dark);
+  --color-on-primary: var(--on-primary);
+  --color-signal: var(--signal);
+  --color-neutral: var(--neutral);
+  --color-neutral-ink: var(--neutral-ink);
   --color-secondary: var(--secondary);
   --color-inverso: var(--inverso);
   /* Sem modificador de opacidade no uso (`bg-veu`, não `bg-veu/55`): a
@@ -157,24 +174,16 @@
   --color-danger-bg: var(--danger-bg);
   --color-danger-ink: var(--danger-ink);
 
-  --font-sans: var(--font-poppins), system-ui, sans-serif;
+  --font-sans: var(--font-body);
 
   --radius-brand: var(--radius);
+  --radius-control: var(--radius-control);
   --shadow-soft: var(--shadow-soft);
   --ease-brand: var(--ease-brand);
 }
 
 * {
   border-color: var(--line);
-}
-
-/* Troca de asset por tema (a logo tem versão escura e clara — a de traço
-   escuro some no fundo escuro). Só o par visível é exibido. */
-:root[data-tema="escuro"] .so-tema-claro {
-  display: none;
-}
-:root:not([data-tema="escuro"]) .so-tema-escuro {
-  display: none;
 }
 
 /* Gate de hover positivo: em dispositivos de toque (sem ponteiro fino),
@@ -237,7 +246,7 @@ p {
 /* Seleção */
 ::selection {
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
 }
 
 /* Foco visível consistente. Sem `border-radius` aqui: o outline moderno já

@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus, Menu, X, Sun, Moon, LogOut } from "lucide-react";
@@ -10,6 +9,7 @@ import { secoes, EVENTO_NOVO_CLIENTE } from "./secoes";
 import { useTema } from "@/lib/tema";
 import { VEU, EASE_MARCA as EASE } from "./motion/sobreposicao";
 import { signOutAction } from "@/features/auth/actions";
+import { AutoHubLogo } from "@/themes/autohub/Logo";
 
 const LARGURA = "260px";
 
@@ -19,31 +19,15 @@ function estaAtiva(pathname: string, href: string) {
   return href === "/gestao" ? pathname === "/gestao" : pathname.startsWith(href);
 }
 
-// Marca da loja no topo do painel — leva pro Painel (não pro site público).
+// Marca do Auto Hub no topo do painel — leva pro Painel (não pro site público).
 function Marca() {
   return (
     <Link
       href="/gestao"
-      aria-label="Cassiano Veículos — Painel"
+      aria-label="AutoHub — Painel"
       className="inline-flex items-center transition-opacity duration-200 hover:opacity-80"
     >
-      {/* Duas versões: a de traço escuro sumiria no tema escuro. Trocadas por
-          CSS (não por JS) pra a logo certa já vir na primeira pintura. */}
-      <Image
-        src="/logo-cv-trim.png"
-        alt="Cassiano Veículos"
-        width={453}
-        height={109}
-        priority
-        className="so-tema-claro h-8 w-auto"
-      />
-      <Image
-        src="/logo-cv-light.png"
-        alt="Cassiano Veículos"
-        width={453}
-        height={109}
-        className="so-tema-escuro h-8 w-auto"
-      />
+      <AutoHubLogo className="h-6 w-auto text-secondary" />
     </Link>
   );
 }
