@@ -148,7 +148,7 @@ function Coluna({
     >
       {/* Cabeçalho */}
       <header
-        className="flex items-center justify-between rounded-t-[var(--radius)] px-3 py-2 text-white"
+        className="flex items-center justify-between rounded-t-[var(--radius)] px-3 py-2 text-on-primary"
         style={{ backgroundColor: etapa.cor }}
       >
         <span className="text-sm font-semibold">{etapa.label}</span>

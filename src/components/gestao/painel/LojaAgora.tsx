@@ -124,7 +124,7 @@ export function LojaAgora({
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${SELO[nivel]}`}
+                      className={`shrink-0 rounded-[var(--radius-control)] px-2.5 py-1 text-xs font-semibold tabular-nums ${SELO[nivel]}`}
                     >
                       {v.diasEstoque === 0 ? "hoje" : `${v.diasEstoque} dias`}
                     </span>

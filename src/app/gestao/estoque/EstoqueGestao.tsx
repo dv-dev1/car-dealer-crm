@@ -107,7 +107,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
           </button>
           <Link
             href="/gestao/estoque/novo"
-            className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-primary px-3.5 py-2 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.97]"
+            className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-primary px-3.5 py-2 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.97]"
           >
             <Plus size={17} strokeWidth={2.25} />
             Adicionar carro
@@ -148,15 +148,15 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
                 type="button"
                 onClick={() => setFiltro(c.valor)}
                 aria-pressed={ativo}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
+                className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
                   ativo
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-on-primary"
                     : "border border-line bg-surface text-secondary/80 hover:bg-sand"
                 }`}
               >
                 {c.label}{" "}
                 <span
-                  className={`tabular-nums ${ativo ? "text-white/75" : "text-muted"}`}
+                  className={`tabular-nums ${ativo ? "text-on-primary/75" : "text-muted"}`}
                 >
                   ({c.n})
                 </span>
@@ -199,7 +199,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
               aria-pressed={modo === "grade"}
               aria-label="Ver em grade"
               className={`grid h-8 w-8 place-items-center rounded-[calc(var(--radius)-4px)] transition-colors duration-200 ${
-                modo === "grade" ? "bg-primary text-white" : "text-muted hover:text-secondary"
+                modo === "grade" ? "bg-primary text-on-primary" : "text-muted hover:text-secondary"
               }`}
             >
               <LayoutGrid size={16} />
@@ -210,7 +210,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
               aria-pressed={modo === "lista"}
               aria-label="Ver em lista"
               className={`grid h-8 w-8 place-items-center rounded-[calc(var(--radius)-4px)] transition-colors duration-200 ${
-                modo === "lista" ? "bg-primary text-white" : "text-muted hover:text-secondary"
+                modo === "lista" ? "bg-primary text-on-primary" : "text-muted hover:text-secondary"
               }`}
             >
               <ListIcon size={16} />

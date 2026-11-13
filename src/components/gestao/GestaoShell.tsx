@@ -79,7 +79,7 @@ function ConteudoSidebar({
           }
           onNavegar?.();
         }}
-        className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.98]"
+        className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.98]"
       >
         <Plus size={18} strokeWidth={2.25} />
         Novo cliente
@@ -112,7 +112,10 @@ function ConteudoSidebar({
                     reduzir ? { duration: 0 } : { duration: 0.3, ease: EASE }
                   }
                   aria-hidden="true"
-                />
+                >
+                  {/* Brand signal: 3px bar on the left edge, sliding with the highlight. */}
+                  <span className="absolute inset-y-1.5 left-0 w-[3px] bg-signal shadow-[0_0_14px_1px_color-mix(in_srgb,var(--signal)_50%,transparent)]" />
+                </motion.span>
               )}
               <Icon size={19} strokeWidth={1.75} className="relative shrink-0" />
               <span className="relative">{s.label}</span>
@@ -167,7 +170,7 @@ function BotaoTema() {
 /**
  * Moldura da área dos vendedores (central de gestão): sidebar fixa no desktop,
  * top bar + drawer no mobile. Register product — navegação padrão, cor contida
- * (caramelo só na ação primária e no item ativo), motion curto e funcional.
+ * (cor da marca só na ação primária e no item ativo), motion curto e funcional.
  * Sem o chrome do site público (header/footer/WhatsApp): é outra superfície.
  */
 export function GestaoShell({ children }: { children: ReactNode }) {

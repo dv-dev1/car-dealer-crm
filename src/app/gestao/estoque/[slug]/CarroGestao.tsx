@@ -87,7 +87,7 @@ export function CarroGestao({
       {/* Voltar */}
       <Link
         href="/gestao/estoque"
-        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+        className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
       >
         <ArrowLeft size={16} />
         Voltar ao estoque
@@ -101,7 +101,7 @@ export function CarroGestao({
           </h1>
           <p className="mt-1.5 text-sm text-muted-strong">{specs}</p>
         </div>
-        <span className="shrink-0 rounded-full bg-sand px-3 py-1 text-xs font-medium text-secondary/80">
+        <span className="shrink-0 rounded-[var(--radius-control)] bg-sand px-3 py-1 text-xs font-medium text-secondary/80">
           {veiculo.diasEstoque === 0
             ? "Entrou hoje"
             : `${veiculo.diasEstoque} dias no estoque`}
@@ -174,7 +174,7 @@ export function CarroGestao({
                   <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-success-ink/80">
                     Mínimo à vista
                   </span>
-                  <span className="rounded-full bg-success/12 px-2 py-0.5 text-xs font-semibold tabular-nums text-success-ink">
+                  <span className="rounded-[var(--radius-control)] bg-success/12 px-2 py-0.5 text-xs font-semibold tabular-nums text-success-ink">
                     −{formatPreco(descontoMax)}
                   </span>
                 </div>
@@ -213,7 +213,7 @@ export function CarroGestao({
                   </div>
                   <button
                     type="submit"
-                    className="rounded-[calc(var(--radius)-2px)] bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-hover"
+                    className="rounded-[calc(var(--radius)-2px)] bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
                   >
                     Liberar
                   </button>
@@ -262,7 +262,7 @@ export function CarroGestao({
                 className={
                   margemDefinida
                     ? `${acaoSecundaria} border-primary/30 bg-primary/8 text-primary hover:bg-primary/14`
-                    : `${acaoSecundaria} border-transparent bg-warning text-white shadow-[0_2px_8px_rgba(183,121,31,0.25)] hover:bg-warning-ink`
+                    : `${acaoSecundaria} border-transparent bg-warning text-white shadow-[0_2px_8px_color-mix(in_srgb,var(--warning)_25%,transparent)] hover:bg-warning-ink`
                 }
               >
                 <Percent size={16} />
@@ -282,7 +282,7 @@ export function CarroGestao({
             <button
               type="button"
               onClick={() => setModalAberto(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius)] bg-primary px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-colors duration-200 hover:bg-primary-hover"
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius)] bg-primary px-4 py-3 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-colors duration-200 hover:bg-primary-hover"
             >
               <UserPlus size={17} />
               Registrar cliente / negociação

@@ -241,7 +241,7 @@ export function NovoClienteModal({
                 <button
                   type="button"
                   onClick={onFechar}
-                  className="mt-5 rounded-[var(--radius)] bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-hover"
+                  className="mt-5 rounded-[var(--radius)] bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
                 >
                   Concluir
                 </button>
@@ -401,7 +401,7 @@ export function NovoClienteModal({
 
                 <button
                   type="submit"
-                  className="mt-1 w-full rounded-[var(--radius)] bg-primary px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-colors duration-200 hover:bg-primary-hover"
+                  className="mt-1 w-full rounded-[var(--radius)] bg-primary px-4 py-3 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-colors duration-200 hover:bg-primary-hover"
                 >
                   {editando ? "Salvar alterações" : "Salvar cliente"}
                 </button>

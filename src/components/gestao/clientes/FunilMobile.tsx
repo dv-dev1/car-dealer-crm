@@ -68,8 +68,8 @@ export function FunilMobile({
                 role="tab"
                 aria-selected={ativa}
                 onClick={() => setEtapaSel(etapa.id)}
-                className={`flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
-                  ativa ? "text-white" : "border border-line bg-surface text-secondary/80"
+                className={`flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-medium transition-colors duration-200 ${
+                  ativa ? "text-on-primary" : "border border-line bg-surface text-secondary/80"
                 }`}
                 style={ativa ? { backgroundColor: etapa.cor } : undefined}
               >
@@ -146,7 +146,7 @@ export function FunilMobile({
               exit={reduzir ? { opacity: 0 } : { y: "100%" }}
               transition={{ duration: 0.22, ease: EASE }}
             >
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" aria-hidden="true" />
+              <div className="mx-auto mb-3 h-1 w-10 rounded-[var(--radius-control)] bg-line" aria-hidden="true" />
               <p className="px-1 text-sm text-muted-strong">
                 Mover <span className="font-semibold text-secondary">{mover.nome}</span> para
               </p>

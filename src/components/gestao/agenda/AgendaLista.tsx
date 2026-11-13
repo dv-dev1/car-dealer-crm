@@ -107,7 +107,7 @@ export function AgendaLista({
           <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-secondary">
             {diaPorExtenso(dia)}
             {dia === hojeIso && (
-              <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
+              <span className="rounded-[var(--radius-control)] bg-primary/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
                 hoje
               </span>
             )}

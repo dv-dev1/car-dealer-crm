@@ -156,9 +156,9 @@ export function FecharNegocioDialog({
                             type="button"
                             onClick={() => setForma(f)}
                             aria-pressed={ativo}
-                            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
+                            className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
                               ativo
-                                ? "bg-primary text-white"
+                                ? "bg-primary text-on-primary"
                                 : "border border-line bg-surface text-secondary/80 hover:bg-sand"
                             }`}
                           >
@@ -198,10 +198,10 @@ export function FecharNegocioDialog({
                 </button>
                 <button
                   type="submit"
-                  className={`flex-1 rounded-[var(--radius)] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 ${
+                  className={`flex-1 rounded-[var(--radius)] px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
                     vendeu
-                      ? "bg-success hover:bg-success-ink"
-                      : "bg-secondary hover:bg-secondary/90"
+                      ? "bg-success text-white hover:bg-success-ink"
+                      : "bg-primary text-on-primary hover:bg-primary-hover"
                   }`}
                 >
                   {vendeu ? "Registrar venda" : "Confirmar"}

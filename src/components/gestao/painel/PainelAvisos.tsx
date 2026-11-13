@@ -8,7 +8,7 @@ import { fraseRitmo } from "@/lib/metas";
 import { NumeroAnimado } from "@/components/gestao/motion/NumeroAnimado";
 
 // ── Aviso de meta — fita compacta em grafite (cor de contraste da marca).
-// O % em caramelo é o único destaque de cor; barra fina de progresso.
+// O % na cor da marca (primary-on-dark) é o único destaque de cor; barra fina de progresso.
 export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
   const reduzir = useReducedMotion();
   const pct = Math.round(meta.progresso * 100);
@@ -29,7 +29,7 @@ export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
       className="flex items-center gap-4 rounded-[var(--radius)] bg-inverso px-4 py-3 text-white shadow-[var(--shadow-soft)] sm:px-5"
       aria-label={`Meta de ${meta.mesLabel}: ${meta.feito} de ${meta.alvo} vendas`}
     >
-      <span className="hidden h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-primary sm:grid">
+      <span className="hidden h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-primary-on-dark sm:grid">
         <Trophy size={18} strokeWidth={1.9} />
       </span>
 
@@ -44,7 +44,7 @@ export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
         </div>
 
         <div
-          className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15"
+          className="mt-2 h-1.5 overflow-hidden rounded-[var(--radius-control)] bg-white/15"
           role="progressbar"
           aria-valuenow={pct}
           aria-valuemin={0}
@@ -52,7 +52,7 @@ export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
         >
           {/* Preenche em vez de nascer pronta — é o ponteiro subindo. */}
           <motion.div
-            className="h-full rounded-full bg-primary"
+            className="h-full rounded-[var(--radius-control)] bg-primary-on-dark"
             initial={reduzir ? false : { width: 0 }}
             animate={{ width: `${largura}%` }}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
@@ -63,7 +63,7 @@ export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
       </div>
 
       <div className="shrink-0 text-right leading-none">
-        <span className="text-2xl font-semibold text-primary">
+        <span className="text-2xl font-semibold text-primary-on-dark">
           <NumeroAnimado valor={pct} formato="porcento" />
         </span>
         <span className="mt-1 block text-[0.7rem] text-white/50">da meta</span>
@@ -94,7 +94,7 @@ export function AvisoSemMargem({ quantidade }: { quantidade: number }) {
       </div>
       <Link
         href="/gestao/estoque"
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius)] bg-surface px-3.5 py-2 text-sm font-semibold text-warning-ink transition-colors duration-200 hover:bg-white"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius)] bg-surface px-3.5 py-2 text-sm font-semibold text-warning-ink transition-colors duration-200 hover:bg-surface-2"
       >
         Resolver
         <ArrowRight size={15} strokeWidth={2.25} />
