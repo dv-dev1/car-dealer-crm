@@ -132,3 +132,9 @@
 :root[data-theme="autohub"][data-tema="escuro"] select:not([multiple]) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba1a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
+
+/* Light mode: --primary is the same ink as --inverso, so the global focus
+   outline vanishes on dark bands. Those bands use the on-dark ink instead. */
+:root[data-theme="autohub"] .bg-inverso :focus-visible {
+  outline-color: var(--primary-on-dark);
+}

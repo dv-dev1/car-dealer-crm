@@ -22,8 +22,8 @@
 // valor e reagem juntas. Mesmo padrão do store de leads (clientes-store.ts).
 //
 // Limpar o data-tema ao sair da gestão virou responsabilidade de quem tem o
-// tempo de vida certo pra isso — <TemaGestao/>, montado uma vez pelo layout —
-// e não de um botão que entra e sai da tela.
+// tempo de vida certo pra isso — <TemaGestao/>, mounted by <ThemeScope> on
+// /gestao, /entrar and /sem-acesso — e não de um botão que entra e sai da tela.
 
 import { useCallback, useSyncExternalStore } from "react";
 

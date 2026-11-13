@@ -12,7 +12,7 @@ const ROLE_LABEL: Record<Role, string> = { owner: "Dono", manager: "Gerente", se
 const INITIAL: TeamState = { error: null };
 
 const field = "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2 text-secondary";
-const button = "rounded-[var(--radius-control)] bg-primary px-4 py-2 font-semibold text-surface disabled:opacity-60";
+const button = "rounded-[var(--radius-control)] bg-primary px-4 py-2 font-semibold text-on-primary disabled:opacity-60";
 const removeButton =
   "rounded-[var(--radius-control)] border border-danger/30 bg-surface px-3 py-1.5 text-sm text-danger-ink hover:bg-danger-bg disabled:opacity-60";
 
