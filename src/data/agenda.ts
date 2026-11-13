@@ -20,12 +20,13 @@ export interface EventoAgenda {
 // referência: ardósia pra visita (informativo, = "Lead novo" do funil),
 // âmbar pra retorno (pede ação). `cor` é o ponto/legenda; `tinta` é o texto
 // da pílula (mais escuro, pra passar contraste no tamanho pequeno).
+// Both are theme tokens, so the agenda follows the store theme.
 export const TIPO_EVENTO: Record<
   TipoEvento,
   { label: string; cor: string; tinta: string }
 > = {
-  visita: { label: "Visita agendada", cor: "#5E7186", tinta: "#3E4A57" },
-  retorno: { label: "Retornar", cor: "#B7791F", tinta: "#8A5A15" },
+  visita: { label: "Visita agendada", cor: "var(--neutral)", tinta: "var(--neutral-ink)" },
+  retorno: { label: "Retornar", cor: "var(--warning)", tinta: "var(--warning-ink)" },
 };
 
 /** Deriva os eventos do calendário a partir dos leads. */

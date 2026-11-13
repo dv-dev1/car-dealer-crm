@@ -93,7 +93,7 @@ export function CalendarioMes({
               <span
                 className={`grid h-6 w-6 place-items-center rounded-full text-xs font-semibold tabular-nums ${
                   ehHoje
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-on-primary"
                     : selecionado
                       ? "text-primary"
                       : "text-secondary"
@@ -126,7 +126,7 @@ export function CalendarioMes({
                       key={e.id}
                       title={`${t.label}: ${e.lead.nome}`}
                       className="truncate rounded-[4px] px-1 py-0.5 text-[0.62rem] font-semibold uppercase leading-tight"
-                      style={{ backgroundColor: `${t.cor}24`, color: t.tinta }}
+                      style={{ backgroundColor: `color-mix(in srgb, ${t.cor} 14%, transparent)`, color: t.tinta }}
                     >
                       {primeiroNome(e.lead.nome)}
                     </span>

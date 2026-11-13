@@ -136,7 +136,7 @@ export function ClientesView({
           <button
             type="button"
             onClick={() => setModalAberto(true)}
-            className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-primary px-3.5 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.97] lg:hidden"
+            className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-primary px-3.5 py-2.5 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.97] lg:hidden"
           >
             <Plus size={17} strokeWidth={2.25} />
             Novo cliente

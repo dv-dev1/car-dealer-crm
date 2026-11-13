@@ -15,21 +15,21 @@ export type EstagioFunil =
 export interface Etapa {
   id: EstagioFunil;
   label: string;
-  /** Cor da etapa — adaptada ao sistema Cassiano (contida, premium). */
+  /** Stage color: a theme token (CSS var), so the funnel follows the store theme. */
   cor: string;
   /** Etapa ativa (aparece sempre) ou fechada (filtrada por mês). */
   fechada?: boolean;
 }
 
-// Progressão sóbria: ardósia → caramelo → âmbar → rosa-queimado, verde-fechado
-// pro ganho, grafite pra perda. Nenhuma cor grita; cada coluna se distingue.
+// Sober progression from theme tokens: neutral, primary, warning, strong gray;
+// success for the win, strong gray for the loss. No color shouts.
 export const ETAPAS: Etapa[] = [
-  { id: "lead-novo", label: "Lead novo", cor: "#5E7186" },
-  { id: "visita-marcada", label: "Visita marcada", cor: "#B56E35" },
-  { id: "negociando", label: "Negociando", cor: "#B7791F" },
-  { id: "ligar-volta", label: "Ligar de volta", cor: "#A65C68" },
-  { id: "vendeu", label: "Vendeu", cor: "#2E7D5B", fechada: true },
-  { id: "nao-comprou", label: "Não comprou", cor: "#6B6E73", fechada: true },
+  { id: "lead-novo", label: "Lead novo", cor: "var(--neutral)" },
+  { id: "visita-marcada", label: "Visita marcada", cor: "var(--primary)" },
+  { id: "negociando", label: "Negociando", cor: "var(--warning)" },
+  { id: "ligar-volta", label: "Ligar de volta", cor: "var(--muted-strong)" },
+  { id: "vendeu", label: "Vendeu", cor: "var(--success)", fechada: true },
+  { id: "nao-comprou", label: "Não comprou", cor: "var(--muted-strong)", fechada: true },
 ];
 
 export const ETAPA_POR_ID: Record<EstagioFunil, Etapa> = Object.fromEntries(

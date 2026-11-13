@@ -89,7 +89,7 @@ function Coluna({ m, maxFat, corrente }: { m: MesResumo; maxFat: number; corrent
         style={{ height: "100%" }}
       >
         {vazio ? (
-          <div className="h-[3px] w-full rounded-full bg-line" aria-hidden="true" />
+          <div className="h-[3px] w-full rounded-[var(--radius-control)] bg-line" aria-hidden="true" />
         ) : (
           <>
             <div

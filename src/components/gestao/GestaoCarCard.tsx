@@ -38,7 +38,7 @@ export function GestaoCarCard({ v }: { v: VeiculoGestao }) {
           className="object-cover transition-transform duration-[250ms] ease-[var(--ease-brand)] group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
         />
         <span
-          className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ${tomDosDias(
+          className={`absolute left-2.5 top-2.5 rounded-[var(--radius-control)] px-2.5 py-1 text-[0.7rem] font-semibold ${tomDosDias(
             v.diasEstoque,
           )}`}
         >
@@ -67,7 +67,7 @@ export function GestaoCarCard({ v }: { v: VeiculoGestao }) {
         {/* Rodapé financeiro: pede margem, ou mostra o mínimo à vista */}
         <div className="mt-auto">
           {semMargem ? (
-            <span className="flex w-full items-center justify-center rounded-[calc(var(--radius)-4px)] bg-warning-bg px-3 py-2.5 text-sm font-semibold text-warning-ink transition-colors duration-200 group-hover:bg-warning group-hover:text-white">
+            <span className="flex w-full items-center justify-center rounded-[calc(var(--radius)-4px)] bg-warning-bg px-3 py-2.5 text-sm font-semibold text-warning-ink transition-colors duration-200 group-hover:bg-warning group-hover:text-on-primary">
               Definir margem
             </span>
           ) : (
@@ -76,7 +76,7 @@ export function GestaoCarCard({ v }: { v: VeiculoGestao }) {
                 <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-success-ink/80">
                   Mínimo à vista
                 </span>
-                <span className="rounded-full bg-success/12 px-1.5 py-0.5 text-[0.65rem] font-semibold tabular-nums text-success-ink">
+                <span className="rounded-[var(--radius-control)] bg-success/12 px-1.5 py-0.5 text-[0.65rem] font-semibold tabular-nums text-success-ink">
                   −{formatPreco(v.descontoMax)}
                 </span>
               </div>

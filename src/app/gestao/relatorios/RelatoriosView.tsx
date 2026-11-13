@@ -74,9 +74,9 @@ export function RelatoriosView() {
               type="button"
               onClick={() => setPeriodo(p.valor)}
               aria-pressed={ativo}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-[background-color,color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] active:scale-[0.96] ${
+              className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-[background-color,color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] active:scale-[0.96] ${
                 ativo
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-on-primary"
                   : "border border-line bg-surface text-secondary/80 hover:bg-sand"
               }`}
             >

@@ -120,7 +120,7 @@ export function LeadCard({
       {(datas.length > 0 || atrasado) && (
         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           {atrasado && (
-            <span className="rounded-full bg-danger-bg px-2 py-0.5 text-[0.65rem] font-semibold text-danger-ink">
+            <span className="rounded-[var(--radius-control)] bg-danger-bg px-2 py-0.5 text-[0.65rem] font-semibold text-danger-ink">
               atrasado
             </span>
           )}

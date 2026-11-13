@@ -135,7 +135,7 @@ export function AdicionarCarro() {
           <button
             type="button"
             onClick={recomecar}
-            className="rounded-[var(--radius)] bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-hover"
+            className="rounded-[var(--radius)] bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
           >
             Adicionar outro
           </button>
@@ -148,7 +148,7 @@ export function AdicionarCarro() {
     <form onSubmit={salvar} className="pb-8">
       <Link
         href="/gestao/estoque"
-        className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+        className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
       >
         <ArrowLeft size={16} />
         Voltar ao estoque
@@ -174,7 +174,7 @@ export function AdicionarCarro() {
             >
               <Image src={f.url} alt={`Foto ${i + 1}`} fill className="object-cover" unoptimized />
               {i === 0 && (
-                <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[0.65rem] font-semibold text-white">
+                <span className="absolute left-1.5 top-1.5 rounded-[var(--radius-control)] bg-primary px-2 py-0.5 text-[0.65rem] font-semibold text-on-primary">
                   Capa
                 </span>
               )}
@@ -315,9 +315,9 @@ export function AdicionarCarro() {
                 type="button"
                 onClick={() => toggleOpcional(o)}
                 aria-pressed={ativo}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-200 ${
+                className={`rounded-[var(--radius-control)] px-3 py-1.5 text-sm font-medium transition-colors duration-200 ${
                   ativo
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-on-primary"
                     : "border border-line bg-surface text-secondary/80 hover:bg-sand"
                 }`}
               >
@@ -354,7 +354,7 @@ export function AdicionarCarro() {
         </Link>
         <button
           type="submit"
-          className="rounded-[var(--radius)] bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-colors duration-200 hover:bg-primary-hover"
+          className="rounded-[var(--radius)] bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-colors duration-200 hover:bg-primary-hover"
         >
           Salvar carro
         </button>

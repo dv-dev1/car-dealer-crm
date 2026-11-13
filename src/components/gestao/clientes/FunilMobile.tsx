@@ -68,15 +68,15 @@ export function FunilMobile({
                 role="tab"
                 aria-selected={ativa}
                 onClick={() => setEtapaSel(etapa.id)}
-                className={`flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
-                  ativa ? "text-white" : "border border-line bg-surface text-secondary/80"
+                className={`flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-medium transition-colors duration-200 ${
+                  ativa ? "text-on-primary" : "border border-line bg-surface text-secondary/80"
                 }`}
                 style={ativa ? { backgroundColor: etapa.cor } : undefined}
               >
                 {etapa.label}
                 <span
                   className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-xs font-semibold tabular-nums ${
-                    ativa ? "bg-white/25" : "bg-sand text-muted-strong"
+                    ativa ? "bg-[color-mix(in_srgb,var(--on-primary)_20%,transparent)]" : "bg-sand text-muted-strong"
                   }`}
                 >
                   {n}
@@ -146,7 +146,7 @@ export function FunilMobile({
               exit={reduzir ? { opacity: 0 } : { y: "100%" }}
               transition={{ duration: 0.22, ease: EASE }}
             >
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" aria-hidden="true" />
+              <div className="mx-auto mb-3 h-1 w-10 rounded-[var(--radius-control)] bg-line" aria-hidden="true" />
               <p className="px-1 text-sm text-muted-strong">
                 Mover <span className="font-semibold text-secondary">{mover.nome}</span> para
               </p>
@@ -173,7 +173,7 @@ export function FunilMobile({
                 <button
                   type="button"
                   onClick={() => escolher("vendeu")}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-success px-3 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-success-ink"
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-success px-3 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-success-ink"
                 >
                   <BadgeCheck size={16} />
                   Vendeu
