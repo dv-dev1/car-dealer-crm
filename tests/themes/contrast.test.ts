@@ -23,6 +23,8 @@ const PAIRS: [string, string][] = [
   ["on-primary", "primary"], ["on-primary", "primary-hover"], ["primary", "surface"],
   ["primary-on-dark", "inverso"], ["danger", "surface"], ["danger-ink", "danger-bg"],
   ["success-ink", "success-bg"], ["warning-ink", "warning-bg"], ["neutral-ink", "surface"],
+  // Screens put text-on-primary on status fills too (badges, funnel stages).
+  ["on-primary", "warning"], ["on-primary", "success"], ["on-primary", "neutral"], ["on-primary", "muted-strong"],
 ];
 
 type Tokens = Record<string, string>;
