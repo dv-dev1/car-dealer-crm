@@ -32,7 +32,7 @@ export function StatCard({
     <div className="flex items-center justify-between gap-4 rounded-[var(--radius)] border border-line bg-surface px-5 py-4 shadow-[var(--shadow-soft)]">
       <div className="min-w-0">
         <p className="text-[0.8rem] font-medium text-muted-strong">{label}</p>
-        <p className={`mt-1 text-[1.9rem] font-semibold leading-none tabular-nums ${t.numero}`}>
+        <p data-kpi className={`mt-1 text-[1.9rem] font-semibold leading-none tabular-nums ${t.numero}`}>
           {valor}
         </p>
         {legenda && <p className="mt-1.5 text-xs text-muted-strong">{legenda}</p>}

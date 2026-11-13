@@ -99,7 +99,7 @@ export function MetaBloco() {
                   }}
                   inputMode="numeric"
                   aria-label="Nova meta de vendas do mês"
-                  className="w-14 rounded-[calc(var(--radius)-6px)] border border-white/25 bg-white/10 px-2 py-0.5 text-sm font-semibold text-white focus:border-primary-on-dark focus:outline-none"
+                  className="w-14 rounded-[var(--radius-control)] border border-white/25 bg-white/10 px-2 py-0.5 text-sm font-semibold text-white focus:border-primary-on-dark focus:outline-none"
                 />
                 <button
                   type="button"
@@ -142,7 +142,7 @@ export function MetaBloco() {
         </div>
 
         <div className="shrink-0 text-right leading-none">
-          <span className="text-3xl font-semibold tabular-nums text-primary-on-dark">{meta.pct}%</span>
+          <span data-kpi className="text-3xl font-semibold tabular-nums text-primary-on-dark">{meta.pct}%</span>
           <span className="mt-1 block text-[0.7rem] text-white/50">da meta</span>
         </div>
       </div>

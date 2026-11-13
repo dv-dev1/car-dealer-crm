@@ -109,10 +109,10 @@ export function AgendaView() {
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <button type="button" onClick={() => passoMes(-1)} aria-label="Mês anterior" className="grid h-8 w-8 place-items-center rounded-[var(--radius)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
+              <button type="button" onClick={() => passoMes(-1)} aria-label="Mês anterior" className="grid h-8 w-8 place-items-center rounded-[var(--radius-control)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
                 <ChevronLeft size={17} />
               </button>
-              <button type="button" onClick={() => passoMes(1)} aria-label="Próximo mês" className="grid h-8 w-8 place-items-center rounded-[var(--radius)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
+              <button type="button" onClick={() => passoMes(1)} aria-label="Próximo mês" className="grid h-8 w-8 place-items-center rounded-[var(--radius-control)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
                 <ChevronRight size={17} />
               </button>
             </div>
@@ -199,7 +199,7 @@ function ItemResumo({
 
   return (
     <div className="flex items-baseline gap-2 bg-surface px-4 py-3">
-      <span className={`text-xl font-semibold leading-none tabular-nums ${cor}`}>{valor}</span>
+      <span data-kpi className={`text-xl font-semibold leading-none tabular-nums ${cor}`}>{valor}</span>
       <span className="text-xs leading-tight text-muted-strong">{label}</span>
     </div>
   );

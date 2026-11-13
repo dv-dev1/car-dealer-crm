@@ -106,7 +106,7 @@ export function FunilMobile({
                   <button
                     type="button"
                     onClick={() => setMover(lead)}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-[calc(var(--radius)-5px)] border border-line px-3 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-control)] border border-line px-3 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand"
                   >
                     <MoveRight size={13} />
                     Mover
@@ -157,7 +157,7 @@ export function FunilMobile({
                     key={etapa.id}
                     type="button"
                     onClick={() => escolher(etapa.id)}
-                    className="flex w-full items-center gap-3 rounded-[var(--radius)] border border-line px-3.5 py-3 text-left text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+                    className="flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-line px-3.5 py-3 text-left text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
                   >
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -173,7 +173,7 @@ export function FunilMobile({
                 <button
                   type="button"
                   onClick={() => escolher("vendeu")}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-success px-3 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-success-ink"
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius-control)] bg-success px-3 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-success-ink"
                 >
                   <BadgeCheck size={16} />
                   Vendeu
@@ -181,7 +181,7 @@ export function FunilMobile({
                 <button
                   type="button"
                   onClick={() => escolher("nao-comprou")}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] border border-line bg-surface px-3 py-3 text-sm font-semibold text-secondary transition-colors duration-200 hover:bg-sand"
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-3 py-3 text-sm font-semibold text-secondary transition-colors duration-200 hover:bg-sand"
                 >
                   <XCircle size={16} />
                   Não comprou

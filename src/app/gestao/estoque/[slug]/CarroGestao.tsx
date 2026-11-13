@@ -80,7 +80,7 @@ export function CarroGestao({
   }
 
   const acaoSecundaria =
-    "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] border px-4 py-2.5 text-sm font-semibold transition-colors duration-200";
+    "inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-secondary transition-colors duration-200 hover:bg-sand";
 
   return (
     <div className="pb-4">
@@ -151,7 +151,7 @@ export function CarroGestao({
               <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted">
                 Preço de tabela
               </span>
-              <span className="text-2xl font-semibold tabular-nums text-secondary">
+              <span data-kpi className="text-2xl font-semibold tabular-nums text-secondary">
                 {formatPreco(veiculo.preco)}
               </span>
             </div>
@@ -208,12 +208,12 @@ export function CarroGestao({
                       value={rascunho}
                       onChange={(e) => setRascunho(e.target.value.replace(/\D/g, ""))}
                       placeholder="0"
-                      className="w-full rounded-[calc(var(--radius)-2px)] border border-line bg-surface py-2.5 pl-9 pr-3 text-sm tabular-nums text-secondary focus:border-primary focus:outline-none"
+                      className="w-full rounded-[var(--radius-control)] border border-line bg-surface py-2.5 pl-9 pr-3 text-sm tabular-nums text-secondary focus:border-primary focus:outline-none"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="rounded-[calc(var(--radius)-2px)] bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
+                    className="rounded-[var(--radius-control)] bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
                   >
                     Liberar
                   </button>
@@ -250,8 +250,17 @@ export function CarroGestao({
             )}
           </div>
 
-          {/* Ações */}
-          <div className="grid gap-2.5">
+          {/* Ações: one primary, outline secondaries, a text button for the destructive one. */}
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setModalAberto(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover sm:col-span-2"
+            >
+              <UserPlus size={17} />
+              Registrar cliente / negociação
+            </button>
+
             {!editando && (
               <button
                 type="button"
@@ -259,13 +268,9 @@ export function CarroGestao({
                   setRascunho(String(margemDefinida ? descontoMax : ""));
                   setEditando(true);
                 }}
-                className={
-                  margemDefinida
-                    ? `${acaoSecundaria} border-primary/30 bg-primary/8 text-primary hover:bg-primary/14`
-                    : `${acaoSecundaria} border-transparent bg-warning text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--warning)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--warning)_85%,var(--secondary))]`
-                }
+                className={acaoSecundaria}
               >
-                <Percent size={16} />
+                <Percent size={16} className={margemDefinida ? undefined : "text-warning"} />
                 {margemDefinida ? "Editar margem" : "Definir margem"}
               </button>
             )}
@@ -273,7 +278,7 @@ export function CarroGestao({
             <button
               type="button"
               onClick={() => emBreve("Edição de carro / foto")}
-              className={`${acaoSecundaria} border-line bg-surface text-secondary hover:bg-sand`}
+              className={acaoSecundaria}
             >
               <ImageUp size={16} />
               Editar carro / foto
@@ -281,31 +286,20 @@ export function CarroGestao({
 
             <button
               type="button"
-              onClick={() => setModalAberto(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius)] bg-primary px-4 py-3 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-colors duration-200 hover:bg-primary-hover"
+              onClick={() => emBreve("Marcar como vendido")}
+              className={acaoSecundaria}
             >
-              <UserPlus size={17} />
-              Registrar cliente / negociação
+              <CircleCheck size={16} className="text-success" />
+              Marcar como vendido
             </button>
-
-            <div className="mt-1 grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => emBreve("Marcar como vendido")}
-                className={`${acaoSecundaria} border-success/35 bg-success-bg text-success-ink hover:bg-success/12`}
-              >
-                <CircleCheck size={16} />
-                Marcar como vendido
-              </button>
-              <button
-                type="button"
-                onClick={() => emBreve("Remoção de veículo")}
-                className={`${acaoSecundaria} border-danger/30 bg-surface text-danger-ink hover:bg-danger-bg`}
-              >
-                <Trash2 size={16} />
-                Remover carro
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => emBreve("Remoção de veículo")}
+              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold text-danger-ink transition-colors duration-200 hover:bg-danger-bg"
+            >
+              <Trash2 size={16} />
+              Remover carro
+            </button>
           </div>
         </div>
       </div>

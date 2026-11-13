@@ -79,6 +79,7 @@ function Tile({
     <div className="flex flex-col justify-between rounded-[var(--radius)] border border-line bg-surface p-4 shadow-[var(--shadow-soft)]">
       <p className="text-[0.8rem] font-medium text-muted-strong">{label}</p>
       <p
+        data-kpi
         className={`mt-2 text-[1.55rem] font-semibold leading-none tabular-nums ${
           acento === "success" ? "text-success-ink" : "text-secondary"
         }`}

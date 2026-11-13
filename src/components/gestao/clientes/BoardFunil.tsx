@@ -146,13 +146,13 @@ function Coluna({
         leads.length === 1 ? "cliente" : "clientes"
       }`}
     >
-      {/* Cabeçalho */}
+      {/* Cabeçalho: one neutral header for every stage; the stage color is only the top rule. */}
       <header
-        className="flex items-center justify-between rounded-t-[var(--radius)] px-3 py-2 text-on-primary"
-        style={{ backgroundColor: etapa.cor }}
+        className="flex items-center justify-between rounded-t-[var(--radius)] border border-t-[3px] border-line bg-surface px-3 py-2"
+        style={{ borderTopColor: etapa.cor }}
       >
-        <span className="text-sm font-semibold">{etapa.label}</span>
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[color-mix(in_srgb,var(--on-primary)_20%,transparent)] px-1.5 text-xs font-semibold tabular-nums">
+        <span className="text-sm font-semibold text-secondary">{etapa.label}</span>
+        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-sand px-1.5 text-xs font-semibold tabular-nums text-muted-strong">
           {leads.length}
         </span>
       </header>
