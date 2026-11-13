@@ -79,7 +79,7 @@ function ComoPagaram({ formas }: { formas: FormaResumo[] }) {
         {formas.map((f) => (
           <div
             key={f.forma}
-            className="h-full first:rounded-l-full last:rounded-r-full"
+            className="h-full"
             style={{ width: `${f.fatia * 100}%`, backgroundColor: COR_FORMA[f.forma] }}
             title={`${f.forma}: ${f.vendas}`}
           />

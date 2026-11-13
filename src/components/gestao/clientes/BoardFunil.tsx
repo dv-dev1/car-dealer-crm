@@ -152,7 +152,7 @@ function Coluna({
         style={{ backgroundColor: etapa.cor }}
       >
         <span className="text-sm font-semibold">{etapa.label}</span>
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white/25 px-1.5 text-xs font-semibold tabular-nums">
+        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[color-mix(in_srgb,var(--on-primary)_20%,transparent)] px-1.5 text-xs font-semibold tabular-nums">
           {leads.length}
         </span>
       </header>

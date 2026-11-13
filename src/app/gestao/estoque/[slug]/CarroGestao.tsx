@@ -262,7 +262,7 @@ export function CarroGestao({
                 className={
                   margemDefinida
                     ? `${acaoSecundaria} border-primary/30 bg-primary/8 text-primary hover:bg-primary/14`
-                    : `${acaoSecundaria} border-transparent bg-warning text-white shadow-[0_2px_8px_color-mix(in_srgb,var(--warning)_25%,transparent)] hover:bg-warning-ink`
+                    : `${acaoSecundaria} border-transparent bg-warning text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--warning)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--warning)_85%,var(--secondary))]`
                 }
               >
                 <Percent size={16} />

@@ -79,7 +79,7 @@ export function AvisoSemMargem({ quantidade }: { quantidade: number }) {
 
   return (
     <section className="flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-warning/25 bg-warning-bg px-4 py-3 shadow-[var(--shadow-soft)] sm:px-5">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-warning text-white">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-warning text-on-primary">
         <TriangleAlert size={16} strokeWidth={2} />
       </span>
       <div className="min-w-0 flex-1">

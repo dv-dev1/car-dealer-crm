@@ -222,7 +222,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
       {/* Banner de alerta — sem margem */}
       {resumo.semMargem > 0 && filtro !== "sem-margem" && (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-warning/25 bg-warning-bg px-4 py-3">
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-warning text-[0.7rem] font-bold text-white tabular-nums">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-warning text-[0.7rem] font-bold text-on-primary tabular-nums">
             {resumo.semMargem}
           </span>
           <p className="min-w-0 flex-1 text-sm text-warning-ink">

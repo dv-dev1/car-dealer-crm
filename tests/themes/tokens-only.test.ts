@@ -33,9 +33,10 @@ const sizes = (axis: "h" | "w", line: string) =>
   [...line.matchAll(new RegExp(`(?:^|[^\\w-])${axis}-([^\\s"'\`]+)`, "g"))].map((m) => m[1]);
 
 const HEX = /#[0-9a-f]{6}(?:[0-9a-f]{2})?\b/i;
-const BG_PRIMARY = utility("bg-primary");
+/** Strong fills whose light/dark flip needs `text-on-primary`, any variant (`hover:`, `group-hover:`). */
+const STRONG_FILL = utility("bg-(?:primary|warning|success|neutral|muted-strong)");
 const TEXT_WHITE = utility("text-white");
-const ROUNDED_FULL = utility("rounded-full");
+const ROUNDED_FULL = utility("rounded(?:-[lrtb]{1,2})?-full");
 const MIN_W = utility("min-w-[^\\s\"'`]+");
 
 /** A circle or dot: same height and width, or a counter that only grows sideways. */
@@ -49,8 +50,8 @@ describe("panel screens read only theme tokens", () => {
     expect(offendingLines([...SCREENS, ...SCREEN_DATA], (line) => HEX.test(line))).toEqual([]);
   });
 
-  it("never pairs bg-primary with text-white", () => {
-    expect(offendingLines(SCREENS, (line) => BG_PRIMARY.test(line) && TEXT_WHITE.test(line))).toEqual([]);
+  it("never pairs a strong fill with text-white", () => {
+    expect(offendingLines(SCREENS, (line) => STRONG_FILL.test(line) && TEXT_WHITE.test(line))).toEqual([]);
   });
 
   it("keeps rounded-full only on circles and dots", () => {

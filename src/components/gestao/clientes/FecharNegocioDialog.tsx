@@ -200,7 +200,7 @@ export function FecharNegocioDialog({
                   type="submit"
                   className={`flex-1 rounded-[var(--radius)] px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
                     vendeu
-                      ? "bg-success text-white hover:bg-success-ink"
+                      ? "bg-success text-on-primary hover:bg-success-ink"
                       : "bg-primary text-on-primary hover:bg-primary-hover"
                   }`}
                 >

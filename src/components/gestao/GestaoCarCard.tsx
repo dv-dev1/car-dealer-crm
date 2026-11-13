@@ -67,7 +67,7 @@ export function GestaoCarCard({ v }: { v: VeiculoGestao }) {
         {/* Rodapé financeiro: pede margem, ou mostra o mínimo à vista */}
         <div className="mt-auto">
           {semMargem ? (
-            <span className="flex w-full items-center justify-center rounded-[calc(var(--radius)-4px)] bg-warning-bg px-3 py-2.5 text-sm font-semibold text-warning-ink transition-colors duration-200 group-hover:bg-warning group-hover:text-white">
+            <span className="flex w-full items-center justify-center rounded-[calc(var(--radius)-4px)] bg-warning-bg px-3 py-2.5 text-sm font-semibold text-warning-ink transition-colors duration-200 group-hover:bg-warning group-hover:text-on-primary">
               Definir margem
             </span>
           ) : (
