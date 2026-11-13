@@ -31,7 +31,7 @@ const milhar = (digitos: string) =>
   digitos ? Number(digitos).toLocaleString("pt-BR") : "";
 
 const campo =
-  "w-full rounded-[calc(var(--radius)-2px)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
+  "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
 const rotulo = "text-sm font-medium text-secondary";
 const cartao =
   "rounded-[var(--radius)] border border-line bg-surface p-5 shadow-[var(--shadow-soft)] sm:p-6";
@@ -128,14 +128,14 @@ export function AdicionarCarro() {
         <div className="mt-6 flex justify-center gap-3">
           <Link
             href="/gestao/estoque"
-            className="rounded-[var(--radius)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+            className="rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
           >
             Voltar ao estoque
           </Link>
           <button
             type="button"
             onClick={recomecar}
-            className="rounded-[var(--radius)] bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
+            className="rounded-[var(--radius-control)] bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
           >
             Adicionar outro
           </button>
@@ -348,13 +348,13 @@ export function AdicionarCarro() {
       <div className="mt-6 flex items-center justify-end gap-3">
         <Link
           href="/gestao/estoque"
-          className="rounded-[var(--radius)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+          className="rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
         >
           Cancelar
         </Link>
         <button
           type="submit"
-          className="rounded-[var(--radius)] bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_25%,transparent)] transition-colors duration-200 hover:bg-primary-hover"
+          className="rounded-[var(--radius-control)] bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
         >
           Salvar carro
         </button>

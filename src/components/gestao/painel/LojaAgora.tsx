@@ -45,7 +45,7 @@ export function LojaAgora({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-muted-strong">Investido no estoque</p>
-              <p className="mt-1.5 text-[2rem] font-semibold leading-none text-secondary">
+              <p data-kpi className="mt-1.5 text-[2rem] font-semibold leading-none text-secondary">
                 <NumeroAnimado valor={resumo.investido} formato="preco" />
               </p>
               <p className="mt-2 text-xs text-muted-strong">

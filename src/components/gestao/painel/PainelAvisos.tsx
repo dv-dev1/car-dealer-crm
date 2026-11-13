@@ -63,7 +63,7 @@ export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
       </div>
 
       <div className="shrink-0 text-right leading-none">
-        <span className="text-2xl font-semibold text-primary-on-dark">
+        <span data-kpi className="text-2xl font-semibold text-primary-on-dark">
           <NumeroAnimado valor={pct} formato="porcento" />
         </span>
         <span className="mt-1 block text-[0.7rem] text-white/50">da meta</span>
@@ -94,7 +94,7 @@ export function AvisoSemMargem({ quantidade }: { quantidade: number }) {
       </div>
       <Link
         href="/gestao/estoque"
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius)] bg-surface px-3.5 py-2 text-sm font-semibold text-warning-ink transition-colors duration-200 hover:bg-surface-2"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] bg-surface px-3.5 py-2 text-sm font-semibold text-warning-ink transition-colors duration-200 hover:bg-surface-2"
       >
         Resolver
         <ArrowRight size={15} strokeWidth={2.25} />

@@ -40,7 +40,7 @@ export function EventoItem({ evento }: { evento: EventoAgenda }) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Chamar ${primeiroNome(evento.lead.nome)} no WhatsApp`}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[calc(var(--radius)-5px)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover"
       >
         <WhatsappIcon className="h-4 w-4" />
       </a>

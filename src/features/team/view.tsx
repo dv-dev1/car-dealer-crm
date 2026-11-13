@@ -11,10 +11,10 @@ import type { Member } from "./model";
 const ROLE_LABEL: Record<Role, string> = { owner: "Dono", manager: "Gerente", seller: "Vendedor" };
 const INITIAL: TeamState = { error: null };
 
-const field = "w-full rounded-[var(--radius)] border border-line bg-surface px-3 py-2 text-secondary";
-const button = "rounded-[var(--radius)] bg-primary px-4 py-2 font-semibold text-surface disabled:opacity-60";
+const field = "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2 text-secondary";
+const button = "rounded-[var(--radius-control)] bg-primary px-4 py-2 font-semibold text-surface disabled:opacity-60";
 const removeButton =
-  "rounded-[var(--radius)] border border-danger/30 bg-surface px-3 py-1.5 text-sm text-danger-ink hover:bg-danger-bg disabled:opacity-60";
+  "rounded-[var(--radius-control)] border border-danger/30 bg-surface px-3 py-1.5 text-sm text-danger-ink hover:bg-danger-bg disabled:opacity-60";
 
 function AddMemberForm({ role }: { role: Role }) {
   const [state, formAction, pending] = useActionState(addMemberAction, INITIAL);

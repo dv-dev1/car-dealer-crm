@@ -37,7 +37,8 @@
   --success-bg: #e8f3ee;
   --success-ink: #17603f;
   --warning: #9a5b00;
-  --warning-bg: #fbf1e0;
+  /* Cool neutral tint: amber stays on the ink, icon and fill, never the surface. */
+  --warning-bg: #eef0f2;
   --warning-ink: #8a5200;
   --neutral: #6a7078;
   --neutral-ink: #3f444b;
@@ -77,7 +78,7 @@
   --success-bg: #11241b;
   --success-ink: #7fd1a8;
   --warning: #d9a03a;
-  --warning-bg: #2a2112;
+  --warning-bg: #1f2226;
   --warning-ink: #e8bf6e;
   --neutral: #8d949c;
   --neutral-ink: #c3c8cd;
@@ -111,4 +112,23 @@
   :root[data-theme="autohub"] :is(h1, h2, h3) {
     letter-spacing: -0.01em;
   }
+  /* Big figures (screens mark them with data-kpi): wide tabular numerals. */
+  :root[data-theme="autohub"] [data-kpi] {
+    font-stretch: 112%;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Native selects take the text field shape: same height and inset, with a
+   muted chevron. Unlayered so the room for the chevron beats a px-* utility. */
+:root[data-theme="autohub"] select:not([multiple]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f656d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px 14px;
+  padding-right: 36px;
+}
+:root[data-theme="autohub"][data-tema="escuro"] select:not([multiple]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba1a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }

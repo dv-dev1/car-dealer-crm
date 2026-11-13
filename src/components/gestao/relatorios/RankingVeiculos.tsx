@@ -6,9 +6,10 @@ import {
 } from "@/lib/relatorios";
 import type { Janela, FormaPagamento } from "@/data/vendas-mock";
 
+// Three distinct tokens: a theme may give primary and secondary the same ink.
 const COR_FORMA: Record<FormaPagamento, string> = {
   Financiamento: "var(--primary)",
-  "Troca + diferença": "var(--secondary)",
+  "Troca + diferença": "var(--neutral)",
   "À vista": "var(--success)",
 };
 
@@ -75,7 +76,7 @@ function ComoPagaram({ formas }: { formas: FormaResumo[] }) {
     <div className="mt-6 border-t border-line pt-5">
       <h3 className="text-sm font-semibold text-secondary">Como pagaram</h3>
       {/* Barra segmentada */}
-      <div className="mt-3 flex h-3 w-full overflow-hidden rounded-[var(--radius-control)]">
+      <div className="mt-3 flex h-3 w-full gap-px overflow-hidden rounded-[var(--radius-control)]">
         {formas.map((f) => (
           <div
             key={f.forma}

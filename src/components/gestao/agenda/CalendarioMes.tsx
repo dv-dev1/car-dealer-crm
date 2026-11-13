@@ -126,7 +126,7 @@ export function CalendarioMes({
                       key={e.id}
                       title={`${t.label}: ${e.lead.nome}`}
                       className="truncate rounded-[4px] px-1 py-0.5 text-[0.62rem] font-semibold uppercase leading-tight"
-                      style={{ backgroundColor: `color-mix(in srgb, ${t.cor} 14%, transparent)`, color: t.tinta }}
+                      style={{ backgroundColor: t.fundo, color: t.tinta }}
                     >
                       {primeiroNome(e.lead.nome)}
                     </span>
