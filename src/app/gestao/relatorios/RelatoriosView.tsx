@@ -53,7 +53,7 @@ export function RelatoriosView() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-sand active:scale-[0.97]"
+            className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-sand active:scale-[0.97]"
           >
             <FileDown size={16} strokeWidth={1.9} />
             Exportar PDF
@@ -74,9 +74,9 @@ export function RelatoriosView() {
               type="button"
               onClick={() => setPeriodo(p.valor)}
               aria-pressed={ativo}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-[background-color,color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] active:scale-[0.96] ${
+              className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-[background-color,color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] active:scale-[0.96] ${
                 ativo
-                  ? "bg-primary text-white"
+                  ? "bg-primary text-on-primary"
                   : "border border-line bg-surface text-secondary/80 hover:bg-sand"
               }`}
             >
@@ -95,7 +95,7 @@ export function RelatoriosView() {
               value={custom.de}
               max={custom.ate}
               onChange={(e) => setCustom((c) => ({ ...c, de: e.target.value }))}
-              className="rounded-[calc(var(--radius)-4px)] border border-line bg-background px-2.5 py-1.5 text-sm text-secondary focus:border-primary focus:outline-none"
+              className="rounded-[var(--radius-control)] border border-line bg-background px-2.5 py-1.5 text-sm text-secondary focus:border-primary focus:outline-none"
             />
           </label>
           <label className="flex items-center gap-2 text-sm text-secondary">
@@ -105,7 +105,7 @@ export function RelatoriosView() {
               value={custom.ate}
               min={custom.de}
               onChange={(e) => setCustom((c) => ({ ...c, ate: e.target.value }))}
-              className="rounded-[calc(var(--radius)-4px)] border border-line bg-background px-2.5 py-1.5 text-sm text-secondary focus:border-primary focus:outline-none"
+              className="rounded-[var(--radius-control)] border border-line bg-background px-2.5 py-1.5 text-sm text-secondary focus:border-primary focus:outline-none"
             />
           </label>
         </div>

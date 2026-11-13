@@ -40,7 +40,7 @@ export function EventoItem({ evento }: { evento: EventoAgenda }) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Chamar ${primeiroNome(evento.lead.nome)} no WhatsApp`}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[calc(var(--radius)-5px)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover"
       >
         <WhatsappIcon className="h-4 w-4" />
       </a>
@@ -107,7 +107,7 @@ export function AgendaLista({
           <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-secondary">
             {diaPorExtenso(dia)}
             {dia === hojeIso && (
-              <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
+              <span className="rounded-[var(--radius-control)] bg-primary/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
                 hoje
               </span>
             )}

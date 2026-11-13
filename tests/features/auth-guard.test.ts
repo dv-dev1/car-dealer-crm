@@ -10,6 +10,7 @@ import SemAcessoPage from "@/app/sem-acesso/page";
 import { signOutAction } from "@/features/auth/actions";
 import { requireMember, requireRole } from "@/features/auth/guard";
 import { NoAccessView } from "@/features/auth/view";
+import { ThemeScope } from "@/themes/ThemeScope";
 import { seedTwoStores } from "../db/fixtures.ts";
 import { useDatabase } from "../setup/hyperdrive.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
@@ -28,6 +29,9 @@ const nav = vi.hoisted(() => ({
 vi.mock("next/navigation", () => nav);
 
 vi.mock("@/features/auth/actions", () => ({ signOutAction: vi.fn() }));
+
+// next/font only works inside the Next compiler.
+vi.mock("next/font/google", () => ({ Archivo: () => ({ variable: "font-archivo" }) }));
 
 const GESTAO_DIR = fileURLToPath(new URL("../../src/app/gestao/", import.meta.url));
 
@@ -269,7 +273,8 @@ describe("/sem-acesso", () => {
     const page = await SemAcessoPage();
     const html = renderToStaticMarkup(page);
     expect(html).toContain("Seu e-mail ainda não tem acesso a nenhuma loja. Peça ao dono da loja para cadastrar você.");
-    expect(page.type).toBe(NoAccessView);
+    expect(page.type).toBe(ThemeScope);
+    expect(page.props.children.type).toBe(NoAccessView);
     const [form] = forms(NoAccessView());
     expect(form.props.action).toBe(signOutAction);
     expect(renderToStaticMarkup(form)).toMatch(/<button[^>]*type="submit"[^>]*>Sair<\/button>/);

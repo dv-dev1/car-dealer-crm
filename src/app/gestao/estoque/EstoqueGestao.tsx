@@ -100,14 +100,14 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-sand active:scale-[0.97]"
+            className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-sand active:scale-[0.97]"
           >
             <FileDown size={17} strokeWidth={1.9} />
             Exportar PDF
           </button>
           <Link
             href="/gestao/estoque/novo"
-            className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-primary px-3.5 py-2 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.97]"
+            className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-primary px-3.5 py-2 text-sm font-semibold text-on-primary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.97]"
           >
             <Plus size={17} strokeWidth={2.25} />
             Adicionar carro
@@ -133,7 +133,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar modelo, ano, cor…"
           aria-label="Buscar no estoque"
-          className="w-full rounded-[var(--radius)] border border-line bg-surface py-2.5 pl-11 pr-4 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none"
+          className="w-full rounded-[var(--radius-control)] border border-line bg-surface py-2.5 pl-11 pr-4 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none"
         />
       </div>
 
@@ -148,15 +148,15 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
                 type="button"
                 onClick={() => setFiltro(c.valor)}
                 aria-pressed={ativo}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
+                className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
                   ativo
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-on-primary"
                     : "border border-line bg-surface text-secondary/80 hover:bg-sand"
                 }`}
               >
                 {c.label}{" "}
                 <span
-                  className={`tabular-nums ${ativo ? "text-white/75" : "text-muted"}`}
+                  className={`tabular-nums ${ativo ? "text-on-primary/75" : "text-muted"}`}
                 >
                   ({c.n})
                 </span>
@@ -169,27 +169,21 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
           <label className="sr-only" htmlFor="ordenar">
             Ordenar por
           </label>
-          <div className="relative">
-            <select
-              id="ordenar"
-              value={ordem}
-              onChange={(e) => setOrdem(e.target.value as Ordem)}
-              className="cursor-pointer appearance-none rounded-[var(--radius)] border border-line bg-surface py-2 pl-3 pr-8 text-sm font-medium text-secondary focus:border-primary focus:outline-none"
-            >
-              {ORDENS.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <ChevronRight
-              size={15}
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 text-muted"
-            />
-          </div>
+          <select
+            id="ordenar"
+            value={ordem}
+            onChange={(e) => setOrdem(e.target.value as Ordem)}
+            className="cursor-pointer rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2 text-sm font-medium text-secondary focus:border-primary focus:outline-none"
+          >
+            {ORDENS.map((o) => (
+              <option key={o.valor} value={o.valor}>
+                {o.label}
+              </option>
+            ))}
+          </select>
 
           <div
-            className="flex items-center rounded-[var(--radius)] border border-line bg-surface p-0.5"
+            className="flex items-center rounded-[var(--radius-control)] border border-line bg-surface p-0.5"
             role="group"
             aria-label="Modo de exibição"
           >
@@ -198,8 +192,8 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
               onClick={() => setModo("grade")}
               aria-pressed={modo === "grade"}
               aria-label="Ver em grade"
-              className={`grid h-8 w-8 place-items-center rounded-[calc(var(--radius)-4px)] transition-colors duration-200 ${
-                modo === "grade" ? "bg-primary text-white" : "text-muted hover:text-secondary"
+              className={`grid h-8 w-8 place-items-center rounded-[var(--radius-control)] transition-colors duration-200 ${
+                modo === "grade" ? "bg-primary text-on-primary" : "text-muted hover:text-secondary"
               }`}
             >
               <LayoutGrid size={16} />
@@ -209,8 +203,8 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
               onClick={() => setModo("lista")}
               aria-pressed={modo === "lista"}
               aria-label="Ver em lista"
-              className={`grid h-8 w-8 place-items-center rounded-[calc(var(--radius)-4px)] transition-colors duration-200 ${
-                modo === "lista" ? "bg-primary text-white" : "text-muted hover:text-secondary"
+              className={`grid h-8 w-8 place-items-center rounded-[var(--radius-control)] transition-colors duration-200 ${
+                modo === "lista" ? "bg-primary text-on-primary" : "text-muted hover:text-secondary"
               }`}
             >
               <ListIcon size={16} />
@@ -222,7 +216,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
       {/* Banner de alerta — sem margem */}
       {resumo.semMargem > 0 && filtro !== "sem-margem" && (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-warning/25 bg-warning-bg px-4 py-3">
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-warning text-[0.7rem] font-bold text-white tabular-nums">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-warning text-[0.7rem] font-bold text-on-primary tabular-nums">
             {resumo.semMargem}
           </span>
           <p className="min-w-0 flex-1 text-sm text-warning-ink">
@@ -261,7 +255,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
               setBusca("");
               setFiltro("todos");
             }}
-            className="mt-4 rounded-[var(--radius)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+            className="mt-4 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
           >
             Limpar filtros
           </button>

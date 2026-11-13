@@ -66,7 +66,7 @@ export function MetaBloco() {
       aria-label={`Meta de ${meta.mesLabel}: ${meta.feito} de ${meta.alvo} vendas`}
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-4">
-        <span className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-primary sm:grid">
+        <span className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-primary-on-dark sm:grid">
           <Trophy size={20} strokeWidth={1.9} />
         </span>
 
@@ -82,7 +82,7 @@ export function MetaBloco() {
                   setRascunho(String(alvo));
                   setEditando(true);
                 }}
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.7rem] text-white/60 transition-colors duration-200 hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-1.5 py-0.5 text-[0.7rem] text-white/60 transition-colors duration-200 hover:bg-white/10 hover:text-white"
               >
                 <Pencil size={11} />
                 Editar meta
@@ -99,13 +99,13 @@ export function MetaBloco() {
                   }}
                   inputMode="numeric"
                   aria-label="Nova meta de vendas do mês"
-                  className="w-14 rounded-[calc(var(--radius)-6px)] border border-white/25 bg-white/10 px-2 py-0.5 text-sm font-semibold text-white focus:border-primary focus:outline-none"
+                  className="w-14 rounded-[var(--radius-control)] border border-white/25 bg-white/10 px-2 py-0.5 text-sm font-semibold text-white focus:border-primary-on-dark focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={salvar}
                   aria-label="Salvar meta"
-                  className="grid h-6 w-6 place-items-center rounded-full bg-primary text-white hover:bg-primary-hover"
+                  className="grid h-6 w-6 place-items-center rounded-full bg-primary-on-dark text-inverso hover:bg-primary-on-dark/85"
                 >
                   <Check size={13} strokeWidth={2.5} />
                 </button>
@@ -126,14 +126,14 @@ export function MetaBloco() {
           </p>
 
           <div
-            className="mt-2 h-1.5 max-w-md overflow-hidden rounded-full bg-white/15"
+            className="mt-2 h-1.5 max-w-md overflow-hidden rounded-[var(--radius-control)] bg-white/15"
             role="progressbar"
             aria-valuenow={meta.pct}
             aria-valuemin={0}
             aria-valuemax={100}
           >
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-brand)]"
+              className="h-full rounded-[var(--radius-control)] bg-primary-on-dark transition-[width] duration-500 ease-[var(--ease-brand)]"
               style={{ width: `${meta.pct}%` }}
             />
           </div>
@@ -142,7 +142,7 @@ export function MetaBloco() {
         </div>
 
         <div className="shrink-0 text-right leading-none">
-          <span className="text-3xl font-semibold tabular-nums text-primary">{meta.pct}%</span>
+          <span data-kpi className="text-3xl font-semibold tabular-nums text-primary-on-dark">{meta.pct}%</span>
           <span className="mt-1 block text-[0.7rem] text-white/50">da meta</span>
         </div>
       </div>
@@ -153,7 +153,7 @@ export function MetaBloco() {
         className="flex items-center gap-2 border-t border-white/10 px-5 py-2.5 text-xs text-white/70 transition-colors duration-200 hover:bg-white/5 hover:text-white"
       >
         <span className="min-w-0 flex-1 truncate">{acao.texto}</span>
-        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary">
+        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary-on-dark">
           {acao.cta}
           <ArrowRight size={13} strokeWidth={2.25} />
         </span>

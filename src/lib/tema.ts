@@ -4,7 +4,7 @@
 // Claro/escuro só do painel interno — o site público é claro sempre.
 // O valor vive no <html data-tema>, que é onde o globals.css escuta, e a
 // escolha persiste no localStorage. A primeira pintura é resolvida por um
-// script inline em app/gestao/layout.tsx (anti-flash); aqui mora a troca.
+// script inline em themes/ThemeScope.tsx (anti-flash); aqui mora a troca.
 //
 // ─── Por que é um store de módulo, e não useState ────────────────
 //
@@ -22,14 +22,15 @@
 // valor e reagem juntas. Mesmo padrão do store de leads (clientes-store.ts).
 //
 // Limpar o data-tema ao sair da gestão virou responsabilidade de quem tem o
-// tempo de vida certo pra isso — <TemaGestao/>, montado uma vez pelo layout —
-// e não de um botão que entra e sai da tela.
+// tempo de vida certo pra isso — <TemaGestao/>, mounted by <ThemeScope> on
+// /gestao, /entrar and /sem-acesso — e não de um botão que entra e sai da tela.
 
 import { useCallback, useSyncExternalStore } from "react";
 
 export type Tema = "claro" | "escuro";
 
-const CHAVE = "cassiano.tema";
+// Must match the key read by the inline script in themes/ThemeScope.tsx.
+const CHAVE = "gestao.tema";
 
 /** `null` = ainda não lemos o navegador (servidor, ou antes da 1ª montagem). */
 let atual: Tema | null = null;
@@ -70,10 +71,23 @@ const getSnapshot = () => atual;
 // que faz a hidratação bater — quem chama trata null como "ainda não sei".
 const getServerSnapshot = (): Tema | null => null;
 
+/**
+ * Marks <html> with the visual theme and reapplies the saved light/dark. Only
+ * <TemaGestao/> calls it, on entering the area: a client-side navigation (the
+ * login redirect, for one) never runs ThemeScope's inline script.
+ */
+export function activateTheme(theme: string) {
+  document.documentElement.dataset.theme = theme;
+  atual = lerSalvo();
+  aplicar(atual);
+  emitir();
+}
+
 /** Limpa o tema. Só o <TemaGestao/> chama, ao sair da área de gestão. */
 export function esquecerTema() {
   atual = null;
   delete document.documentElement.dataset.tema;
+  delete document.documentElement.dataset.theme;
   emitir();
 }
 

@@ -72,7 +72,7 @@ export function FecharNegocioDialog({
   }
 
   const campoBase =
-    "w-full rounded-[calc(var(--radius)-2px)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
+    "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
 
   return (
     <AnimatePresence>
@@ -156,9 +156,9 @@ export function FecharNegocioDialog({
                             type="button"
                             onClick={() => setForma(f)}
                             aria-pressed={ativo}
-                            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
+                            className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ${
                               ativo
-                                ? "bg-primary text-white"
+                                ? "bg-primary text-on-primary"
                                 : "border border-line bg-surface text-secondary/80 hover:bg-sand"
                             }`}
                           >
@@ -192,16 +192,16 @@ export function FecharNegocioDialog({
                 <button
                   type="button"
                   onClick={onCancelar}
-                  className="flex-1 rounded-[var(--radius)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+                  className="flex-1 rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className={`flex-1 rounded-[var(--radius)] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 ${
+                  className={`flex-1 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
                     vendeu
-                      ? "bg-success hover:bg-success-ink"
-                      : "bg-secondary hover:bg-secondary/90"
+                      ? "bg-success text-on-primary hover:bg-success-ink"
+                      : "bg-primary text-on-primary hover:bg-primary-hover"
                   }`}
                 >
                   {vendeu ? "Registrar venda" : "Confirmar"}

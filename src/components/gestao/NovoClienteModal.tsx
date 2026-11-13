@@ -183,7 +183,7 @@ export function NovoClienteModal({
   }
 
   const campoBase =
-    "w-full rounded-[calc(var(--radius)-2px)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
+    "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
 
   return (
     <AnimatePresence>
@@ -241,7 +241,7 @@ export function NovoClienteModal({
                 <button
                   type="button"
                   onClick={onFechar}
-                  className="mt-5 rounded-[var(--radius)] bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-hover"
+                  className="mt-5 rounded-[var(--radius-control)] bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
                 >
                   Concluir
                 </button>
@@ -401,7 +401,7 @@ export function NovoClienteModal({
 
                 <button
                   type="submit"
-                  className="mt-1 w-full rounded-[var(--radius)] bg-primary px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-colors duration-200 hover:bg-primary-hover"
+                  className="mt-1 w-full rounded-[var(--radius-control)] bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
                 >
                   {editando ? "Salvar alterações" : "Salvar cliente"}
                 </button>

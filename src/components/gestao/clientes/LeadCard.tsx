@@ -120,7 +120,7 @@ export function LeadCard({
       {(datas.length > 0 || atrasado) && (
         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           {atrasado && (
-            <span className="rounded-full bg-danger-bg px-2 py-0.5 text-[0.65rem] font-semibold text-danger-ink">
+            <span className="rounded-[var(--radius-control)] bg-danger-bg px-2 py-0.5 text-[0.65rem] font-semibold text-danger-ink">
               atrasado
             </span>
           )}
@@ -149,7 +149,7 @@ export function LeadCard({
           rel="noopener noreferrer"
           draggable={false}
           aria-label={`Chamar ${primeiroNome(lead.nome)} no WhatsApp`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-[calc(var(--radius)-5px)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover lg:h-8 lg:w-8"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover lg:h-8 lg:w-8"
         >
           <WhatsappIcon className="h-4 w-4" />
         </a>
@@ -159,7 +159,7 @@ export function LeadCard({
             type="button"
             draggable={false}
             onClick={() => onEditar(lead)}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-[calc(var(--radius)-5px)] border border-line px-3 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand lg:min-h-0 lg:px-2.5 lg:py-1.5"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-control)] border border-line px-3 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand lg:min-h-0 lg:px-2.5 lg:py-1.5"
           >
             <Pencil size={13} />
             Editar
@@ -216,7 +216,7 @@ function SetaEtapa({
           ? `Mover ${nome} para ${destino.label}`
           : `${nome} já está na ${direcao === -1 ? "primeira" : "última"} etapa`
       }
-      className="grid h-8 w-8 place-items-center rounded-[calc(var(--radius)-5px)] border border-line text-secondary/70 transition-colors duration-200 hover:bg-sand hover:text-secondary disabled:cursor-not-allowed disabled:border-line/50 disabled:text-muted/40 disabled:hover:bg-transparent"
+      className="grid h-8 w-8 place-items-center rounded-[var(--radius-control)] border border-line text-secondary/70 transition-colors duration-200 hover:bg-sand hover:text-secondary disabled:cursor-not-allowed disabled:border-line/50 disabled:text-muted/40 disabled:hover:bg-transparent"
     >
       <Icone size={16} strokeWidth={2} />
     </button>

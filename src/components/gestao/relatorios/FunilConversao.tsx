@@ -1,8 +1,8 @@
 import { funilConversao } from "@/lib/relatorios";
 
 // Cores das etapas ecoam as colunas do funil em Clientes — mesma jornada, mesma
-// leitura de cor (ardósia → caramelo → âmbar → verde-fechado).
-const CORES = ["#5E7186", "var(--primary)", "#B7791F", "var(--success)"];
+// leitura de cor (neutral → primary → warning → success, all theme tokens).
+const CORES = ["var(--neutral)", "var(--primary)", "var(--warning)", "var(--success)"];
 
 function pct(fracao: number, casas = 0): string {
   return `${(fracao * 100).toLocaleString("pt-BR", { maximumFractionDigits: casas })}%`;
@@ -44,9 +44,9 @@ export function FunilConversao() {
                 )}
               </span>
             </div>
-            <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-sand">
+            <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-[var(--radius-control)] bg-sand">
               <div
-                className="h-full rounded-full transition-[width] duration-500 ease-[var(--ease-brand)]"
+                className="h-full rounded-[var(--radius-control)] transition-[width] duration-500 ease-[var(--ease-brand)]"
                 style={{ width: `${(e.valor / topo) * 100}%`, backgroundColor: CORES[i] }}
               />
             </div>

@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus, Menu, X, Sun, Moon, LogOut } from "lucide-react";
@@ -10,6 +9,7 @@ import { secoes, EVENTO_NOVO_CLIENTE } from "./secoes";
 import { useTema } from "@/lib/tema";
 import { VEU, EASE_MARCA as EASE } from "./motion/sobreposicao";
 import { signOutAction } from "@/features/auth/actions";
+import { AutoHubLogo } from "@/themes/autohub/Logo";
 
 const LARGURA = "260px";
 
@@ -19,31 +19,15 @@ function estaAtiva(pathname: string, href: string) {
   return href === "/gestao" ? pathname === "/gestao" : pathname.startsWith(href);
 }
 
-// Marca da loja no topo do painel — leva pro Painel (não pro site público).
+// Marca do Auto Hub no topo do painel — leva pro Painel (não pro site público).
 function Marca() {
   return (
     <Link
       href="/gestao"
-      aria-label="Cassiano Veículos — Painel"
+      aria-label="AutoHub — Painel"
       className="inline-flex items-center transition-opacity duration-200 hover:opacity-80"
     >
-      {/* Duas versões: a de traço escuro sumiria no tema escuro. Trocadas por
-          CSS (não por JS) pra a logo certa já vir na primeira pintura. */}
-      <Image
-        src="/logo-cv-trim.png"
-        alt="Cassiano Veículos"
-        width={453}
-        height={109}
-        priority
-        className="so-tema-claro h-8 w-auto"
-      />
-      <Image
-        src="/logo-cv-light.png"
-        alt="Cassiano Veículos"
-        width={453}
-        height={109}
-        className="so-tema-escuro h-8 w-auto"
-      />
+      <AutoHubLogo className="h-6 w-auto text-secondary" />
     </Link>
   );
 }
@@ -79,7 +63,7 @@ function ConteudoSidebar({
           }
           onNavegar?.();
         }}
-        className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(181,110,53,0.25)] transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.98]"
+        className="flex items-center justify-center gap-2 rounded-[var(--radius-control)] bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.98]"
       >
         <Plus size={18} strokeWidth={2.25} />
         Novo cliente
@@ -95,7 +79,7 @@ function ConteudoSidebar({
               href={s.href}
               onClick={onNavegar}
               aria-current={ativa ? "page" : undefined}
-              className={`relative flex items-center gap-3 rounded-[var(--radius)] px-3.5 py-2.5 text-sm transition-colors duration-[var(--dur-rapida)] ${
+              className={`relative flex items-center gap-3 rounded-[var(--radius-control)] px-3.5 py-2.5 text-sm transition-colors duration-[var(--dur-rapida)] ${
                 ativa
                   ? "font-semibold text-primary"
                   : "font-medium text-secondary/75 hover:bg-sand hover:text-secondary"
@@ -107,12 +91,15 @@ function ConteudoSidebar({
               {ativa && (
                 <motion.span
                   layoutId={`nav-ativa-${escopo}`}
-                  className="absolute inset-0 rounded-[var(--radius)] bg-primary/10"
+                  className="absolute inset-0 rounded-[var(--radius-control)] bg-primary/10"
                   transition={
                     reduzir ? { duration: 0 } : { duration: 0.3, ease: EASE }
                   }
                   aria-hidden="true"
-                />
+                >
+                  {/* Brand signal: 3px bar on the left edge, sliding with the highlight. */}
+                  <span className="absolute inset-y-1.5 left-0 w-[3px] bg-signal shadow-[0_0_14px_1px_color-mix(in_srgb,var(--signal)_50%,transparent)]" />
+                </motion.span>
               )}
               <Icon size={19} strokeWidth={1.75} className="relative shrink-0" />
               <span className="relative">{s.label}</span>
@@ -126,7 +113,7 @@ function ConteudoSidebar({
         <form action={signOutAction}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-[var(--radius)] px-3.5 py-2.5 text-sm font-medium text-secondary/70 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary"
+            className="flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3.5 py-2.5 text-sm font-medium text-secondary/70 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary"
           >
             <LogOut size={18} strokeWidth={1.9} className="shrink-0" />
             Sair
@@ -151,7 +138,7 @@ function BotaoTema() {
       // mismatch de hidratação.
       suppressHydrationWarning
       aria-label={escuro ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
-      className="flex items-center gap-3 rounded-[var(--radius)] px-3.5 py-2.5 text-sm font-medium text-secondary/70 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary"
+      className="flex items-center gap-3 rounded-[var(--radius-control)] px-3.5 py-2.5 text-sm font-medium text-secondary/70 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary"
     >
       {/* tema === null enquanto não montou: mostra o sol como neutro */}
       {escuro ? (
@@ -167,7 +154,7 @@ function BotaoTema() {
 /**
  * Moldura da área dos vendedores (central de gestão): sidebar fixa no desktop,
  * top bar + drawer no mobile. Register product — navegação padrão, cor contida
- * (caramelo só na ação primária e no item ativo), motion curto e funcional.
+ * (cor da marca só na ação primária e no item ativo), motion curto e funcional.
  * Sem o chrome do site público (header/footer/WhatsApp): é outra superfície.
  */
 export function GestaoShell({ children }: { children: ReactNode }) {
@@ -193,7 +180,7 @@ export function GestaoShell({ children }: { children: ReactNode }) {
           onClick={() => setAberto(true)}
           aria-label="Abrir menu"
           aria-haspopup="dialog"
-          className="grid h-10 w-10 place-items-center rounded-[var(--radius)] text-secondary transition-colors duration-200 hover:bg-sand"
+          className="grid h-10 w-10 place-items-center rounded-[var(--radius-control)] text-secondary transition-colors duration-200 hover:bg-sand"
         >
           <Menu size={22} />
         </button>

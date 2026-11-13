@@ -1,0 +1,140 @@
+/* ============================================================
+   Auto Hub — identity of the company landing (demoautohublp.vercel.app),
+   applied to the management panel, /entrar and /sem-acesso.
+
+   Active when <html data-theme="autohub">, set by <ThemeScope> before the
+   first paint. Redefines the token contract of globals.css; the public
+   store site never gets the attribute and keeps the base tokens.
+
+   Primary is the ink (black on light, white on dark), like the landing
+   buttons. Red is a signal only: active menu item, alert, danger.
+   Every text/background pair is checked for AA by tests/themes/contrast.test.ts.
+   ============================================================ */
+
+:root[data-theme="autohub"] {
+  --background: #f4f5f6;
+  --surface: #ffffff;
+  --surface-2: #f8f9fa;
+  --sand: #e9ebed;
+  --line: #e1e4e7;
+
+  --text: #2a2d33;
+  --secondary: #14161a;
+  --muted: #5f656d;
+  --muted-strong: #4c5259;
+
+  --primary: #14161a;
+  --primary-hover: #2a2d33;
+  --on-primary: #ffffff;
+  --primary-on-dark: #f4f5f6;
+  --inverso: #14161a;
+  --signal: #d3261c;
+
+  --danger: #d3261c;
+  --danger-bg: #fbeceb;
+  --danger-ink: #a51d15;
+  --success: #1f7a52;
+  --success-bg: #e8f3ee;
+  --success-ink: #17603f;
+  --warning: #9a5b00;
+  /* Cool neutral tint: amber stays on the ink, icon and fill, never the surface. */
+  --warning-bg: #eef0f2;
+  --warning-ink: #8a5200;
+  --neutral: #6a7078;
+  --neutral-ink: #3f444b;
+
+  --veu: rgb(11 12 14 / 0.55);
+
+  /* Landing shapes: 4px controls, 10px panels, hairline separation. */
+  --radius: 10px;
+  --radius-control: 4px;
+  --shadow-soft: 0 1px 0 rgb(20 22 26 / 0.04);
+  --shadow-hover: 0 12px 28px -14px rgb(20 22 26 / 0.22);
+}
+
+:root[data-theme="autohub"][data-tema="escuro"] {
+  --background: #0b0c0e;
+  --surface: #131518;
+  --surface-2: #1b1d21;
+  --sand: #202328;
+  --line: #26292d;
+
+  --text: #e6e8ea;
+  --secondary: #f4f5f6;
+  --muted: #9ba1a8;
+  --muted-strong: #b9bec4;
+
+  --primary: #f4f5f6;
+  --primary-hover: #d9dcdf;
+  --on-primary: #0b0c0e;
+  --primary-on-dark: #f4f5f6;
+  --inverso: #1b1d21;
+  --signal: #e5483e;
+
+  --danger: #e5483e;
+  --danger-bg: #2a1412;
+  --danger-ink: #f08a82;
+  --success: #3fae7c;
+  --success-bg: #11241b;
+  --success-ink: #7fd1a8;
+  --warning: #d9a03a;
+  --warning-bg: #1f2226;
+  --warning-ink: #e8bf6e;
+  --neutral: #8d949c;
+  --neutral-ink: #c3c8cd;
+
+  --veu: rgb(0 0 0 / 0.7);
+
+  /* Shadows vanish on dark: a 1px ring separates the planes instead. */
+  --shadow-soft: 0 0 0 1px #26292d;
+  --shadow-hover: 0 0 0 1px #33373c;
+
+  color-scheme: dark;
+}
+
+/* `--font-archivo` exists only on the ThemeScope div (next/font class), so the
+   font is bound there and not on :root. */
+:root[data-theme="autohub"] [data-theme-scope] {
+  --font-body: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body);
+}
+
+/* Wide Archivo headings, as on the landing. In the base layer so a weight or
+   tracking utility on the element still wins. */
+@layer base {
+  :root[data-theme="autohub"] :is(h1, h2) {
+    font-stretch: 118%;
+    font-weight: 700;
+  }
+  :root[data-theme="autohub"] h3 {
+    font-stretch: 108%;
+  }
+  :root[data-theme="autohub"] :is(h1, h2, h3) {
+    letter-spacing: -0.01em;
+  }
+  /* Big figures (screens mark them with data-kpi): wide tabular numerals. */
+  :root[data-theme="autohub"] [data-kpi] {
+    font-stretch: 112%;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Native selects take the text field shape: same height and inset, with a
+   muted chevron. Unlayered so the room for the chevron beats a px-* utility. */
+:root[data-theme="autohub"] select:not([multiple]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235f656d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px 14px;
+  padding-right: 36px;
+}
+:root[data-theme="autohub"][data-tema="escuro"] select:not([multiple]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba1a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* Light mode: --primary is the same ink as --inverso, so the global focus
+   outline vanishes on dark bands. Those bands use the on-dark ink instead. */
+:root[data-theme="autohub"] .bg-inverso :focus-visible {
+  outline-color: var(--primary-on-dark);
+}

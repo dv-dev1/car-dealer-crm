@@ -68,15 +68,15 @@ export function FunilMobile({
                 role="tab"
                 aria-selected={ativa}
                 onClick={() => setEtapaSel(etapa.id)}
-                className={`flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
-                  ativa ? "text-white" : "border border-line bg-surface text-secondary/80"
+                className={`flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] px-4 text-sm font-medium transition-colors duration-200 ${
+                  ativa ? "text-on-primary" : "border border-line bg-surface text-secondary/80"
                 }`}
                 style={ativa ? { backgroundColor: etapa.cor } : undefined}
               >
                 {etapa.label}
                 <span
                   className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-xs font-semibold tabular-nums ${
-                    ativa ? "bg-white/25" : "bg-sand text-muted-strong"
+                    ativa ? "bg-[color-mix(in_srgb,var(--on-primary)_20%,transparent)]" : "bg-sand text-muted-strong"
                   }`}
                 >
                   {n}
@@ -106,7 +106,7 @@ export function FunilMobile({
                   <button
                     type="button"
                     onClick={() => setMover(lead)}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-[calc(var(--radius)-5px)] border border-line px-3 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-control)] border border-line px-3 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand"
                   >
                     <MoveRight size={13} />
                     Mover
@@ -146,7 +146,7 @@ export function FunilMobile({
               exit={reduzir ? { opacity: 0 } : { y: "100%" }}
               transition={{ duration: 0.22, ease: EASE }}
             >
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" aria-hidden="true" />
+              <div className="mx-auto mb-3 h-1 w-10 rounded-[var(--radius-control)] bg-line" aria-hidden="true" />
               <p className="px-1 text-sm text-muted-strong">
                 Mover <span className="font-semibold text-secondary">{mover.nome}</span> para
               </p>
@@ -157,7 +157,7 @@ export function FunilMobile({
                     key={etapa.id}
                     type="button"
                     onClick={() => escolher(etapa.id)}
-                    className="flex w-full items-center gap-3 rounded-[var(--radius)] border border-line px-3.5 py-3 text-left text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+                    className="flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-line px-3.5 py-3 text-left text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
                   >
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -173,7 +173,7 @@ export function FunilMobile({
                 <button
                   type="button"
                   onClick={() => escolher("vendeu")}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] bg-success px-3 py-3 text-sm font-semibold text-white transition-colors duration-200 hover:bg-success-ink"
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius-control)] bg-success px-3 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-success-ink"
                 >
                   <BadgeCheck size={16} />
                   Vendeu
@@ -181,7 +181,7 @@ export function FunilMobile({
                 <button
                   type="button"
                   onClick={() => escolher("nao-comprou")}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] border border-line bg-surface px-3 py-3 text-sm font-semibold text-secondary transition-colors duration-200 hover:bg-sand"
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-3 py-3 text-sm font-semibold text-secondary transition-colors duration-200 hover:bg-sand"
                 >
                   <XCircle size={16} />
                   Não comprou

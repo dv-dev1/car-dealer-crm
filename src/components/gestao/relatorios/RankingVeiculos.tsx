@@ -6,9 +6,10 @@ import {
 } from "@/lib/relatorios";
 import type { Janela, FormaPagamento } from "@/data/vendas-mock";
 
+// Three distinct tokens: a theme may give primary and secondary the same ink.
 const COR_FORMA: Record<FormaPagamento, string> = {
   Financiamento: "var(--primary)",
-  "Troca + diferença": "var(--secondary)",
+  "Troca + diferença": "var(--neutral)",
   "À vista": "var(--success)",
 };
 
@@ -53,9 +54,9 @@ export function RankingVeiculos({ janela }: { janela: Janela }) {
                     <span className="text-secondary/80">{formatPreco(r.faturamento)}</span>
                   </span>
                 </div>
-                <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-sand">
+                <div className="mt-1.5 h-2 w-full overflow-hidden rounded-[var(--radius-control)] bg-sand">
                   <div
-                    className="h-full rounded-full bg-primary transition-[width] duration-500 ease-[var(--ease-brand)]"
+                    className="h-full rounded-[var(--radius-control)] bg-primary transition-[width] duration-500 ease-[var(--ease-brand)]"
                     style={{ width: `${(r.faturamento / maxFaturamento) * 100}%` }}
                   />
                 </div>
@@ -75,11 +76,11 @@ function ComoPagaram({ formas }: { formas: FormaResumo[] }) {
     <div className="mt-6 border-t border-line pt-5">
       <h3 className="text-sm font-semibold text-secondary">Como pagaram</h3>
       {/* Barra segmentada */}
-      <div className="mt-3 flex h-3 w-full overflow-hidden rounded-full">
+      <div className="mt-3 flex h-3 w-full gap-px overflow-hidden rounded-[var(--radius-control)]">
         {formas.map((f) => (
           <div
             key={f.forma}
-            className="h-full first:rounded-l-full last:rounded-r-full"
+            className="h-full"
             style={{ width: `${f.fatia * 100}%`, backgroundColor: COR_FORMA[f.forma] }}
             title={`${f.forma}: ${f.vendas}`}
           />

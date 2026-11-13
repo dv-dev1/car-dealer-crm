@@ -57,16 +57,16 @@ export function AgendaView() {
         titulo="Agenda"
         apoio="Veja por mês ou em lista. No mês, toque num dia pra ver os agendamentos."
         acoes={
-          <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+          <div className="flex items-center gap-1 rounded-[var(--radius-control)] border border-line bg-surface p-1">
             {(["mes", "agenda"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => setVista(v)}
                 aria-pressed={vista === v}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-[background-color,color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] active:scale-[0.96] ${
+                className={`rounded-[var(--radius-control)] px-4 py-1.5 text-sm font-medium transition-[background-color,color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] active:scale-[0.96] ${
                   vista === v
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-on-primary"
                     : "text-secondary/70 hover:text-secondary"
                 }`}
               >
@@ -103,16 +103,16 @@ export function AgendaView() {
               <button
                 type="button"
                 onClick={irHoje}
-                className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+                className="rounded-[var(--radius-control)] border border-line bg-surface px-3 py-1 text-xs font-medium text-secondary transition-colors duration-200 hover:bg-sand"
               >
                 Hoje
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <button type="button" onClick={() => passoMes(-1)} aria-label="Mês anterior" className="grid h-8 w-8 place-items-center rounded-[var(--radius)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
+              <button type="button" onClick={() => passoMes(-1)} aria-label="Mês anterior" className="grid h-8 w-8 place-items-center rounded-[var(--radius-control)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
                 <ChevronLeft size={17} />
               </button>
-              <button type="button" onClick={() => passoMes(1)} aria-label="Próximo mês" className="grid h-8 w-8 place-items-center rounded-[var(--radius)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
+              <button type="button" onClick={() => passoMes(1)} aria-label="Próximo mês" className="grid h-8 w-8 place-items-center rounded-[var(--radius-control)] border border-line bg-surface text-muted transition-colors duration-200 hover:bg-sand hover:text-secondary">
                 <ChevronRight size={17} />
               </button>
             </div>
@@ -148,7 +148,7 @@ export function AgendaView() {
                   {diaPorExtenso(diaSelecionado)}
                 </h3>
                 {diaSelecionado === HOJE_ISO && (
-                  <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
+                  <span className="rounded-[var(--radius-control)] bg-primary/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
                     hoje
                   </span>
                 )}
@@ -199,7 +199,7 @@ function ItemResumo({
 
   return (
     <div className="flex items-baseline gap-2 bg-surface px-4 py-3">
-      <span className={`text-xl font-semibold leading-none tabular-nums ${cor}`}>{valor}</span>
+      <span data-kpi className={`text-xl font-semibold leading-none tabular-nums ${cor}`}>{valor}</span>
       <span className="text-xs leading-tight text-muted-strong">{label}</span>
     </div>
   );
