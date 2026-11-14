@@ -50,7 +50,7 @@ it("serves car photos straight from /fotos, not through the image optimizer", ()
 it("the car page also serves its photos straight from /fotos", async () => {
   const { CarroGestao } = await import("@/app/gestao/estoque/[slug]/CarroGestao");
   const photos = [{ id: "p1", url: "/fotos/demo/fiat-argo/01.webp" }, { id: "p2", url: "/fotos/demo/fiat-argo/02.webp" }];
-  const html = renderToStaticMarkup(createElement(CarroGestao, { veiculo: car({ photos }), estoque: [], canManage: true, channels: [], sellers: [] }));
+  const html = renderToStaticMarkup(createElement(CarroGestao, { veiculo: car({ photos }), estoque: [], canManage: true, channels: [], sellers: [], leads: [] }));
   expect(html).toContain('src="/fotos/demo/fiat-argo/02.webp"');
   expect(html).not.toContain("/_next/image");
 });
@@ -59,7 +59,7 @@ it("the car page also serves its photos straight from /fotos", async () => {
 it("names the cost with expenses as such on the car page", async () => {
   const { CarroGestao } = await import("@/app/gestao/estoque/[slug]/CarroGestao");
   const veiculo = car({ money: { acquisitionCost: 50000, cost: 53000, profit: 9000 } });
-  const html = text(renderToStaticMarkup(createElement(CarroGestao, { veiculo, estoque: [], canManage: true, channels: [], sellers: [] })));
+  const html = text(renderToStaticMarkup(createElement(CarroGestao, { veiculo, estoque: [], canManage: true, channels: [], sellers: [], leads: [] })));
   expect(html).toMatch(/Custo com despesas R\$\s?53\.000/);
   expect(html).not.toContain("Custo de aquisição");
 });

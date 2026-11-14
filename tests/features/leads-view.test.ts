@@ -1,15 +1,19 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
+import { AgendaView } from "@/app/gestao/agenda/AgendaView";
+import { CarroGestao } from "@/app/gestao/estoque/[slug]/CarroGestao";
 import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
 import { FecharNegocioDialog } from "@/components/gestao/clientes/FecharNegocioDialog";
 import { LeadCard } from "@/components/gestao/clientes/LeadCard";
 import type { Lead } from "@/features/leads/types";
+import { car } from "./stock-car.ts";
 
 vi.mock("@/features/leads/actions", () => ({
   createLeadAction: vi.fn(), updateLeadAction: vi.fn(), moveLeadAction: vi.fn(), loseLeadAction: vi.fn(),
 }));
 vi.mock("@/features/sales/actions", () => ({ recordSaleAction: vi.fn() }));
+vi.mock("@/features/stock/actions", () => ({ setMarginAction: vi.fn(), removeVehicleAction: vi.fn() }));
 
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 const TODAY = "2026-11-14";
@@ -74,4 +78,21 @@ it("the client form shows the seller field only to owner and manager", () => {
   expect(manager).not.toMatch(/neste navegador|Supabase/);
   const seller = text(renderToStaticMarkup(createElement(NovoClienteModal, { ...base, sellers: null })));
   expect(seller).not.toContain("Vendedor");
+});
+
+it("the agenda starts on the store's today", () => {
+  const visit = lead({ estagio: "visita-marcada", visitaEm: TODAY, horaVisita: "10:00" });
+  const html = text(renderToStaticMarkup(createElement(AgendaView, { leads: [visit], today: TODAY })));
+  expect(html).toMatch(/novembro/i);
+  expect(html).toContain("Joana Lima");
+});
+
+it("Marcar como vendido shows only to owner and manager, and not on a sold car", () => {
+  const base = { estoque: [], channels, leads: [] };
+  const page = (veiculo: ReturnType<typeof car>, canManage: boolean) =>
+    text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo, canManage, sellers: canManage ? sellers : null })));
+  expect(page(car(), true)).toContain("Marcar como vendido");
+  expect(page(car({ money: null }), false)).not.toContain("Marcar como vendido");
+  expect(page(car({ status: "sold" }), true)).not.toContain("Marcar como vendido");
+  expect(page(car({ status: "sold" }), true)).not.toMatch(/(Editar|Definir) margem/);
 });

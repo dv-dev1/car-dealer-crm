@@ -35,15 +35,17 @@ export function EventoItem({ evento }: { evento: EventoAgenda }) {
           </p>
         )}
       </div>
-      <a
-        href={whatsappLinkPara(evento.lead.telefone, msg)}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`Chamar ${primeiroNome(evento.lead.nome)} no WhatsApp`}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover"
-      >
-        <WhatsappIcon className="h-4 w-4" />
-      </a>
+      {evento.lead.telefone && (
+        <a
+          href={whatsappLinkPara(evento.lead.telefone, msg)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Chamar ${primeiroNome(evento.lead.nome)} no WhatsApp`}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover"
+        >
+          <WhatsappIcon className="h-4 w-4" />
+        </a>
+      )}
     </div>
   );
 }

@@ -2,32 +2,28 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { HOJE_ISO, MESES, diaPorExtenso } from "@/lib/hoje";
+import { MESES, diaPorExtenso } from "@/lib/hoje";
 import {
   eventosDeLeads,
   resumoAgenda,
   TIPO_EVENTO,
   type TipoEvento,
 } from "@/data/agenda";
-import { useLeads } from "@/lib/clientes-store";
+import type { Lead } from "@/features/leads/types";
 import { CalendarioMes } from "@/components/gestao/agenda/CalendarioMes";
 import { AgendaLista, EventoItem } from "@/components/gestao/agenda/AgendaLista";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 
-const [HOJE_ANO, HOJE_MES] = (() => {
-  const [a, m] = HOJE_ISO.split("-").map(Number);
-  return [a, m - 1] as const;
-})();
-
-export function AgendaView() {
-  const leads = useLeads();
+/** The agenda derives from the leads: visits and call backs. `today` is the store's day, "YYYY-MM-DD". */
+export function AgendaView({ leads, today }: { leads: Lead[]; today: string }) {
+  const [hojeAno, hojeMes] = [Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1];
   const [vista, setVista] = useState<"mes" | "agenda">("mes");
-  const [ano, setAno] = useState(HOJE_ANO);
-  const [mes, setMes] = useState(HOJE_MES);
-  const [diaSelecionado, setDiaSelecionado] = useState<string>(HOJE_ISO);
+  const [ano, setAno] = useState(hojeAno);
+  const [mes, setMes] = useState(hojeMes);
+  const [diaSelecionado, setDiaSelecionado] = useState<string>(today);
 
   const eventos = useMemo(() => eventosDeLeads(leads), [leads]);
-  const resumo = useMemo(() => resumoAgenda(eventos, HOJE_ISO), [eventos]);
+  const resumo = useMemo(() => resumoAgenda(eventos, today), [eventos, today]);
   const doDia = useMemo(
     () => eventos.filter((e) => e.data === diaSelecionado),
     [eventos, diaSelecionado],
@@ -43,9 +39,9 @@ export function AgendaView() {
   }
 
   function irHoje() {
-    setAno(HOJE_ANO);
-    setMes(HOJE_MES);
-    setDiaSelecionado(HOJE_ISO);
+    setAno(hojeAno);
+    setMes(hojeMes);
+    setDiaSelecionado(today);
   }
 
   return (
@@ -90,7 +86,7 @@ export function AgendaView() {
 
       {vista === "agenda" ? (
         <div className="mt-6">
-          <AgendaLista eventos={eventos} hojeIso={HOJE_ISO} />
+          <AgendaLista eventos={eventos} hojeIso={today} />
         </div>
       ) : (
         <>
@@ -125,7 +121,7 @@ export function AgendaView() {
                 ano={ano}
                 mes={mes}
                 eventos={eventos}
-                hojeIso={HOJE_ISO}
+                hojeIso={today}
                 diaSelecionado={diaSelecionado}
                 onSelecionar={setDiaSelecionado}
               />
@@ -147,7 +143,7 @@ export function AgendaView() {
                 <h3 className="text-sm font-semibold text-secondary">
                   {diaPorExtenso(diaSelecionado)}
                 </h3>
-                {diaSelecionado === HOJE_ISO && (
+                {diaSelecionado === today && (
                   <span className="rounded-[var(--radius-control)] bg-primary/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-primary">
                     hoje
                   </span>

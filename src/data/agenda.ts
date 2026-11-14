@@ -1,11 +1,11 @@
 import { somaDias } from "@/lib/hoje";
-import type { Lead } from "./clientes-mock";
+import type { Lead } from "@/features/leads/types";
 
 // ─── AGENDA (Fase 2 — interno) ───────────────────────────────
 // A agenda não tem dados próprios: ela DERIVA dos leads do funil. Toda visita
 // agendada (lead.visitaEm) e todo retorno marcado (lead.retornarEm) viram
 // eventos no calendário. Fonte única com o funil — mexeu no lead, mudou a
-// agenda. Quando o Supabase entrar, os campos vêm da mesma tabela `leads`.
+// agenda. Os campos vêm da tabela `leads` (visit_on, call_back_on).
 
 export type TipoEvento = "visita" | "retorno";
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowLeft,
+  BadgeCheck,
   Percent,
   Pencil,
   UserPlus,
@@ -18,6 +19,8 @@ import type { StockVehicle } from "@/features/stock/model";
 import { STATUS_LABEL } from "@/features/stock/rules";
 import { removeVehicleAction, setMarginAction } from "@/features/stock/actions";
 import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
+import { FecharNegocioDialog } from "@/components/gestao/clientes/FecharNegocioDialog";
+import type { Lead } from "@/features/leads/types";
 
 export function CarroGestao({
   veiculo,
@@ -25,6 +28,7 @@ export function CarroGestao({
   canManage,
   channels,
   sellers,
+  leads,
 }: {
   veiculo: StockVehicle;
   estoque: { id: string; titulo: string; preco: number }[];
@@ -32,9 +36,12 @@ export function CarroGestao({
   channels: { id: string; name: string }[];
   /** Null for a seller. */
   sellers: { id: string; name: string }[] | null;
+  /** Open leads, to name the client of a sale started here. */
+  leads: Lead[];
 }) {
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [modalAberto, setModalAberto] = useState(false);
+  const [vendendo, setVendendo] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
   const [margemDefinida, setMargemDefinida] = useState(veiculo.minCashPrice !== null);
@@ -276,7 +283,18 @@ export function CarroGestao({
               Registrar cliente / negociação
             </button>
 
-            {canManage && !editando && (
+            {canManage && veiculo.status !== "sold" && (
+              <button
+                type="button"
+                onClick={() => setVendendo(true)}
+                className={acaoSecundaria}
+              >
+                <BadgeCheck size={16} />
+                Marcar como vendido
+              </button>
+            )}
+
+            {canManage && !editando && veiculo.status !== "sold" && (
               <button
                 type="button"
                 onClick={() => {
@@ -305,6 +323,18 @@ export function CarroGestao({
           </div>
         </div>
       </div>
+
+      <FecharNegocioDialog
+        fechamento={vendendo ? { lead: null, tipo: "vendeu", vehicleId: veiculo.id } : null}
+        veiculos={estoque}
+        sellers={sellers}
+        leads={leads}
+        onConfirmar={(msg) => {
+          setVendendo(false);
+          setAviso(msg);
+        }}
+        onCancelar={() => setVendendo(false)}
+      />
 
       <NovoClienteModal
         aberto={modalAberto}
