@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   // e NENHUM botão funciona. Sem isso, revisar o preview por um túnel público
   // (cloudflared/ngrok) mostra uma tela que parece certa e não responde a nada.
   allowedDevOrigins: ["*.trycloudflare.com", "*.ngrok-free.app", "*.ngrok.io"],
+  experimental: {
+    // Car photos go up one per server action: up to 2 MB each (src/features/stock/photos.ts), plus the form.
+    serverActions: { bodySizeLimit: "3mb" },
+  },
   images: {
     // Qualidade da otimização. O padrão do Next é 75, que re-comprime demais
     // nossas fotos reais (equipe, Cassiano, veículos) e faz o site parecer de

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ImagePlus, X, Check, Star, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ImagePlus, X, Star, Lock } from "lucide-react";
 import {
   CATEGORIAS,
   CAMBIOS,
@@ -12,19 +13,29 @@ import {
   PORTAS,
   OPCIONAIS,
 } from "@/data/opcoes-veiculo";
+import type { StockVehicle } from "@/features/stock/model";
+import { addPhotoAction, removePhotoAction, saveVehicleAction } from "@/features/stock/actions";
+import { resizeToWebp } from "@/features/stock/resize";
 
+/** Foto na tela: as já gravadas têm `savedId`; as novas têm o arquivo escolhido. */
 interface Foto {
   id: string;
   url: string;
+  savedId?: string;
+  file?: File;
 }
 
-function lerArquivo(f: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(f);
-  });
+const MAX_PHOTO_BYTES = 2_000_000;
+const FORMATO_INVALIDO = "Formato de foto não aceito; use JPG, PNG ou WebP.";
+
+// Reduz no navegador; se não der (HEIC no Chrome, por exemplo), envia o original quando ele cabe no limite.
+async function prepararFoto(file: File): Promise<Blob> {
+  try {
+    return await resizeToWebp(file);
+  } catch {
+    if (["image/jpeg", "image/png", "image/webp"].includes(file.type) && file.size <= MAX_PHOTO_BYTES) return file;
+    throw new Error(FORMATO_INVALIDO);
+  }
 }
 
 const milhar = (digitos: string) =>
@@ -36,34 +47,54 @@ const rotulo = "text-sm font-medium text-secondary";
 const cartao =
   "rounded-[var(--radius)] border border-line bg-surface p-5 shadow-[var(--shadow-soft)] sm:p-6";
 
-export function AdicionarCarro() {
+function dadosIniciais(v: StockVehicle | undefined, today: string) {
+  return {
+    marca: v?.brand ?? "", modelo: v?.model ?? "", versao: v?.version ?? "",
+    anoFabricacao: v ? String(v.manufactureYear) : "", anoModelo: v ? String(v.modelYear) : "",
+    km: v ? String(v.km) : "", portas: v?.doors ? String(v.doors) : "", categoria: v?.bodyType ?? "",
+    cor: v?.color ?? "", cambio: v?.transmission ?? "", combustivel: v?.fuel ?? "",
+    precoVenda: v ? String(v.price) : "", custo: v?.money ? String(v.money.acquisitionCost) : "",
+    aquisicao: v?.enteredOn ?? today, descricao: v?.description ?? "",
+  };
+}
+
+/** Cadastro e edição do carro. Grava o carro, depois as fotos uma a uma, e abre a página do carro. */
+export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; today: string }) {
+  const router = useRouter();
   const inputFotos = useRef<HTMLInputElement>(null);
-  const [fotos, setFotos] = useState<Foto[]>([]);
-  const [dados, setDados] = useState({
-    nome: "", marca: "", categoria: "", ano: "", km: "", portas: "",
-    cor: "", cambio: "", combustivel: "", precoVenda: "", custo: "", aquisicao: "",
-  });
-  const [opcionais, setOpcionais] = useState<Set<string>>(new Set());
-  const [destaque, setDestaque] = useState(false);
-  const [erros, setErros] = useState<{ nome?: string; preco?: string; fotos?: string }>({});
-  const [enviado, setEnviado] = useState(false);
+  const [fotos, setFotos] = useState<Foto[]>(
+    () => vehicle?.photos.map((f) => ({ id: f.id, url: f.url, savedId: f.id })) ?? [],
+  );
+  const [removidas, setRemovidas] = useState<string[]>([]);
+  const [dados, setDados] = useState(() => dadosIniciais(vehicle, today));
+  const [opcionais, setOpcionais] = useState<Set<string>>(new Set(vehicle?.features ?? []));
+  const [destaque, setDestaque] = useState(vehicle?.featured ?? false);
+  const [pronto, setPronto] = useState(vehicle ? vehicle.status !== "preparing" : true);
+  const [erros, setErros] = useState<{ modelo?: string; preco?: string; fotos?: string }>({});
+  const [erroServidor, setErroServidor] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const consignado = vehicle?.source === "consignment";
+
+  // Prévias das fotos novas são URLs do navegador; soltas quando a tela fecha.
+  useEffect(() => () => fotos.forEach((f) => f.file && URL.revokeObjectURL(f.url)), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (campo: keyof typeof dados) => (v: string) =>
     setDados((d) => ({ ...d, [campo]: v }));
 
-  async function adicionarFotos(lista: FileList | null) {
+  function adicionarFotos(lista: FileList | null) {
     if (!lista) return;
-    const imgs = Array.from(lista).filter((f) => f.type.startsWith("image/"));
+    const imgs = Array.from(lista).filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
     if (imgs.length === 0) return;
-    const urls = await Promise.all(imgs.map(lerArquivo));
     setFotos((prev) => [
       ...prev,
-      ...urls.map((url, i) => ({ id: `${Date.now()}-${i}-${Math.random()}`, url })),
+      ...imgs.map((file, i) => ({ id: `${Date.now()}-${i}-${Math.random()}`, url: URL.createObjectURL(file), file })),
     ]);
     setErros((e) => ({ ...e, fotos: undefined }));
   }
 
   function removerFoto(id: string) {
+    const foto = fotos.find((f) => f.id === id);
+    if (foto?.savedId) setRemovidas((r) => [...r, foto.savedId!]);
     setFotos((prev) => prev.filter((f) => f.id !== id));
   }
 
@@ -75,95 +106,94 @@ export function AdicionarCarro() {
     });
   }
 
-  function salvar(e: React.FormEvent) {
+  function formulario() {
+    const form = new FormData();
+    if (vehicle) form.set("id", vehicle.id);
+    const campos: Record<string, string> = {
+      brand: dados.marca, model: dados.modelo, version: dados.versao, manufactureYear: dados.anoFabricacao,
+      modelYear: dados.anoModelo, km: dados.km, doors: dados.portas, bodyType: dados.categoria, color: dados.cor,
+      transmission: dados.cambio, fuel: dados.combustivel, price: dados.precoVenda, acquisitionCost: dados.custo || "0",
+      enteredOn: dados.aquisicao, description: dados.descricao,
+    };
+    for (const [nome, valor] of Object.entries(campos)) form.set(nome, valor);
+    for (const o of opcionais) form.append("features", o);
+    if (destaque) form.set("featured", "on");
+    if (pronto) form.set("ready", "on");
+    return form;
+  }
+
+  async function salvar(e: React.FormEvent) {
     e.preventDefault();
     const novos: typeof erros = {};
-    if (!dados.nome.trim()) novos.nome = "Dê um nome pro carro.";
-    if (!dados.precoVenda || Number(dados.precoVenda) <= 0)
-      novos.preco = "Informe o preço de venda.";
-    if (fotos.length === 0) novos.fotos = "Adicione pelo menos 1 foto.";
+    if (!dados.modelo.trim()) novos.modelo = "Diga o modelo do carro.";
+    if (!dados.precoVenda || Number(dados.precoVenda) <= 0) novos.preco = "Informe o preço de venda.";
+    if (!vehicle && fotos.length === 0) novos.fotos = "Adicione pelo menos 1 foto.";
     setErros(novos);
+    setErroServidor(null);
     if (Object.keys(novos).length > 0) {
-      document
-        .querySelector('[data-erro="1"]')
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      document.querySelector('[data-erro="1"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    setEnviado(true);
-  }
 
-  function recomecar() {
-    setFotos([]);
-    setDados({
-      nome: "", marca: "", categoria: "", ano: "", km: "", portas: "",
-      cor: "", cambio: "", combustivel: "", precoVenda: "", custo: "", aquisicao: "",
-    });
-    setOpcionais(new Set());
-    setDestaque(false);
-    setErros({});
-    setEnviado(false);
-  }
+    setSalvando(true);
+    const salvo = await saveVehicleAction({ error: null }, formulario());
+    if (salvo.error || !salvo.id || !salvo.slug) {
+      setErroServidor(salvo.error ?? "Não foi possível salvar.");
+      setSalvando(false);
+      return;
+    }
 
-  if (enviado) {
-    return (
-      <div className="mx-auto max-w-md py-10 text-center">
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success-bg text-success">
-          <Check size={32} strokeWidth={2.2} />
-        </span>
-        <h1 className="mt-5 text-xl font-semibold text-secondary">
-          Carro adicionado
-        </h1>
-        <p className="mt-2 text-sm text-muted-strong">
-          <span className="font-medium text-secondary">
-            {dados.nome.trim()}
-          </span>{" "}
-          entrou no cadastro com {fotos.length}{" "}
-          {fotos.length === 1 ? "foto" : "fotos"} e {opcionais.size}{" "}
-          {opcionais.size === 1 ? "opcional" : "opcionais"}.
-        </p>
-        <p className="mt-1.5 text-xs text-muted-strong">
-          Fase de demonstração — o veículo ainda não é gravado no banco. Some
-          assim que o Supabase entrar.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link
-            href="/gestao/estoque"
-            className="rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
-          >
-            Voltar ao estoque
-          </Link>
-          <button
-            type="button"
-            onClick={recomecar}
-            className="rounded-[var(--radius-control)] bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
-          >
-            Adicionar outro
-          </button>
-        </div>
-      </div>
-    );
+    let falhou: string | null = null;
+    for (const photoId of removidas) {
+      const form = new FormData();
+      form.set("photoId", photoId);
+      const r = await removePhotoAction(form);
+      if (r.error) falhou = r.error;
+    }
+    const novas = fotos.filter((f) => f.file);
+    let enviadas = 0;
+    for (const foto of novas) {
+      try {
+        const form = new FormData();
+        form.set("vehicleId", salvo.id);
+        form.set("photo", await prepararFoto(foto.file!));
+        const r = await addPhotoAction(form);
+        if (r.error) falhou = r.error;
+        else enviadas += 1;
+      } catch (erro) {
+        falhou = (erro as Error).message === FORMATO_INVALIDO ? FORMATO_INVALIDO : "Uma foto não foi enviada; tente de novo.";
+      }
+    }
+
+    if (falhou) {
+      // The car is saved: editing it again sends the photos that are missing.
+      setErroServidor(`Carro salvo. ${enviadas} de ${novas.length} fotos novas entraram. ${falhou}`);
+      setSalvando(false);
+      router.replace(`/gestao/estoque/${salvo.slug}/editar`);
+      return;
+    }
+    router.push(`/gestao/estoque/${salvo.slug}`);
   }
 
   return (
     <form onSubmit={salvar} className="pb-8">
       <Link
-        href="/gestao/estoque"
+        href={vehicle ? `/gestao/estoque/${vehicle.slug}` : "/gestao/estoque"}
         className="inline-flex items-center gap-1.5 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
       >
         <ArrowLeft size={16} />
-        Voltar ao estoque
+        {vehicle ? "Voltar ao carro" : "Voltar ao estoque"}
       </Link>
 
       <h1 className="mt-5 text-2xl font-semibold text-secondary">
-        Adicionar carro
+        {vehicle ? "Editar carro" : "Adicionar carro"}
       </h1>
 
       {/* Fotos */}
       <section className={`${cartao} mt-6`} data-erro={erros.fotos ? "1" : undefined}>
         <h2 className="text-base font-semibold text-secondary">Fotos do carro</h2>
         <p className="mt-1 text-sm text-muted-strong">
-          Pelo menos 1 foto. A primeira vira a capa. Pode adicionar quantas
-          quiser.
+          Pelo menos 1 foto. A primeira vira a capa. Até 20 fotos.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -172,7 +202,7 @@ export function AdicionarCarro() {
               key={f.id}
               className="group relative aspect-[4/3] overflow-hidden rounded-[calc(var(--radius)-2px)] border border-line bg-sand"
             >
-              <Image src={f.url} alt={`Foto ${i + 1}`} fill className="object-cover" unoptimized />
+              <Image src={f.url} alt={`Foto ${i + 1}`} fill sizes="200px" className="object-cover" unoptimized />
               {i === 0 && (
                 <span className="absolute left-1.5 top-1.5 rounded-[var(--radius-control)] bg-primary px-2 py-0.5 text-[0.65rem] font-semibold text-on-primary">
                   Capa
@@ -207,7 +237,7 @@ export function AdicionarCarro() {
         <input
           ref={inputFotos}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
           multiple
           hidden
           onChange={(e) => {
@@ -221,43 +251,58 @@ export function AdicionarCarro() {
       {/* Dados + Valores */}
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.35fr_1fr]">
         {/* Dados do carro */}
-        <section className={cartao} data-erro={erros.nome ? "1" : undefined}>
+        <section className={cartao} data-erro={erros.modelo ? "1" : undefined}>
           <h2 className="text-base font-semibold text-secondary">Dados do carro</h2>
 
           <div className="mt-4 flex flex-col gap-4">
-            <div>
-              <label className={rotulo} htmlFor="nome">
-                Nome completo <span className="text-danger">*</span>
-              </label>
-              <input
-                id="nome"
-                value={dados.nome}
-                onChange={(e) => {
-                  set("nome")(e.target.value);
-                  if (erros.nome) setErros((x) => ({ ...x, nome: undefined }));
-                }}
-                placeholder="Ex: Toyota Corolla 2.0 XEI Flex Aut. 4p 2023"
-                aria-invalid={!!erros.nome}
-                className={`${campo} mt-1.5 ${erros.nome ? "border-danger" : ""}`}
-              />
-              {erros.nome && <p className="mt-1.5 text-[0.8125rem] text-danger-ink">{erros.nome}</p>}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Texto label="Marca" id="marca" value={dados.marca} onChange={set("marca")} placeholder="Chevrolet" />
+              <div>
+                <label className={rotulo} htmlFor="modelo">
+                  Modelo <span className="text-danger">*</span>
+                </label>
+                <input
+                  id="modelo"
+                  value={dados.modelo}
+                  onChange={(e) => {
+                    set("modelo")(e.target.value);
+                    if (erros.modelo) setErros((x) => ({ ...x, modelo: undefined }));
+                  }}
+                  placeholder="Onix"
+                  aria-invalid={!!erros.modelo}
+                  className={`${campo} mt-1.5 ${erros.modelo ? "border-danger" : ""}`}
+                />
+                {erros.modelo && <p className="mt-1.5 text-[0.8125rem] text-danger-ink">{erros.modelo}</p>}
+              </div>
+              <Texto label="Versão" id="versao" value={dados.versao} onChange={set("versao")} placeholder="LT 1.0 Turbo" />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Texto label="Marca" id="marca" value={dados.marca} onChange={set("marca")} placeholder="Toyota" />
-              <Selecao label="Categoria" id="categoria" value={dados.categoria} onChange={set("categoria")} opcoes={CATEGORIAS} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Texto label="Ano" id="ano" value={dados.ano} onChange={(v) => set("ano")(v.replace(/\D/g, "").slice(0, 4))} placeholder="2023" inputMode="numeric" />
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Texto label="Ano de fabricação" id="anoFabricacao" value={dados.anoFabricacao} onChange={(v) => set("anoFabricacao")(v.replace(/\D/g, "").slice(0, 4))} placeholder="2022" inputMode="numeric" />
+              <Texto label="Ano do modelo" id="anoModelo" value={dados.anoModelo} onChange={(v) => set("anoModelo")(v.replace(/\D/g, "").slice(0, 4))} placeholder="2023" inputMode="numeric" />
               <Texto label="KM" id="km" value={milhar(dados.km)} onChange={(v) => set("km")(v.replace(/\D/g, ""))} placeholder="45.000" inputMode="numeric" />
               <Selecao label="Portas" id="portas" value={dados.portas} onChange={set("portas")} opcoes={PORTAS} />
             </div>
+
+            <Selecao label="Categoria" id="categoria" value={dados.categoria} onChange={set("categoria")} opcoes={CATEGORIAS} />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Selecao label="Cor" id="cor" value={dados.cor} onChange={set("cor")} opcoes={CORES} />
               <Selecao label="Câmbio" id="cambio" value={dados.cambio} onChange={set("cambio")} opcoes={CAMBIOS} />
               <Selecao label="Combustível" id="combustivel" value={dados.combustivel} onChange={set("combustivel")} opcoes={COMBUSTIVEIS} />
+            </div>
+
+            <div>
+              <label className={rotulo} htmlFor="descricao">Descrição</label>
+              <textarea
+                id="descricao"
+                value={dados.descricao}
+                onChange={(e) => set("descricao")(e.target.value)}
+                rows={4}
+                maxLength={4000}
+                placeholder="Estado, revisões, dono único…"
+                className={`${campo} mt-1.5`}
+              />
             </div>
           </div>
         </section>
@@ -285,7 +330,12 @@ export function AdicionarCarro() {
               onChange={(v) => { set("precoVenda")(v); if (erros.preco) setErros((x) => ({ ...x, preco: undefined })); }}
               erro={erros.preco}
             />
-            <Moeda label="Custo" ajuda="Quanto você pagou no carro." value={dados.custo} onChange={set("custo")} />
+            <Moeda
+              label={consignado ? "Repasse ao dono" : "Custo"}
+              ajuda={consignado ? "Quanto a loja repassa ao dono do carro." : "Quanto você pagou no carro."}
+              value={dados.custo}
+              onChange={set("custo")}
+            />
             <div>
               <label className={rotulo} htmlFor="aquisicao">Data de aquisição</label>
               <p className="mt-0.5 text-xs text-muted-strong">Pra calcular o giro no estoque.</p>
@@ -328,6 +378,19 @@ export function AdicionarCarro() {
         </div>
 
         <label className="mt-5 flex w-fit cursor-pointer items-center gap-3 rounded-[calc(var(--radius)-2px)] border border-line bg-sand/30 px-4 py-3">
+          <span className="flex-1">
+            <span className="block text-sm font-medium text-secondary">Pronto para anunciar</span>
+            <span className="block text-xs text-muted-strong">Desmarcado, o carro fica em preparação e sai do site.</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={pronto}
+            onChange={(e) => setPronto(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+        </label>
+
+        <label className="mt-3 flex w-fit cursor-pointer items-center gap-3 rounded-[calc(var(--radius)-2px)] border border-line bg-sand/30 px-4 py-3">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary">
             <Star size={16} strokeWidth={2} fill={destaque ? "currentColor" : "none"} />
           </span>
@@ -345,18 +408,24 @@ export function AdicionarCarro() {
       </section>
 
       {/* Ações */}
-      <div className="mt-6 flex items-center justify-end gap-3">
+      {erroServidor && (
+        <p role="alert" className="mt-6 text-right text-sm text-danger-ink">
+          {erroServidor}
+        </p>
+      )}
+      <div className="mt-4 flex items-center justify-end gap-3">
         <Link
-          href="/gestao/estoque"
+          href={vehicle ? `/gestao/estoque/${vehicle.slug}` : "/gestao/estoque"}
           className="rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2.5 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
         >
           Cancelar
         </Link>
         <button
           type="submit"
-          className="rounded-[var(--radius-control)] bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
+          disabled={salvando}
+          className="rounded-[var(--radius-control)] bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover disabled:opacity-60"
         >
-          Salvar carro
+          {salvando ? "Salvando…" : "Salvar carro"}
         </button>
       </div>
     </form>

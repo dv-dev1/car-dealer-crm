@@ -31,7 +31,7 @@ export function car(over: Partial<StockVehicle> = {}): StockVehicle {
     enteredOn: "2026-10-01",
     daysInStock: 43,
     photos: [],
-    money: { cost: 61000, profit: 9990 },
+    money: { acquisitionCost: 61000, cost: 61000, profit: 9990 },
     ...over,
   };
 }

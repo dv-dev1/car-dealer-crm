@@ -8,8 +8,8 @@ it("grades days in stock at 60 and 90", () => {
 
 it("sums the stock and leaves money out when the viewer has none", () => {
   const owner = stockSummary([
-    car({ price: 100, minCashPrice: 90, money: { cost: 70, profit: 20 } }),
-    car({ price: 50, minCashPrice: null, daysInStock: 95, money: { cost: 40, profit: 10 } }),
+    car({ price: 100, minCashPrice: 90, money: { acquisitionCost: 70, cost: 70, profit: 20 } }),
+    car({ price: 50, minCashPrice: null, daysInStock: 95, money: { acquisitionCost: 40, cost: 40, profit: 10 } }),
   ]);
   expect(owner).toEqual({ total: 2, noMargin: 1, stale: 1, worth: 150, invested: 110, expectedProfit: 30 });
   expect(stockSummary([car({ money: null })]).invested).toBeNull();

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdicionarCarro } from "./AdicionarCarro";
-import { requireMember } from "@/features/auth/guard";
+import { requireRole } from "@/features/auth/guard";
+import { todayIso } from "@/shared/today";
 
 export const metadata: Metadata = {
   title: "Adicionar carro — Gestão",
@@ -8,6 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default async function AdicionarCarroPage() {
-  await requireMember();
-  return <AdicionarCarro />;
+  await requireRole(["owner", "manager"]);
+  return <AdicionarCarro today={todayIso()} />;
 }

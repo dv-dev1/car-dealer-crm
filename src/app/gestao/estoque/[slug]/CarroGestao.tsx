@@ -291,14 +291,12 @@ export function CarroGestao({
 
             {canManage && (
             <>
-            <button
-              type="button"
-              onClick={() => emBreve("Edição de carro / foto")}
-              className={acaoSecundaria}
-            >
-              <ImageUp size={16} />
-              Editar carro / foto
-            </button>
+            {veiculo.status !== "sold" && (
+              <Link href={`/gestao/estoque/${veiculo.slug}/editar`} className={acaoSecundaria}>
+                <ImageUp size={16} />
+                Editar carro / foto
+              </Link>
+            )}
 
             <button
               type="button"

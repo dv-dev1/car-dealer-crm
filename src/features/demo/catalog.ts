@@ -15,9 +15,9 @@ export type CatalogModel = {
   features: string[];
 };
 
-const BASIC = ["Ar-condicionado", "Direção elétrica", "Vidros elétricos", "Travas elétricas"];
-const MEDIUM = [...BASIC, "Central multimídia", "Apple CarPlay e Android Auto", "Câmera de ré", "Rodas de liga leve"];
-const FULL = [...MEDIUM, "Piloto automático", "Sensor de estacionamento", "Bancos em couro", "Chave presencial"];
+const BASIC = ["Ar condicionado", "Direção elétrica", "Vidros elétricos", "Travas elétricas"];
+const MEDIUM = [...BASIC, "Central multimídia", "Apple CarPlay / Android Auto", "Câmera de ré", "Rodas de liga leve"];
+const FULL = [...MEDIUM, "Piloto automático", "Sensor de estacionamento", "Banco de couro", "Keyless Entry / Start"];
 
 export const MODELS: CatalogModel[] = [
   { brand: "Chevrolet", model: "Onix", version: "LT 1.0 Turbo", bodyType: "Hatch", fuel: "Flex", transmission: "Automático", engine: "1.0 Turbo", power: "116 cv", doors: 4, years: [2020, 2024], prices: [62000, 88000], features: MEDIUM },

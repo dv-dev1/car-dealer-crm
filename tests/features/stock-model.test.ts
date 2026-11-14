@@ -1,8 +1,10 @@
 import pg from "pg";
 import { beforeEach, expect, it, vi } from "vitest";
 import { restoreDemoStore } from "@/features/demo/model";
-import { getVehicle, listStock } from "@/features/stock/model";
-import type { StoreMember } from "@/shared/db/client";
+import { CAMBIOS, CATEGORIAS, COMBUSTIVEIS, CORES, OPCIONAIS } from "@/data/opcoes-veiculo";
+import { COLORS, MODELS } from "@/features/demo/catalog";
+import { createVehicle, getVehicle, listStock, updateVehicle, type VehicleInput } from "@/features/stock/model";
+import { withStore, type StoreMember } from "@/shared/db/client";
 import { seedTwoStores } from "../db/fixtures.ts";
 import { useDatabase } from "../setup/hyperdrive.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
@@ -84,4 +86,135 @@ it("finds a sold car by slug but not a removed one", async () => {
   await adminQuery("update vehicles set status = 'removed', removed_reason = 'wrong_entry' where slug = $1", [slug]);
   expect(await getVehicle(owner, slug, TODAY)).toBeNull();
   expect(await listStock(owner, TODAY)).toHaveLength(21);
+});
+
+const INPUT: VehicleInput = {
+  brand: "Chevrolet",
+  model: "Onix",
+  version: "LT 1.0",
+  modelYear: 2023,
+  manufactureYear: 2022,
+  km: 32000,
+  color: "Prata",
+  fuel: "Flex",
+  transmission: "Manual",
+  bodyType: "Hatch",
+  doors: 4,
+  description: "Único dono.",
+  features: ["Ar condicionado", "Câmera de ré"],
+  featured: false,
+  price: 72990,
+  acquisitionCost: 61000,
+  enteredOn: "2026-11-10",
+  ready: true,
+};
+
+it("creates a car with its cost, visible in the stock", async () => {
+  const result = await createVehicle(owner, INPUT, TODAY);
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.slug).toMatch(/^chevrolet-onix-lt-1-0-2023-[0-9a-f]{6}$/);
+  const car = (await listStock(owner, TODAY)).find((c) => c.id === result.id)!;
+  expect(car).toMatchObject({ title: "Chevrolet Onix LT 1.0", status: "available", daysInStock: 3, minCashPrice: null, source: "purchase" });
+  expect(car.money!.cost).toBe(61000);
+  expect((await createVehicle(owner, { ...INPUT, ready: false }, TODAY)).ok && (await listStock(owner, TODAY)).some((c) => c.status === "preparing")).toBe(true);
+});
+
+it("refuses a seller, in the model and in the database", async () => {
+  expect(await createVehicle(seller, INPUT, TODAY)).toEqual({ ok: false, error: "forbidden" });
+  const insert = withStore(seller, (db) =>
+    db.query(
+      `insert into vehicles (store_id, slug, brand, model, version, model_year, manufacture_year, km, fuel, transmission, price, entered_on)
+       values ($1, 'x', 'a', 'b', 'c', 2023, 2023, 0, 'Flex', 'Manual', 1000, $2)`,
+      [seller.storeId, TODAY],
+    ),
+  );
+  await expect(insert).rejects.toThrow(/row-level security/);
+});
+
+it.each([
+  ["brand", { brand: " " }],
+  ["version", { version: "x".repeat(61) }],
+  ["manufactureYear", { manufactureYear: 2028, modelYear: 2028 }],
+  ["modelYear", { modelYear: 2024 }],
+  ["km", { km: -1 }],
+  ["color", { color: "Rosa choque" }],
+  ["fuel", { fuel: "Gasolina aditivada" }],
+  ["transmission", { transmission: "Sequencial" }],
+  ["doors", { doors: 7 }],
+  ["features", { features: ["Turbo de verdade"] }],
+  ["price", { price: 0 }],
+  ["acquisitionCost", { acquisitionCost: -5 }],
+  ["enteredOn", { enteredOn: "2026-11-14" }],
+  ["enteredOn", { enteredOn: "14/11/2026" }],
+] as const)("names the invalid field %s", async (field, over) => {
+  expect(await createVehicle(owner, { ...INPUT, ...over } as VehicleInput, TODAY)).toEqual({ ok: false, error: "invalid", field });
+});
+
+it("updates a car and its cost, keeping the slug", async () => {
+  const created = await createVehicle(owner, INPUT, TODAY);
+  if (!created.ok) throw new Error("create failed");
+  const updated = await updateVehicle(owner, created.id, { ...INPUT, km: 33000, price: 70990, acquisitionCost: 60000, ready: false }, TODAY);
+  expect(updated).toEqual({ ok: true, id: created.id, slug: created.slug });
+  const car = (await getVehicle(owner, created.slug, TODAY))!;
+  expect(car).toMatchObject({ km: 33000, price: 70990, status: "preparing" });
+  expect(car.money!.cost).toBe(60000);
+});
+
+it("keeps the discount when the price changes", async () => {
+  const created = await createVehicle(owner, INPUT, TODAY);
+  if (!created.ok) throw new Error("create failed");
+  await adminQuery("update vehicles set min_cash_price = price - 2000 where id = $1", [created.id]);
+  await updateVehicle(owner, created.id, { ...INPUT, price: 1500 }, TODAY);
+  expect((await getVehicle(owner, created.slug, TODAY))!.minCashPrice).toBeNull();
+  await adminQuery("update vehicles set min_cash_price = price - 500 where id = $1", [created.id]);
+  await updateVehicle(owner, created.id, { ...INPUT, price: 80000 }, TODAY);
+  expect((await getVehicle(owner, created.slug, TODAY))!.minCashPrice).toBe(79500);
+});
+
+it("refuses to edit a sold or removed car", async () => {
+  const [sold] = await adminQuery("select id from vehicles where store_id = $1 and status = 'sold' limit 1", [seed.a.storeId]);
+  expect(await updateVehicle(owner, sold.id, INPUT, TODAY)).toEqual({ ok: false, error: "not_editable" });
+  const car = (await listStock(owner, TODAY))[0];
+  await adminQuery("update vehicles set status = 'removed', removed_reason = 'wrong_entry' where id = $1", [car.id]);
+  expect(await updateVehicle(owner, car.id, INPUT, TODAY)).toEqual({ ok: false, error: "not_editable" });
+});
+
+it("does not edit another store's car", async () => {
+  const car = (await listStock(owner, TODAY))[0];
+  expect(await updateVehicle(carla, car.id, INPUT, TODAY)).toEqual({ ok: false, error: "not_found" });
+  expect(await updateVehicle(owner, "not-a-uuid", INPUT, TODAY)).toEqual({ ok: false, error: "not_found" });
+  expect(await updateVehicle(seller, car.id, INPUT, TODAY)).toEqual({ ok: false, error: "forbidden" });
+});
+
+it("keeps the consignment cost in the consignor payout", async () => {
+  const consigned = (await listStock(owner, TODAY)).find((c) => c.source === "consignment")!;
+  const expenses = consigned.money!.cost - Number((await adminQuery("select consignor_payout from vehicle_finances where vehicle_id = $1", [consigned.id]))[0].consignor_payout);
+  await updateVehicle(owner, consigned.id, { ...INPUT, acquisitionCost: 50000 }, TODAY);
+  expect((await getVehicle(owner, consigned.slug, TODAY))!.money!.cost).toBe(50000 + expenses);
+  expect(await updateVehicle(owner, consigned.id, { ...INPUT, acquisitionCost: 0 }, TODAY)).toEqual({ ok: false, error: "invalid", field: "acquisitionCost" });
+});
+
+it("the demo catalog uses the form's option lists, so a demo car can be edited", () => {
+  const within = (list: readonly string[], values: string[]) => values.filter((value) => !list.includes(value));
+  expect(within(OPCIONAIS, MODELS.flatMap((m) => m.features))).toEqual([]);
+  expect(within(CORES, COLORS)).toEqual([]);
+  expect(within(CATEGORIAS, MODELS.map((m) => m.bodyType))).toEqual([]);
+  expect(within(COMBUSTIVEIS, MODELS.map((m) => m.fuel))).toEqual([]);
+  expect(within(CAMBIOS, MODELS.map((m) => m.transmission))).toEqual([]);
+});
+
+it("tells the purchase price apart from the cost with expenses, for the edit form", async () => {
+  const [row] = await adminQuery(
+    `select v.slug, f.purchase_price::float8 as purchase from vehicles v join vehicle_finances f on f.vehicle_id = v.id
+      where v.store_id = $1 and v.source = 'purchase' and v.status = 'available'
+        and exists (select from vehicle_expenses e where e.vehicle_id = v.id) limit 1`,
+    [seed.a.storeId],
+  );
+  const money = (await getVehicle(owner, row.slug, TODAY))!.money!;
+  expect(money.acquisitionCost).toBe(row.purchase);
+  expect(money.cost).toBeGreaterThan(money.acquisitionCost);
+  const consigned = (await listStock(owner, TODAY)).find((c) => c.source === "consignment")!;
+  const [payout] = await adminQuery("select consignor_payout::float8 as v from vehicle_finances where vehicle_id = $1", [consigned.id]);
+  expect(consigned.money!.acquisitionCost).toBe(payout.v);
 });
