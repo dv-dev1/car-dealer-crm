@@ -78,13 +78,15 @@ describe("requireMember", () => {
     const { a } = seed;
     await admin.query("update memberships set workos_user_id = 'user_ana' where id = $1", [a.ana.id]);
     signIn({ id: "user_ana", email: a.ana.email, emailVerified: true });
-    expect(await requireMember()).toEqual({ membershipId: a.ana.id, storeId: a.storeId, role: "owner", name: "Ana" });
+    expect(await requireMember()).toMatchObject({
+      membershipId: a.ana.id, storeId: a.storeId, role: "owner", name: "Ana", storeName: "Loja A", isDemo: false,
+    });
   });
 
   it("links a verified invited email on first access", async () => {
     const { a } = seed;
     signIn({ id: "user_beto", email: a.beto.email, emailVerified: true });
-    expect(await requireMember()).toEqual({ membershipId: a.beto.id, storeId: a.storeId, role: "seller", name: "Beto" });
+    expect(await requireMember()).toMatchObject({ membershipId: a.beto.id, storeId: a.storeId, role: "seller", name: "Beto" });
     expect(await linkedTo(a.beto.id)).toBe("user_beto");
   });
 

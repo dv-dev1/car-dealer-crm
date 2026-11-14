@@ -14,6 +14,8 @@ import { TEST_ADMIN_URL, TEST_APP_URL, TEST_DATABASE, TEST_PORT } from "../setup
 vi.mock("@opennextjs/cloudflare", () => import("../setup/hyperdrive.ts"));
 
 const UNREACHABLE_URL = "postgres://nobody@127.0.0.1:1/none";
+// Any uuid: these tests do not depend on whose session it is.
+const MEMBER = "00000000-0000-4000-8000-000000000000";
 const urlFor = (login: string) => `postgres://${login}@127.0.0.1:${TEST_PORT}/${TEST_DATABASE}`;
 
 let seed: Awaited<ReturnType<typeof seedTwoStores>>;
@@ -37,20 +39,20 @@ async function adminQuery(sql: string, params: unknown[] = []) {
 
 const insertDani = "insert into memberships (store_id, email, name, role) values ($1, 'dani@x.com', 'Dani', 'seller')";
 const emails = (storeId: string) =>
-  withStore({ storeId, role: "seller" }, async (db) =>
+  withStore({ storeId, role: "seller", membershipId: MEMBER }, async (db) =>
     (await db.query<{ email: string }>("select email from memberships order by email")).map((row) => row.email),
   );
 
 it("runs fn inside the store and commits", async () => {
   const { a } = seed;
-  await withStore({ storeId: a.storeId, role: "owner" }, (db) => db.query(insertDani, [a.storeId]));
+  await withStore({ storeId: a.storeId, role: "owner", membershipId: MEMBER }, (db) => db.query(insertDani, [a.storeId]));
   expect(await emails(a.storeId)).toEqual(["ana@lojaa.com", "beto@lojaa.com", "dani@x.com"]);
 });
 
 it("rolls back when fn throws", async () => {
   const { a } = seed;
   const boom = new Error("boom");
-  const insertThenThrow = withStore({ storeId: a.storeId, role: "owner" }, async (db) => {
+  const insertThenThrow = withStore({ storeId: a.storeId, role: "owner", membershipId: MEMBER }, async (db) => {
     await db.query(insertDani, [a.storeId]);
     throw boom;
   });
@@ -61,7 +63,7 @@ it("rolls back when fn throws", async () => {
 // PostgreSQL answers COMMIT with ROLLBACK, and no error, once a statement failed.
 it("rejects instead of committing when fn swallowed a database error", async () => {
   const { a } = seed;
-  const swallowed = withStore({ storeId: a.storeId, role: "owner" }, async (db) => {
+  const swallowed = withStore({ storeId: a.storeId, role: "owner", membershipId: MEMBER }, async (db) => {
     await db.query(insertDani, [a.storeId]);
     await db.query("select 1/0").catch(() => {});
     return "ok";
@@ -71,7 +73,7 @@ it("rejects instead of committing when fn swallowed a database error", async () 
 });
 
 it("rejects with the server's error when the connection drops inside fn", async () => {
-  const dropped = withStore({ storeId: seed.a.storeId, role: "seller" }, async (db) => {
+  const dropped = withStore({ storeId: seed.a.storeId, role: "seller", membershipId: MEMBER }, async (db) => {
     const [{ pid }] = await db.query<{ pid: number }>("select pg_backend_pid() as pid");
     await adminQuery("select pg_terminate_backend($1, 5000)", [pid]);
     return db.query("select 1");
@@ -81,13 +83,24 @@ it("rejects with the server's error when the connection drops inside fn", async 
 
 // Hyperdrive hands the same origin connection to later requests, so the store must end with the transaction.
 it("keeps the store setting local to the transaction", async () => {
-  const after = await withStore({ storeId: seed.a.storeId, role: "owner" }, async (db) => {
+  const after = await withStore({ storeId: seed.a.storeId, role: "owner", membershipId: MEMBER }, async (db) => {
     await db.query("commit");
     return db.query(`select current_setting('app.store_id', true) as store_id,
                             current_setting('app.role', true) as role,
                             (select count(*)::int from memberships) as members`);
   });
   expect(after).toEqual([{ store_id: "", role: "", members: 0 }]);
+});
+
+it("sets app.membership_id for the transaction only", async () => {
+  const ctx = { storeId: seed.a.storeId, role: "seller" as const, membershipId: seed.a.beto.id };
+  const seen = await withStore(ctx, async (db) => {
+    const [{ id }] = await db.query<{ id: string }>("select app_membership_id() as id");
+    await db.query("commit");
+    const [{ left }] = await db.query<{ left: string }>("select current_setting('app.membership_id', true) as left");
+    return { id, left };
+  });
+  expect(seen).toEqual({ id: seed.a.beto.id, left: "" });
 });
 
 it("does not leak the store between calls", async () => {
@@ -99,7 +112,7 @@ it("does not leak the store between calls", async () => {
 it("refuses an unsafe role before running fn", async () => {
   useDatabase(TEST_ADMIN_URL);
   const fn = vi.fn();
-  await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toBeInstanceOf(
+  await expect(withStore({ storeId: seed.a.storeId, role: "owner", membershipId: MEMBER }, fn)).rejects.toBeInstanceOf(
     UnsafeDatabaseRoleError,
   );
   expect(fn).not.toHaveBeenCalled();
@@ -111,7 +124,7 @@ async function expectLoginRefused(login: string, setup: string, teardown: string
   try {
     useDatabase(urlFor(login));
     const fn = vi.fn();
-    await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toBeInstanceOf(
+    await expect(withStore({ storeId: seed.a.storeId, role: "owner", membershipId: MEMBER }, fn)).rejects.toBeInstanceOf(
       UnsafeDatabaseRoleError,
     );
     expect(fn).not.toHaveBeenCalled();
@@ -159,7 +172,7 @@ it("rejects a store id that is not a uuid before connecting", async () => {
   useDatabase(UNREACHABLE_URL);
   const fn = vi.fn();
   for (const storeId of ["", "not-a-uuid", `${seed.a.storeId}' or true --`, ` ${seed.a.storeId}`]) {
-    await expect(withStore({ storeId, role: "owner" }, fn)).rejects.toThrow(/storeId/);
+    await expect(withStore({ storeId, role: "owner", membershipId: MEMBER }, fn)).rejects.toThrow(/storeId/);
   }
   expect(fn).not.toHaveBeenCalled();
 });
@@ -168,7 +181,16 @@ it("rejects a role outside owner, manager and seller before connecting", async (
   useDatabase(UNREACHABLE_URL);
   const fn = vi.fn();
   for (const role of ["", "admin", "Owner", "owner "]) {
-    await expect(withStore({ storeId: seed.a.storeId, role: role as Role }, fn)).rejects.toThrow(/role/);
+    await expect(withStore({ storeId: seed.a.storeId, role: role as Role, membershipId: MEMBER }, fn)).rejects.toThrow(/role/);
+  }
+  expect(fn).not.toHaveBeenCalled();
+});
+
+it("rejects a membership id that is not a uuid before connecting", async () => {
+  useDatabase(UNREACHABLE_URL);
+  const fn = vi.fn();
+  for (const membershipId of ["", "not-a-uuid", `${seed.a.ana.id}' or true --`]) {
+    await expect(withStore({ storeId: seed.a.storeId, role: "owner", membershipId }, fn)).rejects.toThrow(/membershipId/);
   }
   expect(fn).not.toHaveBeenCalled();
 });
@@ -176,7 +198,7 @@ it("rejects a role outside owner, manager and seller before connecting", async (
 it("surfaces the connection error when the database is unreachable", async () => {
   useDatabase(UNREACHABLE_URL);
   const fn = vi.fn();
-  await expect(withStore({ storeId: seed.a.storeId, role: "owner" }, fn)).rejects.toMatchObject({
+  await expect(withStore({ storeId: seed.a.storeId, role: "owner", membershipId: MEMBER }, fn)).rejects.toMatchObject({
     code: "ECONNREFUSED",
   });
   expect(fn).not.toHaveBeenCalled();
@@ -184,8 +206,8 @@ it("surfaces the connection error when the database is unreachable", async () =>
 
 it("closes its connection whether fn succeeds or throws", async () => {
   const { a } = seed;
-  await withStore({ storeId: a.storeId, role: "owner" }, (db) => db.query("select 1"));
-  await withStore({ storeId: a.storeId, role: "owner" }, async () => {
+  await withStore({ storeId: a.storeId, role: "owner", membershipId: MEMBER }, (db) => db.query("select 1"));
+  await withStore({ storeId: a.storeId, role: "owner", membershipId: MEMBER }, async () => {
     throw new Error("boom");
   }).catch(() => {});
   // The server ends a backend shortly after the client leaves, hence the wait.
@@ -200,12 +222,16 @@ it("ignores APP_DATABASE_URL and reads only the Hyperdrive binding", async () =>
   expect(await emails(seed.b.storeId)).toEqual(["carla@lojab.com"]);
 });
 
-it("resolveMembership maps the row", async () => {
+it("resolveMembership maps the row with the store name and the demo flag", async () => {
   const { a } = seed;
-  const ana = { membershipId: a.ana.id, storeId: a.storeId, role: "owner", name: "Ana" };
+  const ana = { membershipId: a.ana.id, storeId: a.storeId, role: "owner", name: "Ana", storeName: "Loja A", isDemo: false };
   expect(await resolveMembership({ workosUserId: "user_1", email: a.ana.email, emailVerified: true })).toEqual(ana);
   // The link was committed: the same WorkOS user now resolves without a verified email.
-  expect(await resolveMembership({ workosUserId: "user_1", email: "other@x.com", emailVerified: false })).toEqual(ana);
+  await adminQuery("update stores set is_demo = true where id = $1", [a.storeId]);
+  expect(await resolveMembership({ workosUserId: "user_1", email: "other@x.com", emailVerified: false })).toEqual({
+    ...ana,
+    isDemo: true,
+  });
 });
 
 it("resolveMembership returns null when nothing matches", async () => {
