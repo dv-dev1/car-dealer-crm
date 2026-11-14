@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X, Check } from "lucide-react";
 import { formatPreco } from "@/lib/format";
-import type { VeiculoGestao } from "@/data/gestao-mock";
 import { ETAPAS, type EstagioFunil, type Lead } from "@/data/clientes-mock";
 import {
   ESTAGIOS_FORM as ESTAGIOS,
@@ -29,7 +28,7 @@ export type { NovoClienteDados };
 export interface NovoClienteModalProps {
   aberto: boolean;
   onFechar: () => void;
-  veiculos: Pick<VeiculoGestao, "id" | "titulo" | "preco">[];
+  veiculos: { id: string; titulo: string; preco: number }[];
   veiculoInicialId?: string;
   /** Chamado quando o cliente é salvo — a página decide o que fazer (ex:
    *  jogar o lead na coluna "Lead novo" do funil). */

@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { BarChart3, ArrowRight } from "lucide-react";
-import {
-  estoqueGestao,
-  resumoEstoque,
-  resumoLoja,
-  giroEstoque,
-  nivelGiro,
-} from "@/data/gestao-mock";
 import { resumoMeta } from "@/data/vendas-mock";
-import { HOJE_ISO, diaPorExtenso } from "@/lib/hoje";
+import { diaPorExtenso } from "@/lib/hoje";
+import { listStock } from "@/features/stock/model";
+import { oldestInStock, staleLevel, stockSummary } from "@/features/stock/rules";
+import { todayIso } from "@/shared/today";
 import { AvisoMeta, AvisoSemMargem } from "@/components/gestao/painel/PainelAvisos";
 import { LojaAgora } from "@/components/gestao/painel/LojaAgora";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
@@ -16,18 +12,16 @@ import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
 import { requireMember } from "@/features/auth/guard";
 
 export default async function PainelPage() {
-  await requireMember();
-  const estoque = estoqueGestao;
-  const resumo = resumoEstoque(estoque);
-  const loja = resumoLoja(estoque);
-  const giro = giroEstoque(estoque, 3);
+  const member = await requireMember();
+  const today = todayIso();
+  const estoque = await listStock(member, today);
+  const loja = stockSummary(estoque);
+  const giro = oldestInStock(estoque, 3);
   const meta = resumoMeta();
 
-  const pedemAtencao = estoque.filter(
-    (v) => v.statusGestao !== "vendido" && nivelGiro(v.diasEstoque) !== "ok",
-  ).length;
+  const pedemAtencao = estoque.filter((v) => staleLevel(v.daysInStock) !== "ok").length;
 
-  const dia = diaPorExtenso(HOJE_ISO);
+  const dia = diaPorExtenso(today);
 
   return (
     <div>
@@ -41,7 +35,7 @@ export default async function PainelPage() {
         {/* Avisos */}
         <div className="grid gap-3">
           <AvisoMeta meta={meta} />
-          <AvisoSemMargem quantidade={resumo.semMargem} />
+          {member.role !== "seller" && <AvisoSemMargem quantidade={loja.noMargin} />}
         </div>
 
         <LojaAgora resumo={loja} giro={giro} pedemAtencao={pedemAtencao} />

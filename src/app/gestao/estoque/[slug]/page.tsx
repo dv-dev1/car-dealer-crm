@@ -1,13 +1,9 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import {
-  estoqueGestao,
-  veiculoGestaoPorSlug,
-} from "@/data/gestao-mock";
 import { CarroGestao } from "./CarroGestao";
 import { requireMember } from "@/features/auth/guard";
+import { getVehicle, listStock } from "@/features/stock/model";
 
-// No generateStaticParams: a prerendered page would ship cost and margin in the build output.
 // A static title: one per car would read the stock before the guard and reach the redirect response.
 export const metadata: Metadata = {
   title: "Veículo — Gestão",
@@ -19,16 +15,12 @@ export default async function CarroGestaoPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  await requireMember();
+  const member = await requireMember();
   const { slug } = await params;
-  const veiculo = veiculoGestaoPorSlug(slug);
+  const veiculo = await getVehicle(member, slug);
   if (!veiculo) notFound();
 
-  const estoque = estoqueGestao.map((v) => ({
-    id: v.id,
-    titulo: v.titulo,
-    preco: v.preco,
-  }));
+  const estoque = (await listStock(member)).map((v) => ({ id: v.id, titulo: v.title, preco: v.price }));
 
-  return <CarroGestao veiculo={veiculo} estoque={estoque} />;
+  return <CarroGestao veiculo={veiculo} estoque={estoque} canManage={member.role !== "seller"} />;
 }

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { EVENTO_NOVO_CLIENTE } from "@/components/gestao/secoes";
 import { Plus, X } from "lucide-react";
 import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
-import type { VeiculoGestao } from "@/data/gestao-mock";
 import type { EstagioFunil, Lead } from "@/data/clientes-mock";
 import {
   useLeads,
@@ -35,7 +34,7 @@ function noMesAtual(iso?: string) {
 export function ClientesView({
   veiculos,
 }: {
-  veiculos: Pick<VeiculoGestao, "id" | "titulo" | "preco">[];
+  veiculos: { id: string; titulo: string; preco: number }[];
 }) {
   const leads = useLeads();
   const [modalAberto, setModalAberto] = useState(false);

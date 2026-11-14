@@ -8,14 +8,14 @@ import {
   Percent,
   Pencil,
   UserPlus,
-  CircleCheck,
   Trash2,
   TriangleAlert,
   ImageUp,
   X,
 } from "lucide-react";
 import { formatPreco } from "@/lib/format";
-import type { VeiculoGestao } from "@/data/gestao-mock";
+import type { StockVehicle } from "@/features/stock/model";
+import { STATUS_LABEL } from "@/features/stock/rules";
 import {
   NovoClienteModal,
   type NovoClienteDados,
@@ -25,30 +25,33 @@ import { adicionarLead, criarLead } from "@/lib/clientes-store";
 export function CarroGestao({
   veiculo,
   estoque,
+  canManage,
 }: {
-  veiculo: VeiculoGestao;
-  estoque: Pick<VeiculoGestao, "id" | "titulo" | "preco">[];
+  veiculo: StockVehicle;
+  estoque: { id: string; titulo: string; preco: number }[];
+  canManage: boolean;
 }) {
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [modalAberto, setModalAberto] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  // Margem — editável localmente (sem backend ainda). Inicia com o mock.
-  const [margemDefinida, setMargemDefinida] = useState(veiculo.margemDefinida);
-  const [descontoMax, setDescontoMax] = useState(veiculo.descontoMax);
+  const [margemDefinida, setMargemDefinida] = useState(veiculo.minCashPrice !== null);
+  const [descontoMax, setDescontoMax] = useState(veiculo.price - (veiculo.minCashPrice ?? veiculo.price));
   const [editando, setEditando] = useState(false);
-  const [rascunho, setRascunho] = useState(String(veiculo.descontoMax || ""));
+  const [rascunho, setRascunho] = useState(String(descontoMax || ""));
 
-  const minimoAVista = veiculo.preco - (margemDefinida ? descontoMax : 0);
-  const lucro = minimoAVista - veiculo.custo;
+  const minimoAVista = veiculo.price - (margemDefinida ? descontoMax : 0);
+  const custo = veiculo.money?.cost ?? 0;
+  const lucro = minimoAVista - custo;
+  const fotos = veiculo.photos.map((f) => f.url);
 
   const specs = useMemo(
     () =>
       [
-        veiculo.ano,
+        veiculo.modelYear,
         `${veiculo.km.toLocaleString("pt-BR")} km`,
-        veiculo.cambio,
-        veiculo.combustivel,
+        veiculo.transmission,
+        veiculo.fuel,
       ]
         .filter(Boolean)
         .join(" · "),
@@ -97,33 +100,42 @@ export function CarroGestao({
       <div className="mt-5 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold leading-tight text-secondary">
-            {veiculo.titulo}
+            {veiculo.title}
           </h1>
           <p className="mt-1.5 text-sm text-muted-strong">{specs}</p>
         </div>
-        <span className="shrink-0 rounded-[var(--radius-control)] bg-sand px-3 py-1 text-xs font-medium text-secondary/80">
-          {veiculo.diasEstoque === 0
-            ? "Entrou hoje"
-            : `${veiculo.diasEstoque} dias no estoque`}
-        </span>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {veiculo.status !== "available" && (
+            <span className="rounded-[var(--radius-control)] bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              {STATUS_LABEL[veiculo.status]}
+            </span>
+          )}
+          <span className="rounded-[var(--radius-control)] bg-sand px-3 py-1 text-xs font-medium text-secondary/80">
+            {veiculo.daysInStock === 0 ? "Entrou hoje" : `${veiculo.daysInStock} dias no estoque`}
+          </span>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_1fr]">
         {/* Coluna da foto */}
         <div>
           <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius)] border border-line bg-sand">
-            <Image
-              src={veiculo.fotos[fotoAtiva]}
-              alt={veiculo.titulo}
-              fill
-              sizes="(max-width: 1024px) 100vw, 620px"
-              priority
-              className="object-cover"
-            />
+            {fotos[fotoAtiva] ? (
+              <Image
+                src={fotos[fotoAtiva]}
+                alt={veiculo.title}
+                fill
+                sizes="(max-width: 1024px) 100vw, 620px"
+                priority
+                className="object-cover"
+              />
+            ) : (
+              <span className="absolute inset-0 grid place-items-center text-sm font-medium text-muted">Sem foto</span>
+            )}
           </div>
-          {veiculo.fotos.length > 1 && (
+          {fotos.length > 1 && (
             <div className="mt-3 grid grid-cols-5 gap-2">
-              {veiculo.fotos.slice(0, 5).map((f, i) => (
+              {fotos.slice(0, 5).map((f, i) => (
                 <button
                   key={f}
                   type="button"
@@ -152,7 +164,7 @@ export function CarroGestao({
                 Preço de tabela
               </span>
               <span data-kpi className="text-2xl font-semibold tabular-nums text-secondary">
-                {formatPreco(veiculo.preco)}
+                {formatPreco(veiculo.price)}
               </span>
             </div>
 
@@ -186,6 +198,7 @@ export function CarroGestao({
           </div>
 
           {/* Visão do administrador */}
+          {canManage && veiculo.money && (
           <div className="rounded-[var(--radius)] border border-line bg-surface p-5 shadow-[var(--shadow-soft)]">
             <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted">
               Visão do administrador
@@ -221,7 +234,7 @@ export function CarroGestao({
                 <p className="mt-2 text-xs text-muted">
                   O vendedor passa a ver o mínimo à vista. Lucro previsto:{" "}
                   <span className="font-semibold tabular-nums text-success-ink">
-                    {formatPreco(veiculo.preco - (Number(rascunho) || 0) - veiculo.custo)}
+                    {formatPreco(veiculo.price - (Number(rascunho) || 0) - custo)}
                   </span>
                 </p>
               </form>
@@ -230,7 +243,7 @@ export function CarroGestao({
                 <div className="flex items-center justify-between">
                   <dt className="text-muted">Custo de aquisição</dt>
                   <dd className="font-semibold tabular-nums text-secondary">
-                    {formatPreco(veiculo.custo)}
+                    {formatPreco(custo)}
                   </dd>
                 </div>
                 {margemDefinida ? (
@@ -249,6 +262,7 @@ export function CarroGestao({
               </dl>
             )}
           </div>
+          )}
 
           {/* Ações: one primary, outline secondaries, a text button for the destructive one. */}
           <div className="grid gap-2.5 sm:grid-cols-2">
@@ -261,7 +275,7 @@ export function CarroGestao({
               Registrar cliente / negociação
             </button>
 
-            {!editando && (
+            {canManage && !editando && (
               <button
                 type="button"
                 onClick={() => {
@@ -275,6 +289,8 @@ export function CarroGestao({
               </button>
             )}
 
+            {canManage && (
+            <>
             <button
               type="button"
               onClick={() => emBreve("Edição de carro / foto")}
@@ -286,20 +302,14 @@ export function CarroGestao({
 
             <button
               type="button"
-              onClick={() => emBreve("Marcar como vendido")}
-              className={acaoSecundaria}
-            >
-              <CircleCheck size={16} className="text-success" />
-              Marcar como vendido
-            </button>
-            <button
-              type="button"
               onClick={() => emBreve("Remoção de veículo")}
               className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold text-danger-ink transition-colors duration-200 hover:bg-danger-bg"
             >
               <Trash2 size={16} />
               Remover carro
             </button>
+            </>
+            )}
           </div>
         </div>
       </div>

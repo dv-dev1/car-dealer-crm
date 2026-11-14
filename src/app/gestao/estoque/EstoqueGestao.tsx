@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   FileDown,
   Plus,
@@ -12,8 +11,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { formatPreco } from "@/lib/format";
-import { resumoEstoque, type VeiculoGestao } from "@/data/gestao-mock";
-import { GestaoCarCard } from "@/components/gestao/GestaoCarCard";
+import type { StockVehicle } from "@/features/stock/model";
+import { staleLevel, stockSummary } from "@/features/stock/rules";
+import { CarThumb, GestaoCarCard, diasNoPatio } from "@/components/gestao/GestaoCarCard";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 
 type Filtro = "todos" | "sem-margem" | "girar" | "preparacao";
@@ -28,21 +28,20 @@ const ORDENS: { valor: Ordem; label: string }[] = [
   { valor: "lucro-desc", label: "Maior lucro" },
 ];
 
-function pertence(v: VeiculoGestao, f: Filtro) {
-  if (f === "todos") return v.statusGestao !== "vendido";
-  if (f === "sem-margem") return v.statusGestao === "sem-margem";
-  if (f === "girar") return v.diasEstoque > 90 && v.statusGestao !== "vendido";
-  if (f === "preparacao") return v.statusGestao === "preparacao";
+function pertence(v: StockVehicle, f: Filtro) {
+  if (f === "sem-margem") return v.minCashPrice === null;
+  if (f === "girar") return staleLevel(v.daysInStock) === "stale";
+  if (f === "preparacao") return v.status === "preparing";
   return true;
 }
 
-export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
+export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicle[]; canManage: boolean }) {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ordem, setOrdem] = useState<Ordem>("relevancia");
   const [modo, setModo] = useState<Modo>("grade");
 
-  const resumo = useMemo(() => resumoEstoque(veiculos), [veiculos]);
+  const resumo = useMemo(() => stockSummary(veiculos), [veiculos]);
 
   const contagem = useMemo(
     () => ({
@@ -59,7 +58,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
     let r = veiculos.filter((v) => pertence(v, filtro));
     if (termo) {
       r = r.filter((v) =>
-        `${v.titulo} ${v.marca} ${v.modelo} ${v.ano} ${v.cor ?? ""}`
+        `${v.title} ${v.modelYear} ${v.color ?? ""}`
           .toLowerCase()
           .includes(termo),
       );
@@ -68,15 +67,15 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
     ordenada.sort((a, b) => {
       switch (ordem) {
         case "preco-asc":
-          return a.preco - b.preco;
+          return a.price - b.price;
         case "preco-desc":
-          return b.preco - a.preco;
+          return b.price - a.price;
         case "patio-desc":
-          return b.diasEstoque - a.diasEstoque;
+          return b.daysInStock - a.daysInStock;
         case "lucro-desc":
-          return b.lucro - a.lucro;
+          return (b.money?.profit ?? 0) - (a.money?.profit ?? 0);
         default:
-          return Number(b.destaque) - Number(a.destaque);
+          return Number(b.featured) - Number(a.featured);
       }
     });
     return ordenada;
@@ -105,6 +104,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
             <FileDown size={17} strokeWidth={1.9} />
             Exportar PDF
           </button>
+          {canManage && (
           <Link
             href="/gestao/estoque/novo"
             className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-primary px-3.5 py-2 text-sm font-semibold text-on-primary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-primary-hover active:scale-[0.97]"
@@ -112,6 +112,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
             <Plus size={17} strokeWidth={2.25} />
             Adicionar carro
           </Link>
+          )}
           </>
         }
       />
@@ -175,7 +176,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
             onChange={(e) => setOrdem(e.target.value as Ordem)}
             className="cursor-pointer rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2 text-sm font-medium text-secondary focus:border-primary focus:outline-none"
           >
-            {ORDENS.map((o) => (
+            {ORDENS.filter((o) => canManage || o.valor !== "lucro-desc").map((o) => (
               <option key={o.valor} value={o.valor}>
                 {o.label}
               </option>
@@ -214,15 +215,15 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
       </div>
 
       {/* Banner de alerta — sem margem */}
-      {resumo.semMargem > 0 && filtro !== "sem-margem" && (
+      {canManage && resumo.noMargin > 0 && filtro !== "sem-margem" && (
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-warning/25 bg-warning-bg px-4 py-3">
           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-warning text-[0.7rem] font-bold text-on-primary tabular-nums">
-            {resumo.semMargem}
+            {resumo.noMargin}
           </span>
           <p className="min-w-0 flex-1 text-sm text-warning-ink">
-            {resumo.semMargem === 1
+            {resumo.noMargin === 1
               ? "1 carro sem margem definida."
-              : `${resumo.semMargem} carros sem margem definida.`}{" "}
+              : `${resumo.noMargin} carros sem margem definida.`}{" "}
             Defina a margem pra liberar o desconto pro vendedor.
           </p>
           <button
@@ -241,7 +242,19 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
         {lista.length === 1 ? "veículo encontrado" : "veículos encontrados"}
       </p>
 
-      {lista.length === 0 ? (
+      {veiculos.length === 0 ? (
+        <div className="mt-3 grid place-items-center rounded-[var(--radius)] border border-dashed border-line bg-surface px-6 py-16 text-center">
+          <p className="text-sm font-medium text-secondary">Nenhum carro no estoque.</p>
+          {canManage && (
+            <Link
+              href="/gestao/estoque/novo"
+              className="mt-4 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-colors duration-200 hover:bg-sand"
+            >
+              Adicionar o primeiro carro
+            </Link>
+          )}
+        </div>
+      ) : lista.length === 0 ? (
         <div className="mt-3 grid place-items-center rounded-[var(--radius)] border border-dashed border-line bg-surface px-6 py-16 text-center">
           <p className="text-sm font-medium text-secondary">
             Nenhum veículo com esse filtro.
@@ -263,7 +276,7 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
       ) : modo === "grade" ? (
         <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
           {lista.map((v) => (
-            <GestaoCarCard key={v.id} v={v} />
+            <GestaoCarCard key={v.id} v={v} canManage={canManage} />
           ))}
         </div>
       ) : (
@@ -275,21 +288,14 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
                 className="group flex items-center gap-4 px-3 py-3 transition-colors duration-200 hover:bg-sand/60 sm:px-4"
               >
                 <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[calc(var(--radius)-5px)] bg-sand">
-                  <Image
-                    src={v.fotos[0]}
-                    alt={v.titulo}
-                    fill
-                    sizes="80px"
-                    className="object-cover"
-                  />
+                  <CarThumb v={v} sizes="80px" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-secondary">
-                    {v.titulo}
+                    {v.title}
                   </p>
                   <p className="mt-0.5 text-xs text-muted">
-                    {v.ano} · {v.km.toLocaleString("pt-BR")} km ·{" "}
-                    {v.diasEstoque === 0 ? "entrou hoje" : `${v.diasEstoque} dias`}
+                    {v.modelYear} · {v.km.toLocaleString("pt-BR")} km · {diasNoPatio(v.daysInStock)}
                   </p>
                 </div>
                 <div className="hidden text-right sm:block">
@@ -297,21 +303,21 @@ export function EstoqueGestao({ veiculos }: { veiculos: VeiculoGestao[] }) {
                     Tabela
                   </p>
                   <p className="text-sm font-semibold tabular-nums text-secondary">
-                    {formatPreco(v.preco)}
+                    {formatPreco(v.price)}
                   </p>
                 </div>
                 <div className="w-32 text-right">
-                  {v.statusGestao === "sem-margem" ? (
+                  {v.minCashPrice === null ? (
                     <span className="text-sm font-semibold text-warning-ink">
                       Sem margem
                     </span>
                   ) : (
                     <>
                       <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted">
-                        Lucro
+                        {v.money ? "Lucro" : "Mínimo à vista"}
                       </p>
                       <p className="text-sm font-semibold tabular-nums text-success-ink">
-                        {formatPreco(v.lucro)}
+                        {formatPreco(v.money ? v.money.profit : v.minCashPrice)}
                       </p>
                     </>
                   )}
