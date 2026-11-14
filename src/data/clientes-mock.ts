@@ -4,61 +4,9 @@
 // (tabela `leads`). Sem persistência ainda: mover card / novo cliente vale só
 // na sessão. As telas não mudam quando o banco chegar.
 
-export type EstagioFunil =
-  | "lead-novo"
-  | "visita-marcada"
-  | "negociando"
-  | "ligar-volta"
-  | "vendeu"
-  | "nao-comprou";
+import type { Lead } from "@/features/leads/types";
 
-export interface Etapa {
-  id: EstagioFunil;
-  label: string;
-  /** Stage color: a theme token (CSS var), so the funnel follows the store theme. */
-  cor: string;
-  /** Etapa ativa (aparece sempre) ou fechada (filtrada por mês). */
-  fechada?: boolean;
-}
-
-// Sober progression from theme tokens: neutral, primary, warning, strong gray;
-// success for the win, strong gray for the loss. No color shouts.
-export const ETAPAS: Etapa[] = [
-  { id: "lead-novo", label: "Lead novo", cor: "var(--neutral)" },
-  { id: "visita-marcada", label: "Visita marcada", cor: "var(--primary)" },
-  { id: "negociando", label: "Negociando", cor: "var(--warning)" },
-  { id: "ligar-volta", label: "Ligar de volta", cor: "var(--muted-strong)" },
-  { id: "vendeu", label: "Vendeu", cor: "var(--success)", fechada: true },
-  { id: "nao-comprou", label: "Não comprou", cor: "var(--muted-strong)", fechada: true },
-];
-
-export const ETAPA_POR_ID: Record<EstagioFunil, Etapa> = Object.fromEntries(
-  ETAPAS.map((e) => [e.id, e]),
-) as Record<EstagioFunil, Etapa>;
-
-export interface Lead {
-  id: string;
-  nome: string;
-  telefone: string; // só dígitos com DDI (55...) — pro link do WhatsApp
-  telefoneLabel: string;
-  carro?: string; // modelo de interesse, texto livre (como na referência)
-  origem?: string; // "Entrou no site da loja", "Lead Mercado Livre"…
-  nota?: string;
-  estagio: EstagioFunil;
-  // Relacionamento — datas ISO (YYYY-MM-DD). O card formata pra dd/mm; a
-  // agenda usa a data cheia. Fonte única pros dois.
-  conversaEm?: string;
-  visitaEm?: string;
-  horaVisita?: string; // HH:MM — horário da visita agendada, se informado
-  veioEm?: string;
-  // Fechamento (vendeu / não comprou)
-  valorVenda?: number;
-  formaPagamento?: string;
-  fechadoEm?: string; // ISO YYYY-MM-DD — filtro por mês
-  motivoPerda?: string;
-  // Retorno agendado (ligar de volta) — ISO; se no passado, conta como atrasado
-  retornarEm?: string;
-}
+export { ETAPAS, ETAPA_POR_ID, type EstagioFunil, type Etapa, type Lead } from "@/features/leads/types";
 
 // Hoje: 2026-07-21. Fechamentos em julho aparecem no mês corrente por padrão.
 export const leadsMock: Lead[] = [
