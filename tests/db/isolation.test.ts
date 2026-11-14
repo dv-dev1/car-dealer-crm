@@ -210,7 +210,7 @@ it("app login is not superuser, has no BYPASSRLS and owns no table", async () =>
 it("resolve links a verified email and returns the membership", async () => {
   const { a } = seed;
   expect(await resolve("user_1", "  Ana@LojaA.com ", true)).toEqual([
-    { membership_id: a.ana.id, store_id: a.storeId, role: "owner", name: "Ana" },
+    { membership_id: a.ana.id, store_id: a.storeId, role: "owner", name: "Ana", store_name: "Loja A", store_is_demo: false },
   ]);
   expect(await linkOf(a.ana.id)).toBe("user_1");
 });
@@ -248,7 +248,7 @@ it("a person invited only by store A lands in store A", async () => {
   const { a } = seed;
   const eli = await invite(a.storeId, "Eli", "eli@lojab.com");
   expect(await resolve("user_e", "eli@lojab.com", true)).toEqual([
-    { membership_id: eli, store_id: a.storeId, role: "seller", name: "Eli" },
+    { membership_id: eli, store_id: a.storeId, role: "seller", name: "Eli", store_name: "Loja A", store_is_demo: false },
   ]);
   expect(await linkOf(eli)).toBe("user_e");
 });

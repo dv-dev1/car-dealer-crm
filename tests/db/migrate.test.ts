@@ -63,7 +63,7 @@ describe("the migrations as a non-superuser owner, like Neon's", () => {
 
   it("cleans a pre-existing app_user that can log in and bypass RLS", async () => {
     await query("alter role app_user login bypassrls");
-    expect(await migrateFresh()).toEqual(["0001_stores_and_memberships.sql"]);
+    expect(await migrateFresh()).toEqual(["0001_stores_and_memberships.sql", "0002_store_domain.sql"]);
     expect(await appUser()).toEqual([{ rolsuper: false, rolbypassrls: false, rolcanlogin: false }]);
   });
 

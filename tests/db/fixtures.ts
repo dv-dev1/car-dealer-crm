@@ -59,3 +59,48 @@ export async function createNeonLikeAdmin(name: string): Promise<{ url: string; 
   };
   return { url: url.toString(), drop };
 }
+
+type DomainIds = { vehicleId: string; leadOfSeller: string; leadOfSeller2: string; saleId: string };
+
+// One row in every domain table of `storeId`, inserted as admin (RLS does not apply).
+export async function seedDomainRows(
+  storeId: string,
+  people: { owner: string; seller: string; seller2: string },
+): Promise<DomainIds> {
+  const admin = new pg.Client({ connectionString: TEST_ADMIN_URL });
+  await admin.connect();
+  const insert = async (table: string, row: Record<string, unknown>) => {
+    const columns = ["store_id", ...Object.keys(row)];
+    const values = [storeId, ...Object.values(row)];
+    const sql = `insert into ${table} (${columns.join(", ")}) values (${columns.map((_, i) => `$${i + 1}`).join(", ")}) returning *`;
+    return (await admin.query(sql, values)).rows[0] as { id: string };
+  };
+  try {
+    const channel = await insert("channels", { name: "OLX" });
+    await insert("channel_costs", { channel_id: channel.id, month: "2026-11-01", amount: 500 });
+    const car = { brand: "Chevrolet", model: "Onix", version: "LT 1.0", model_year: 2022, manufacture_year: 2021 };
+    const common = { ...car, km: 30000, fuel: "Flex", transmission: "Manual", price: 70000, entered_on: "2026-10-01" };
+    const vehicle = await insert("vehicles", { ...common, slug: "onix-1", status: "available" });
+    const sold = await insert("vehicles", { ...common, slug: "onix-2", status: "sold" });
+    await insert("vehicle_finances", { vehicle_id: vehicle.id, purchase_price: 60000 });
+    await insert("vehicle_photos", { vehicle_id: vehicle.id, position: 0, path: "/demo/onix.webp" });
+    await insert("vehicle_expenses", { vehicle_id: vehicle.id, category: "mechanical", spent_on: "2026-10-05", amount: 800, created_by: people.owner });
+    await insert("vehicle_documents", { vehicle_id: vehicle.id, item: "ipva", status: "pending" });
+    const lead = (seller: string, name: string) => insert("leads", { name, phone: "558390000001", channel_id: channel.id, seller_id: seller });
+    const leadOfSeller = await lead(people.seller, "Cliente do vendedor");
+    const leadOfSeller2 = await lead(people.seller2, "Cliente do colega");
+    await insert("lead_contacts", { lead_id: leadOfSeller.id, member_id: people.seller, kind: "whatsapp" });
+    const sale = await insert("sales", {
+      vehicle_id: sold.id, lead_id: leadOfSeller.id, seller_id: people.seller, seller_name: "Beto",
+      sold_on: "2026-11-01", price: 70000, payment: "financing", bank: "BV", financed_amount: 40000, warranty_until: "2027-01-30",
+    });
+    await insert("sale_finances", { sale_id: sale.id, financing_return_pct: 0.03 });
+    await insert("reservations", { vehicle_id: vehicle.id, lead_id: leadOfSeller2.id, deposit: 1000, expires_on: "2026-11-20", created_by: people.seller2 });
+    await insert("commission_rules", { kind: "fixed", value: 350 });
+    for (const member_id of new Set([null, people.seller, people.seller2])) await insert("goals", { month: "2026-11-01", member_id, cars: 4 });
+    await insert("store_expenses", { month: "2026-11-01", category: "rent", amount: 6500 });
+    return { vehicleId: vehicle.id, leadOfSeller: leadOfSeller.id, leadOfSeller2: leadOfSeller2.id, saleId: sale.id };
+  } finally {
+    await admin.end();
+  }
+}
