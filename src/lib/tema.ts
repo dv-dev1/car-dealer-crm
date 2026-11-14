@@ -19,7 +19,7 @@
 //     enquanto o botão continuava anunciando "Tema claro".
 //
 // Uma fonte só, no módulo, resolve os dois: todas as cópias leem o mesmo
-// valor e reagem juntas. Mesmo padrão do store de leads (clientes-store.ts).
+// valor e reagem juntas.
 //
 // Limpar o data-tema ao sair da gestão virou responsabilidade de quem tem o
 // tempo de vida certo pra isso — <TemaGestao/>, mounted by <ThemeScope> on

@@ -3,9 +3,8 @@
 // ─── STORE DA META DO MÊS (Fase 2 — interno) ─────────────────────
 // Guarda só um número: quantos carros a loja se propôs a vender no mês. Persiste
 // no localStorage pra o gestor editar e não perder no refresh. As VENDAS não
-// ficam aqui — elas são contadas do funil (clientes-store), como manda a régua
-// "conta automático quando marca Vendido no funil". Quando o Supabase entrar,
-// isto vira uma linha de config da loja.
+// ficam aqui — até a etapa 1c elas são contadas dos leads mock (clientes-mock);
+// na 1c meta e vendas passam a vir do banco da loja.
 
 import { useSyncExternalStore } from "react";
 import { META_VENDAS_MES } from "@/data/vendas-mock";

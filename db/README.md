@@ -88,6 +88,8 @@ em `hyperdrive[0].id` do `wrangler.jsonc`. `npx wrangler hyperdrive list` deve m
 - WorkOS: deixe ligados só Magic Auth e Google. Cadastre o redirecionamento de saída (sign-out
   redirect): `http://localhost:8787/entrar` no Worker local e, depois, o `/entrar` de produção.
 - Turnstile: em produção, use as chaves reais do site, nunca as de teste.
+- Funções `security definer` (`reset_demo_store`, `resolve_membership`, `record_sale` da `0004`) pulam o RLS: cada uma
+  confere loja, cargo e dono do registro por conta própria. Função nova desse tipo leva o mesmo cuidado e teste em `tests/db`.
 
 ## Trocar a senha do login do app
 

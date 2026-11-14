@@ -3,20 +3,19 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Trophy, Pencil, Check, X, ArrowRight } from "lucide-react";
-import { useLeads } from "@/lib/clientes-store";
+import { leadsMock } from "@/data/clientes-mock";
 import { useMeta, definirMeta } from "@/lib/metas-store";
 import { resumoMetaMes, fraseRitmo } from "@/lib/metas";
 
 /**
  * Meta do mês no topo dos Relatórios (a antiga tela "Metas", enxugada). Fita
  * grafite — a assinatura da meta, a mesma do resumo no Painel — mas aqui ela é a
- * versão gerenciável: edita o alvo e sugere a próxima ação. A contagem vem do
- * funil (marca "Vendeu" e sobe aqui), sem número paralelo.
+ * versão gerenciável: edita o alvo e sugere a próxima ação.
  */
+// shortcut: counts the mock leads, not the store's sales; stage 1c moves the goal and the reports to the database.
 export function MetaBloco() {
-  const leads = useLeads();
   const alvo = useMeta();
-  const meta = useMemo(() => resumoMetaMes(leads, alvo), [leads, alvo]);
+  const meta = useMemo(() => resumoMetaMes(leadsMock, alvo), [alvo]);
 
   const [editando, setEditando] = useState(false);
   const [rascunho, setRascunho] = useState(String(alvo));
