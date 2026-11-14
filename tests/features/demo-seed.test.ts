@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_STAFF, DEMO_TABLES, buildDemoData, type DemoData, type DemoRow } from "@/features/demo/seed";
+import { MODELS } from "@/features/demo/catalog";
+import { DEMO_STAFF, DEMO_TABLES, buildDemoData, modelKey, type DemoData, type DemoRow } from "@/features/demo/seed";
+import { PHOTO_KEY } from "@/features/stock/photos";
 
 const STAFF = { renata: "m-renata", bruno: "m-bruno", larissa: "m-larissa", tiago: "m-tiago" };
 const SELLERS = [STAFF.bruno, STAFF.larissa, STAFF.tiago];
@@ -31,7 +33,8 @@ const openLeads = d.leads.filter((lead) => !["won", "lost"].includes(lead.stage 
 it("is deterministic and fills every table", () => {
   expect(build(TODAY)).toEqual(d);
   expect(Object.keys(d).sort()).toEqual([...DEMO_TABLES].sort());
-  for (const table of DEMO_TABLES) expect(d[table].length, table).toBeGreaterThan(0);
+  // Photos come from the manifest, empty until the photo files are in the repo.
+  for (const table of DEMO_TABLES) if (table !== "vehicle_photos") expect(d[table].length, table).toBeGreaterThan(0);
   expect(d.leads.every((row) => !("store_id" in row))).toBe(true);
 });
 
@@ -215,4 +218,21 @@ describe.each(["2026-03-01", "2028-02-29", "2026-12-31", "2027-01-01"])("on %s",
     const tiago = sold.get(STAFF.tiago) ?? 0;
     expect(tiago).toBeLessThanOrEqual(Math.max(sold.get(STAFF.bruno) ?? 0, sold.get(STAFF.larissa) ?? 0));
   });
+});
+
+it("gives each car its model's photos, in order", () => {
+  const key = modelKey(MODELS[0]);
+  let n = 0;
+  const data = buildDemoData({ today: TODAY, staff: STAFF, newId: () => `id-${++n}`, photos: { [key]: ["01.webp", "02.webp"] } });
+  const ofModel = new Set(data.vehicles.filter((v) => modelKey({ brand: v.brand as string, model: v.model as string }) === key).map((v) => v.id));
+  expect(ofModel.size).toBeGreaterThan(0);
+  expect(data.vehicle_photos).toHaveLength(ofModel.size * 2);
+  for (const id of ofModel) {
+    const photos = data.vehicle_photos.filter((p) => p.vehicle_id === id);
+    expect(photos.map((p) => [p.position, p.path])).toEqual([
+      [0, `demo/${key}/01.webp`],
+      [1, `demo/${key}/02.webp`],
+    ]);
+  }
+  expect(data.vehicle_photos.every((p) => PHOTO_KEY.test(p.path as string))).toBe(true);
 });

@@ -16,6 +16,7 @@
     "db:app-login": "node scripts/create-app-login.ts",
     "store:create": "node scripts/create-store.ts",
     "demo:store": "node scripts/demo-store.ts",
+    "demo:photos": "node scripts/demo-photos.ts",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "check:secrets": "node scripts/check-bundle-secrets.mjs"

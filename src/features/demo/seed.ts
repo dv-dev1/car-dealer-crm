@@ -1,4 +1,5 @@
 import { BANKS, COLORS, EXPENSES, FIRST_NAMES, LAST_NAMES, LOST_REASONS, MODELS, type CatalogModel } from "./catalog.ts";
+import { DEMO_PHOTOS } from "./photos.ts";
 
 // The demo store. Its WhatsApp is a placeholder until the founders pick a number (a confirmar).
 export const DEMO_STORE = { name: "Maré Veículos", city: "João Pessoa - PB", whatsapp: "558390000000" } as const;
@@ -15,7 +16,7 @@ export const DEMO_STAFF: readonly { key: StaffKey; name: string; email: string; 
 
 // Insert order: a table comes after every table it references (vehicles <-> sales is deferred).
 export const DEMO_TABLES = [
-  "channels", "channel_costs", "vehicles", "vehicle_finances", "vehicle_documents", "vehicle_expenses", "leads",
+  "channels", "channel_costs", "vehicles", "vehicle_finances", "vehicle_photos", "vehicle_documents", "vehicle_expenses", "leads",
   "lead_contacts", "sales", "sale_finances", "sale_trade_ins", "reservations", "commission_rules", "goals", "store_expenses",
 ] as const;
 
@@ -64,8 +65,16 @@ function seeded(seed: number) {
  * Six months of the Maré Veículos, with every date counted back from `today` (store date, YYYY-MM-DD).
  * Rows carry the database column names, no store_id; ids come from `newId`.
  */
-export function buildDemoData(input: { today: string; staff: Record<StaffKey, string>; newId: () => string }): DemoData {
-  const { today, staff, newId } = input;
+/** The folder of a catalog model's photos, e.g. "chevrolet-onix". */
+export const modelKey = (model: { brand: string; model: string }) => slugify(`${model.brand} ${model.model}`);
+
+export function buildDemoData(input: {
+  today: string;
+  staff: Record<StaffKey, string>;
+  newId: () => string;
+  photos?: Record<string, string[]>;
+}): DemoData {
+  const { today, staff, newId, photos = DEMO_PHOTOS } = input;
   const rand = seeded(0x6d617265);
   const int = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));
   const pick = <T>(list: readonly T[]): T => list[Math.floor(rand() * list.length)];
@@ -416,6 +425,13 @@ export function buildDemoData(input: { today: string; staff: Record<StaffKey, st
     for (const [category, description, amount] of fixed) {
       data.store_expenses.push({ id: newId(), month: first, category, description, amount });
     }
+  }
+  // Photos last, so an empty manifest leaves every other id as it was.
+  for (const vehicle of data.vehicles) {
+    const key = modelKey({ brand: vehicle.brand as string, model: vehicle.model as string });
+    (photos[key] ?? []).forEach((file, position) => {
+      data.vehicle_photos.push({ id: newId(), vehicle_id: vehicle.id, position, path: `demo/${key}/${file}` });
+    });
   }
   return data;
 }
