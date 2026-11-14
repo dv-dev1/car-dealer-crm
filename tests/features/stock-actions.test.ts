@@ -1,12 +1,12 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { addPhotoAction, removePhotoAction, saveVehicleAction } from "@/features/stock/actions";
+import { addPhotoAction, removePhotoAction, removeVehicleAction, saveVehicleAction, setMarginAction } from "@/features/stock/actions";
 import type { MemberContext } from "@/shared/db/client";
 
 const guard = vi.hoisted(() => ({ requireMember: vi.fn(), requireRole: vi.fn() }));
 vi.mock("@/features/auth/guard", () => guard);
 
-const model = vi.hoisted(() => ({ createVehicle: vi.fn(), updateVehicle: vi.fn(), getVehicle: vi.fn() }));
+const model = vi.hoisted(() => ({ createVehicle: vi.fn(), updateVehicle: vi.fn(), getVehicle: vi.fn(), setMargin: vi.fn(), removeVehicle: vi.fn() }));
 vi.mock("@/features/stock/model", () => model);
 
 const photos = vi.hoisted(() => ({
@@ -19,6 +19,13 @@ vi.mock("@/features/stock/photos", () => photos);
 
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("next/cache", () => cache);
+
+const navigation = vi.hoisted(() => ({
+  redirect: vi.fn((to: string) => {
+    throw new Error(`NEXT_REDIRECT ${to}`);
+  }),
+}));
+vi.mock("next/navigation", () => navigation);
 
 const ctx: MemberContext = { storeId: "store-a", membershipId: "member-a", role: "owner", name: "Ana" };
 const CAR = "11111111-1111-4111-8111-111111111111";
@@ -98,4 +105,33 @@ it("the add and edit pages ask for owner or manager", async () => {
   await expect(edit({ params: Promise.resolve({ slug: "x" }) })).rejects.toThrow("NEXT_REDIRECT");
   expect(guard.requireRole.mock.calls).toEqual([[["owner", "manager"]], [["owner", "manager"]]]);
   expect(model.getVehicle).not.toHaveBeenCalled();
+});
+
+it("redirects to the stock after removing", async () => {
+  model.removeVehicle.mockResolvedValue({ ok: true });
+  await expect(removeVehicleAction({ error: null }, form({ vehicleId: CAR, reason: "wrong_entry" }))).rejects.toThrow(
+    "NEXT_REDIRECT /gestao/estoque",
+  );
+  expect(model.removeVehicle).toHaveBeenCalledWith(ctx, CAR, "wrong_entry");
+  model.removeVehicle.mockResolvedValue({ ok: false, error: "invalid" });
+  expect(await removeVehicleAction({ error: null }, form({ vehicleId: CAR, reason: "returned_to_consignor" }))).toEqual({
+    error: "Este carro não pode sair do estoque por esse motivo.",
+  });
+});
+
+it("shows the error text when the margin is invalid", async () => {
+  model.setMargin.mockResolvedValue({ ok: true });
+  expect(await setMarginAction({ error: null }, form({ vehicleId: CAR, discount: "3000" }))).toEqual({ error: null });
+  expect(model.setMargin).toHaveBeenCalledWith(ctx, CAR, 3000);
+  expect(await setMarginAction({ error: null }, form({ vehicleId: CAR, discount: "3.000" }))).toEqual({
+    error: "O desconto precisa ser menor que o preço.",
+  });
+  model.setMargin.mockResolvedValue({ ok: false, error: "invalid" });
+  expect(await setMarginAction({ error: null }, form({ vehicleId: CAR, discount: "99999999" }))).toEqual({
+    error: "O desconto precisa ser menor que o preço.",
+  });
+  model.setMargin.mockResolvedValue({ ok: false, error: "forbidden" });
+  expect(await setMarginAction({ error: null }, form({ vehicleId: CAR, discount: "1" }))).toEqual({
+    error: "Só o dono e o gerente mexem no estoque.",
+  });
 });

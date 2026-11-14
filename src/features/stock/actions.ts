@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireMember } from "@/features/auth/guard";
 
-import { createVehicle, updateVehicle, type VehicleInput } from "./model";
+import { createVehicle, removeVehicle, setMargin, updateVehicle, type RemoveReason, type VehicleInput } from "./model";
 import { addVehiclePhoto, photoBucket, removeVehiclePhoto } from "./photos";
 
 export type VehicleFormState = { error: string | null; field?: keyof VehicleInput; id?: string; slug?: string };
@@ -104,4 +105,38 @@ export async function removePhotoAction(form: FormData): Promise<{ error: string
   if (!result.ok) return { error: PHOTO_ERROR[result.error] };
   revalidatePath("/gestao", "layout");
   return { error: null };
+}
+
+export type StockActionState = { error: string | null };
+
+const MARGIN_ERROR = {
+  forbidden: "Só o dono e o gerente mexem no estoque.",
+  not_found: "Carro não encontrado.",
+  invalid: "O desconto precisa ser menor que o preço.",
+} as const;
+
+const REMOVE_ERROR = {
+  forbidden: "Só o dono e o gerente mexem no estoque.",
+  not_found: "Carro não encontrado.",
+  invalid: "Este carro não pode sair do estoque por esse motivo.",
+} as const;
+
+// An empty discount clears the margin; anything but digits is a typing error.
+export async function setMarginAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const discount = String(form.get("discount") ?? "");
+  if (discount && !/^\d+$/.test(discount)) return { error: MARGIN_ERROR.invalid };
+  const result = await setMargin(member, String(form.get("vehicleId") ?? ""), discount ? Number(discount) : null);
+  if (!result.ok) return { error: MARGIN_ERROR[result.error] };
+  revalidatePath("/gestao", "layout");
+  return { error: null };
+}
+
+export async function removeVehicleAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const reason = String(form.get("reason") ?? "") as RemoveReason;
+  const result = await removeVehicle(member, String(form.get("vehicleId") ?? ""), reason);
+  if (!result.ok) return { error: REMOVE_ERROR[result.error] };
+  revalidatePath("/gestao", "layout");
+  redirect("/gestao/estoque");
 }

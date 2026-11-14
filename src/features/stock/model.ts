@@ -259,3 +259,48 @@ export async function updateVehicle(
     return { ok: true, id: vehicleId, slug: car.slug };
   });
 }
+
+type StockChangeResult = { ok: true } | { ok: false; error: "forbidden" | "not_found" | "invalid" };
+
+/** The most the seller may take off the price for cash; null means the margin is not set. */
+export async function setMargin(ctx: MemberContext, vehicleId: string, discount: number | null): Promise<StockChangeResult> {
+  if (ctx.role === "seller") return { ok: false, error: "forbidden" };
+  if (!UUID.test(vehicleId)) return { ok: false, error: "not_found" };
+  if (discount !== null && !integer(discount, 0, MAX_MONEY)) return { ok: false, error: "invalid" };
+
+  return withStore(ctx, async (db): Promise<StockChangeResult> => {
+    const [car] = await db.query<{ price: string; status: string }>(
+      "select price, status from vehicles where id = $1 and store_id = $2 for update",
+      [vehicleId, ctx.storeId],
+    );
+    if (!car) return { ok: false, error: "not_found" };
+    if (car.status === "sold" || car.status === "removed") return { ok: false, error: "invalid" };
+    if (discount !== null && discount >= Number(car.price)) return { ok: false, error: "invalid" };
+    await db.query("update vehicles set min_cash_price = price - $2 where id = $1", [vehicleId, discount]);
+    return { ok: true };
+  });
+}
+
+export type RemoveReason = "wrong_entry" | "returned_to_consignor";
+
+/** Takes a car out of the stock with a reason; the row stays, so history and reports keep it. */
+export async function removeVehicle(ctx: MemberContext, vehicleId: string, reason: RemoveReason): Promise<StockChangeResult> {
+  if (ctx.role === "seller") return { ok: false, error: "forbidden" };
+  if (!UUID.test(vehicleId)) return { ok: false, error: "not_found" };
+  if (reason !== "wrong_entry" && reason !== "returned_to_consignor") return { ok: false, error: "invalid" };
+
+  return withStore(ctx, async (db): Promise<StockChangeResult> => {
+    const [car] = await db.query<{ status: string; source: string }>(
+      "select status, source from vehicles where id = $1 and store_id = $2 for update",
+      [vehicleId, ctx.storeId],
+    );
+    if (!car) return { ok: false, error: "not_found" };
+    if (car.status === "sold" || car.status === "removed") return { ok: false, error: "invalid" };
+    if (reason === "returned_to_consignor" && car.source !== "consignment") return { ok: false, error: "invalid" };
+    await db.query(
+      "update vehicles set status = 'removed', removed_reason = $2, away_reason = null, away_until = null where id = $1",
+      [vehicleId, reason],
+    );
+    return { ok: true };
+  });
+}

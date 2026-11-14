@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -16,6 +16,7 @@ import {
 import { formatPreco } from "@/lib/format";
 import type { StockVehicle } from "@/features/stock/model";
 import { STATUS_LABEL } from "@/features/stock/rules";
+import { removeVehicleAction, setMarginAction } from "@/features/stock/actions";
 import {
   NovoClienteModal,
   type NovoClienteDados,
@@ -58,18 +59,22 @@ export function CarroGestao({
     [veiculo],
   );
 
-  function emBreve(o: string) {
-    setAviso(`${o} entra na próxima fase (com o Supabase plugado).`);
-    window.clearTimeout((emBreve as unknown as { t?: number }).t);
-    (emBreve as unknown as { t?: number }).t = window.setTimeout(
-      () => setAviso(null),
-      3200,
-    );
-  }
+  const [salvandoMargem, setSalvandoMargem] = useState(false);
 
-  function salvarMargem(e: React.FormEvent) {
+  async function salvarMargem(e: React.FormEvent) {
     e.preventDefault();
     const valor = Math.max(0, Math.round(Number(rascunho) || 0));
+    const form = new FormData();
+    form.set("vehicleId", veiculo.id);
+    form.set("discount", String(valor));
+    setSalvandoMargem(true);
+    const r = await setMarginAction({ error: null }, form);
+    setSalvandoMargem(false);
+    if (r.error) {
+      setAviso(r.error);
+      return;
+    }
+    setAviso(null);
     setDescontoMax(valor);
     setMargemDefinida(true);
     setEditando(false);
@@ -226,6 +231,7 @@ export function CarroGestao({
                   </div>
                   <button
                     type="submit"
+                    disabled={salvandoMargem}
                     className="rounded-[var(--radius-control)] bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
                   >
                     Liberar
@@ -298,14 +304,7 @@ export function CarroGestao({
               </Link>
             )}
 
-            <button
-              type="button"
-              onClick={() => emBreve("Remoção de veículo")}
-              className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold text-danger-ink transition-colors duration-200 hover:bg-danger-bg"
-            >
-              <Trash2 size={16} />
-              Remover carro
-            </button>
+            {veiculo.status !== "sold" && <RemoverCarro veiculo={veiculo} />}
             </>
             )}
           </div>
@@ -338,5 +337,66 @@ export function CarroGestao({
         </div>
       )}
     </div>
+  );
+}
+
+/** "Remover carro" asks for the reason on the page itself; the car leaves the stock, its history stays. */
+function RemoverCarro({ veiculo }: { veiculo: StockVehicle }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const [estado, acao, enviando] = useActionState(removeVehicleAction, { error: null });
+
+  if (!confirmando) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmando(true)}
+        className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold text-danger-ink transition-colors duration-200 hover:bg-danger-bg"
+      >
+        <Trash2 size={16} />
+        Remover carro
+      </button>
+    );
+  }
+
+  return (
+    <form action={acao} className="space-y-3 rounded-[var(--radius)] border border-danger/30 bg-danger-bg p-4 sm:col-span-2">
+      <input type="hidden" name="vehicleId" value={veiculo.id} />
+      <p className="text-sm font-semibold text-danger-ink">Tirar este carro do estoque?</p>
+      <p className="text-sm text-danger-ink/85">Ele some do estoque e do site. O histórico fica guardado.</p>
+      <label htmlFor="motivo-remocao" className="block text-sm font-medium text-secondary">
+        Motivo
+      </label>
+      <select
+        id="motivo-remocao"
+        name="reason"
+        defaultValue="wrong_entry"
+        className="w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2 text-sm text-secondary"
+      >
+        <option value="wrong_entry">Cadastro errado</option>
+        {veiculo.source === "consignment" && <option value="returned_to_consignor">Devolvido ao dono</option>}
+      </select>
+      {estado.error && (
+        <p role="alert" className="text-sm text-danger-ink">
+          {estado.error}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="submit"
+          disabled={enviando}
+          className="rounded-[var(--radius-control)] bg-danger px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60"
+        >
+          {enviando ? "Removendo…" : "Remover"}
+        </button>
+        <button
+          type="button"
+          disabled={enviando}
+          onClick={() => setConfirmando(false)}
+          className="rounded-[var(--radius-control)] border border-line bg-surface px-4 py-2 text-sm font-semibold text-secondary hover:bg-sand disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }

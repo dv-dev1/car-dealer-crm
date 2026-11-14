@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { restoreDemoStore } from "@/features/demo/model";
 import { CAMBIOS, CATEGORIAS, COMBUSTIVEIS, CORES, OPCIONAIS } from "@/data/opcoes-veiculo";
 import { COLORS, MODELS } from "@/features/demo/catalog";
-import { createVehicle, getVehicle, listStock, updateVehicle, type VehicleInput } from "@/features/stock/model";
+import { createVehicle, getVehicle, listStock, removeVehicle, setMargin, updateVehicle, type RemoveReason, type VehicleInput } from "@/features/stock/model";
 import { withStore, type StoreMember } from "@/shared/db/client";
 import { seedTwoStores } from "../db/fixtures.ts";
 import { useDatabase } from "../setup/hyperdrive.ts";
@@ -217,4 +217,56 @@ it("tells the purchase price apart from the cost with expenses, for the edit for
   const consigned = (await listStock(owner, TODAY)).find((c) => c.source === "consignment")!;
   const [payout] = await adminQuery("select consignor_payout::float8 as v from vehicle_finances where vehicle_id = $1", [consigned.id]);
   expect(consigned.money!.acquisitionCost).toBe(payout.v);
+});
+
+it("sets and clears the margin", async () => {
+  const car = (await listStock(owner, TODAY)).find((c) => c.status === "available")!;
+  expect(await setMargin(owner, car.id, 3000)).toEqual({ ok: true });
+  expect((await getVehicle(owner, car.slug, TODAY))!.minCashPrice).toBe(car.price - 3000);
+  expect(await setMargin(owner, car.id, 0)).toEqual({ ok: true });
+  expect((await getVehicle(owner, car.slug, TODAY))!.minCashPrice).toBe(car.price);
+  expect(await setMargin(owner, car.id, null)).toEqual({ ok: true });
+  expect((await getVehicle(owner, car.slug, TODAY))!.minCashPrice).toBeNull();
+});
+
+it("refuses a discount that leaves no price", async () => {
+  const car = (await listStock(owner, TODAY))[0];
+  expect(await setMargin(owner, car.id, car.price)).toEqual({ ok: false, error: "invalid" });
+  expect(await setMargin(owner, car.id, -1)).toEqual({ ok: false, error: "invalid" });
+  expect(await setMargin(owner, car.id, 10.5)).toEqual({ ok: false, error: "invalid" });
+  const [sold] = await adminQuery("select id from vehicles where store_id = $1 and status = 'sold' limit 1", [seed.a.storeId]);
+  expect(await setMargin(owner, sold.id, 100)).toEqual({ ok: false, error: "invalid" });
+});
+
+it("refuses a margin from a seller or another store", async () => {
+  const car = (await listStock(owner, TODAY))[0];
+  expect(await setMargin(seller, car.id, 100)).toEqual({ ok: false, error: "forbidden" });
+  expect(await setMargin(carla, car.id, 100)).toEqual({ ok: false, error: "not_found" });
+  expect(await setMargin(owner, "nope", 100)).toEqual({ ok: false, error: "not_found" });
+});
+
+it("removes a car from the stock and keeps its row", async () => {
+  const car = (await listStock(owner, TODAY)).find((c) => c.source === "purchase")!;
+  expect(await removeVehicle(owner, car.id, "wrong_entry")).toEqual({ ok: true });
+  expect((await listStock(owner, TODAY)).some((c) => c.id === car.id)).toBe(false);
+  const [row] = await adminQuery("select status, removed_reason from vehicles where id = $1", [car.id]);
+  expect(row).toEqual({ status: "removed", removed_reason: "wrong_entry" });
+  expect(await removeVehicle(owner, car.id, "wrong_entry")).toEqual({ ok: false, error: "invalid" });
+});
+
+it("returns only a consigned car to its owner", async () => {
+  const cars = await listStock(owner, TODAY);
+  const bought = cars.find((c) => c.source === "purchase")!;
+  const consigned = cars.find((c) => c.source === "consignment")!;
+  expect(await removeVehicle(owner, bought.id, "returned_to_consignor")).toEqual({ ok: false, error: "invalid" });
+  expect(await removeVehicle(owner, consigned.id, "returned_to_consignor")).toEqual({ ok: true });
+  expect(await removeVehicle(owner, bought.id, "stolen" as RemoveReason)).toEqual({ ok: false, error: "invalid" });
+});
+
+it("does not remove a sold car, nor for a seller or another store", async () => {
+  const [sold] = await adminQuery("select id from vehicles where store_id = $1 and status = 'sold' limit 1", [seed.a.storeId]);
+  expect(await removeVehicle(owner, sold.id, "wrong_entry")).toEqual({ ok: false, error: "invalid" });
+  const car = (await listStock(owner, TODAY))[0];
+  expect(await removeVehicle(seller, car.id, "wrong_entry")).toEqual({ ok: false, error: "forbidden" });
+  expect(await removeVehicle(carla, car.id, "wrong_entry")).toEqual({ ok: false, error: "not_found" });
 });
