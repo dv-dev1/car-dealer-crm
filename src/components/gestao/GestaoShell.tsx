@@ -10,6 +10,7 @@ import { useTema } from "@/lib/tema";
 import { VEU, EASE_MARCA as EASE } from "./motion/sobreposicao";
 import { signOutAction } from "@/features/auth/actions";
 import { AutoHubLogo } from "@/themes/autohub/Logo";
+import { DemoControls, ViewingBanner, type DemoPanelProps } from "@/features/demo/view";
 
 const LARGURA = "260px";
 
@@ -36,8 +37,12 @@ function ConteudoSidebar({
   pathname,
   onNavegar,
   escopo,
+  storeName,
+  demo,
 }: {
   pathname: string;
+  storeName: string;
+  demo: DemoPanelProps | null;
   onNavegar?: () => void;
   /** Sidebar e drawer ficam montados ao mesmo tempo (o desktop só some por
    *  CSS). Sem escopo, os dois disputariam o mesmo layoutId e o realce
@@ -47,9 +52,10 @@ function ConteudoSidebar({
   const reduzir = useReducedMotion();
 
   return (
-    <div className="flex h-full flex-col gap-6 p-4">
+    <div className="flex h-full flex-col gap-6 overflow-y-auto p-4">
       <div className="px-1.5 pt-2">
         <Marca />
+        <p className="mt-2 truncate text-sm font-medium text-muted-strong">{storeName}</p>
       </div>
 
       <Link
@@ -109,6 +115,7 @@ function ConteudoSidebar({
       </nav>
 
       <div className="mt-auto flex flex-col gap-1">
+        {demo && <DemoControls demo={demo} />}
         <BotaoTema />
         <form action={signOutAction}>
           <button
@@ -157,7 +164,15 @@ function BotaoTema() {
  * (cor da marca só na ação primária e no item ativo), motion curto e funcional.
  * Sem o chrome do site público (header/footer/WhatsApp): é outra superfície.
  */
-export function GestaoShell({ children }: { children: ReactNode }) {
+export function GestaoShell({
+  children,
+  storeName,
+  demo,
+}: {
+  children: ReactNode;
+  storeName: string;
+  demo: DemoPanelProps | null;
+}) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
   const reduzir = useReducedMotion();
@@ -169,7 +184,7 @@ export function GestaoShell({ children }: { children: ReactNode }) {
         className="fixed inset-y-0 left-0 z-30 hidden border-r border-line bg-surface lg:block"
         style={{ width: LARGURA }}
       >
-        <ConteudoSidebar pathname={pathname} escopo="desktop" />
+        <ConteudoSidebar pathname={pathname} escopo="desktop" storeName={storeName} demo={demo} />
       </aside>
 
       {/* Top bar — mobile */}
@@ -219,6 +234,8 @@ export function GestaoShell({ children }: { children: ReactNode }) {
               pathname={pathname}
               onNavegar={() => setAberto(false)}
               escopo="drawer"
+              storeName={storeName}
+              demo={demo}
             />
           </motion.aside>,
         ]}
@@ -227,6 +244,7 @@ export function GestaoShell({ children }: { children: ReactNode }) {
       {/* Conteúdo */}
       <div className="lg:pl-[260px]">
         <main className="mx-auto max-w-[1100px] px-5 py-8 sm:px-8">
+          {demo?.viewing && <ViewingBanner viewing={demo.viewing} />}
           {children}
         </main>
       </div>

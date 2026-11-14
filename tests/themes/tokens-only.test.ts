@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 // and no pill shapes on controls (the theme picks their corners).
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const SCREENS = ["src/components/gestao", "src/app/gestao", "src/features/team", "src/features/auth/view.tsx"];
+const SCREENS = ["src/components/gestao", "src/app/gestao", "src/features/team", "src/features/auth/view.tsx", "src/features/demo/view.tsx"];
 const SCREEN_DATA = ["src/data/agenda.ts", "src/data/clientes-mock.ts"];
 
 function sourceFiles(path: string): string[] {
