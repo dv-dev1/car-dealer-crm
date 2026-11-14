@@ -132,6 +132,7 @@ export function CarroGestao({
                 fill
                 sizes="(max-width: 1024px) 100vw, 620px"
                 priority
+                unoptimized
                 className="object-cover"
               />
             ) : (
@@ -153,7 +154,7 @@ export function CarroGestao({
                       : "border-line hover:border-primary/40"
                   }`}
                 >
-                  <Image src={f} alt="" fill sizes="120px" className="object-cover" />
+                  <Image src={f} alt="" fill sizes="120px" unoptimized className="object-cover" />
                 </button>
               ))}
             </div>

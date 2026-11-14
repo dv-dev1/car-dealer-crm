@@ -26,7 +26,9 @@ export function CarThumb({ v, sizes, className = "" }: { v: StockVehicle; sizes:
       </span>
     );
   }
-  return <Image src={foto.url} alt={v.title} fill sizes={sizes} className={`object-cover ${className}`} />;
+  // The OpenNext image optimizer only reads static assets, not /fotos/; the photos are already WebP up to 1600px.
+  // shortcut: each card loads the full photo (~250 KB), add a thumbnail size when the stock page gets slow on 4G.
+  return <Image src={foto.url} alt={v.title} fill sizes={sizes} unoptimized className={`object-cover ${className}`} />;
 }
 
 /**
