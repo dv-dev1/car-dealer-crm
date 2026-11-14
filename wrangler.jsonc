@@ -34,6 +34,13 @@
 			"localConnectionString": "postgresql://crm_app:dev@localhost:54328/crm_dev"
 		}
 	],
+	"r2_buckets": [
+		{
+			// Car photos, served by /fotos/<key>. Local dev and preview use wrangler's local copy.
+			"binding": "PHOTOS",
+			"bucket_name": "car-dealer-crm-photos"
+		}
+	],
 	"ratelimits": [
 		{
 			"name": "LOGIN_RATE_LIMITER",
