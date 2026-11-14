@@ -11,3 +11,8 @@ export function formatPreco(valor: number): string {
 export function formatKm(km: number): string {
   return `${km.toLocaleString("pt-BR")} km`;
 }
+
+/** Whole reais as digits from what a person types: "68.000,00" → "68000". The cents after the comma are dropped. */
+export function reaisEmDigitos(valor: string): string {
+  return valor.split(",")[0].replace(/\D/g, "");
+}

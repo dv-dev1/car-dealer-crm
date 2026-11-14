@@ -24,6 +24,7 @@ export function ClientesView({
   veiculos,
   channels,
   sellers,
+  memberId,
   today,
 }: {
   /** Open leads and the ones closed this month, from the store's database. */
@@ -33,6 +34,8 @@ export function ClientesView({
   channels: Opcao[];
   /** Null for a seller. */
   sellers: Opcao[] | null;
+  /** The member using the screen. */
+  memberId: string;
   /** The store's day, "YYYY-MM-DD". */
   today: string;
 }) {
@@ -167,6 +170,7 @@ export function ClientesView({
         fechamento={fechamento}
         veiculos={veiculos}
         sellers={sellers}
+        memberId={memberId}
         onConfirmar={concluido}
         onCancelar={() => setFechamento(null)}
       />

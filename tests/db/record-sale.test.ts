@@ -99,6 +99,11 @@ it("refuses a seller selling a colleague's lead or naming another seller", async
   expect((await adminQuery("select status from vehicles where id = $1", [rows.vehicleId])).rows[0].status).toBe("available");
 });
 
+it("refuses a seller recording a sale without their own lead", async () => {
+  await expect(sell(seller(), { vehicle: rows.vehicleId })).rejects.toMatchObject(refused("forbidden"));
+  expect((await adminQuery("select status from vehicles where id = $1", [rows.vehicleId])).rows[0].status).toBe("available");
+});
+
 it("a manager names the seller, or it comes from the lead", async () => {
   const named = await sell(manager(), { vehicle: rows.vehicleId, seller: a.seller2 });
   expect((await adminQuery("select seller_id, seller_name from sales where id = $1", [named])).rows[0]).toEqual({ seller_id: a.seller2, seller_name: "Dani" });

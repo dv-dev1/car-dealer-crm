@@ -29,6 +29,7 @@ export function CarroGestao({
   channels,
   sellers,
   leads,
+  memberId,
 }: {
   veiculo: StockVehicle;
   estoque: { id: string; titulo: string; preco: number }[];
@@ -38,6 +39,8 @@ export function CarroGestao({
   sellers: { id: string; name: string }[] | null;
   /** Open leads, to name the client of a sale started here. */
   leads: Lead[];
+  /** The member using the screen. */
+  memberId: string;
 }) {
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [modalAberto, setModalAberto] = useState(false);
@@ -328,6 +331,7 @@ export function CarroGestao({
         fechamento={vendendo ? { lead: null, tipo: "vendeu", vehicleId: veiculo.id } : null}
         veiculos={estoque}
         sellers={sellers}
+        memberId={memberId}
         leads={leads}
         onConfirmar={(msg) => {
           setVendendo(false);

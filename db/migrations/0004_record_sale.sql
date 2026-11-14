@@ -42,9 +42,11 @@ begin
     end if;
   end if;
 
+  -- A seller records only the sale of their own lead, never a car on its own.
   if v_role = 'seller' then
-    if (p_seller_id is not null and p_seller_id <> v_member)
-       or (p_lead_id is not null and v_lead_seller is distinct from v_member) then
+    if p_lead_id is null
+       or (p_seller_id is not null and p_seller_id <> v_member)
+       or v_lead_seller is distinct from v_member then
       raise exception 'forbidden';
     end if;
     v_seller := v_member;

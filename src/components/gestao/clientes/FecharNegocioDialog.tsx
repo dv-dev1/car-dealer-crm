@@ -6,7 +6,7 @@ import { X, BadgeCheck, XCircle } from "lucide-react";
 import { loseLeadAction } from "@/features/leads/actions";
 import { PAYMENT_LABEL, type Lead, type Payment } from "@/features/leads/types";
 import { recordSaleAction } from "@/features/sales/actions";
-import { formatPreco } from "@/lib/format";
+import { formatPreco, reaisEmDigitos } from "@/lib/format";
 import { formData } from "@/shared/form";
 import { VEU, painel } from "@/components/gestao/motion/sobreposicao";
 
@@ -24,7 +24,6 @@ export interface Fechamento {
 
 type Veiculo = { id: string; titulo: string; preco: number };
 
-const digitos = (valor: string) => valor.replace(/\D/g, "");
 const primeiroNome = (nome: string) => nome.split(" ")[0];
 
 /**
@@ -37,6 +36,7 @@ export function FecharNegocioDialog({
   fechamento,
   veiculos,
   sellers,
+  memberId,
   leads = [],
   onConfirmar,
   onCancelar,
@@ -46,6 +46,8 @@ export function FecharNegocioDialog({
   veiculos: Veiculo[];
   /** Null for a seller: the sale is theirs. */
   sellers: { id: string; name: string }[] | null;
+  /** Who records the sale: the seller when the lead has none. */
+  memberId: string;
   /** Open leads to pick from when the sale starts from a car. */
   leads?: Lead[];
   /** After the database saved it, with the notice to show. */
@@ -84,7 +86,8 @@ export function FecharNegocioDialog({
     setForma("financing");
     setBanco("");
     setFinanciado("");
-    setVendedor(lead?.sellerId ?? "");
+    // Always an explicit seller: an empty choice would fall back to the lead's seller in record_sale.
+    setVendedor(lead?.sellerId ?? memberId);
     setMotivo("");
     setErro(null);
     setEnviando(false);
@@ -133,10 +136,10 @@ export function FecharNegocioDialog({
             vehicleId: carroId,
             leadId: cliente?.id ?? "",
             sellerId: sellers ? vendedor : "",
-            price: digitos(valor),
+            price: reaisEmDigitos(valor),
             payment: forma,
             bank: forma === "financing" ? banco : "",
-            financedAmount: forma === "financing" ? digitos(financiado) : "",
+            financedAmount: forma === "financing" ? reaisEmDigitos(financiado) : "",
           }),
         );
         if (resposta.error) return setErro(resposta.error);
@@ -312,7 +315,6 @@ export function FecharNegocioDialog({
                     <label className={rotulo}>
                       Vendedor
                       <select value={vendedor} onChange={(e) => setVendedor(e.target.value)} className={`${campoBase} cursor-pointer`}>
-                        <option value="">Eu (quem registra)</option>
                         {sellers.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.name}

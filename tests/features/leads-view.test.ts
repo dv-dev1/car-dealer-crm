@@ -53,7 +53,7 @@ it("marks a call back before the store's today as late", () => {
 
 it("the sale dialog offers cash and financing, not trade-in", () => {
   const html = text(renderToStaticMarkup(createElement(FecharNegocioDialog, {
-    fechamento: { lead: lead(), tipo: "vendeu" }, veiculos, sellers: null, onConfirmar: noop, onCancelar: noop,
+    fechamento: { lead: lead(), tipo: "vendeu" }, veiculos, sellers: null, memberId: "m1", onConfirmar: noop, onCancelar: noop,
   })));
   expect(html).toContain("À vista");
   expect(html).toContain("Financiamento");
@@ -63,11 +63,21 @@ it("the sale dialog offers cash and financing, not trade-in", () => {
 
 it("the sale dialog lets owner and manager name the seller", () => {
   const html = text(renderToStaticMarkup(createElement(FecharNegocioDialog, {
-    fechamento: { lead: null, tipo: "vendeu", vehicleId: "v1" }, veiculos, sellers, leads: [lead()], onConfirmar: noop, onCancelar: noop,
+    fechamento: { lead: null, tipo: "vendeu", vehicleId: "v1" }, veiculos, sellers, memberId: "m1", leads: [lead()], onConfirmar: noop, onCancelar: noop,
   })));
   expect(html).toContain("Vendedor");
   expect(html).toContain("Fiat Argo Drive");
   expect(html).toContain("Joana Lima");
+});
+
+it("the sale dialog credits the lead's seller, or whoever records it, never by omission", () => {
+  const dialog = (fechamento: Parameters<typeof FecharNegocioDialog>[0]["fechamento"]) =>
+    renderToStaticMarkup(createElement(FecharNegocioDialog, {
+      fechamento, veiculos, sellers, memberId: "m1", leads: [lead()], onConfirmar: noop, onCancelar: noop,
+    }));
+  expect(dialog({ lead: lead(), tipo: "vendeu" })).toContain('<option value="m2" selected="">Dani</option>');
+  expect(dialog({ lead: null, tipo: "vendeu", vehicleId: "v1" })).toContain('<option value="m1" selected="">Ana</option>');
+  expect(dialog({ lead: null, tipo: "vendeu", vehicleId: "v1" })).not.toContain("quem registra");
 });
 
 it("the client form shows the seller field only to owner and manager", () => {
@@ -88,7 +98,7 @@ it("the agenda starts on the store's today", () => {
 });
 
 it("Marcar como vendido shows only to owner and manager, and not on a sold car", () => {
-  const base = { estoque: [], channels, leads: [] };
+  const base = { estoque: [], channels, leads: [], memberId: "m1" };
   const page = (veiculo: ReturnType<typeof car>, canManage: boolean) =>
     text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo, canManage, sellers: canManage ? sellers : null })));
   expect(page(car(), true)).toContain("Marcar como vendido");

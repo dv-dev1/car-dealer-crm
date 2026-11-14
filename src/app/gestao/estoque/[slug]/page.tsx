@@ -32,5 +32,5 @@ export default async function CarroGestaoPage({
   const estoque = stock.map((v) => ({ id: v.id, titulo: v.title, preco: v.price }));
 
   return <CarroGestao veiculo={veiculo} estoque={estoque} canManage={canManage} channels={channels} sellers={sellers}
-      leads={open} />;
+      leads={open} memberId={member.membershipId} />;
 }
