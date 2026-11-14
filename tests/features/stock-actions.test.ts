@@ -57,6 +57,13 @@ it("rejects a price that is not digits", async () => {
   expect(model.createVehicle).not.toHaveBeenCalled();
 });
 
+it("names the purchase price field by what it holds", async () => {
+  expect(await saveVehicleAction({ error: null }, form({ ...FIELDS, acquisitionCost: "58.000" }))).toEqual({
+    error: "Confira o campo: Preço de compra.",
+    field: "acquisitionCost",
+  });
+});
+
 it("creates when there is no id and edits when there is one", async () => {
   const created = await saveVehicleAction({ error: null }, form({ ...FIELDS, features: ["Ar condicionado", "ABS"] }));
   expect(created).toEqual({ error: null, id: CAR, slug: "chevrolet-onix-lt-1-0-2023-111111" });
@@ -82,7 +89,7 @@ it("shows the owner-and-manager message to a seller", async () => {
 it("sends the photo's bytes and names the photo errors", async () => {
   photos.addVehiclePhoto.mockResolvedValue({ ok: true, id: "p1" });
   const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], "carro.heic", { type: "image/heic" });
-  expect(await addPhotoAction(form({ vehicleId: CAR, photo: file }))).toEqual({ error: null });
+  expect(await addPhotoAction(form({ vehicleId: CAR, photo: file }))).toEqual({ error: null, id: "p1" });
   expect(photos.addVehiclePhoto).toHaveBeenCalledWith(ctx, "bucket", CAR, new Uint8Array([0xff, 0xd8, 0xff]));
   for (const [error, text] of [
     ["too_big", "Foto acima de 2 MB."],

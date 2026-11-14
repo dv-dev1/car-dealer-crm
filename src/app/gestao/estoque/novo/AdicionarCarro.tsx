@@ -15,15 +15,8 @@ import {
 } from "@/data/opcoes-veiculo";
 import type { StockVehicle } from "@/features/stock/model";
 import { addPhotoAction, removePhotoAction, saveVehicleAction } from "@/features/stock/actions";
-import { resizeToWebp } from "@/features/stock/resize";
-
-/** Foto na tela: as já gravadas têm `savedId`; as novas têm o arquivo escolhido. */
-interface Foto {
-  id: string;
-  url: string;
-  savedId?: string;
-  file?: File;
-}
+import { syncPhotos, type FormPhoto } from "@/features/stock/photo-sync";
+import { resizePhoto } from "@/features/stock/resize";
 
 const MAX_PHOTO_BYTES = 2_000_000;
 const FORMATO_INVALIDO = "Formato de foto não aceito; use JPG, PNG ou WebP.";
@@ -31,7 +24,7 @@ const FORMATO_INVALIDO = "Formato de foto não aceito; use JPG, PNG ou WebP.";
 // Reduz no navegador; se não der (HEIC no Chrome, por exemplo), envia o original quando ele cabe no limite.
 async function prepararFoto(file: File): Promise<Blob> {
   try {
-    return await resizeToWebp(file);
+    return await resizePhoto(file);
   } catch {
     if (["image/jpeg", "image/png", "image/webp"].includes(file.type) && file.size <= MAX_PHOTO_BYTES) return file;
     throw new Error(FORMATO_INVALIDO);
@@ -58,11 +51,12 @@ function dadosIniciais(v: StockVehicle | undefined, today: string) {
   };
 }
 
-/** Cadastro e edição do carro. Grava o carro, depois as fotos uma a uma, e abre a página do carro. */
+/** Cadastro e edição do carro. Grava o carro, depois as fotos uma a uma, e abre a página do carro.
+ *  Se uma foto falha, fica na tela com o aviso; salvar de novo envia só o que faltou. */
 export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; today: string }) {
   const router = useRouter();
   const inputFotos = useRef<HTMLInputElement>(null);
-  const [fotos, setFotos] = useState<Foto[]>(
+  const [fotos, setFotos] = useState<FormPhoto[]>(
     () => vehicle?.photos.map((f) => ({ id: f.id, url: f.url, savedId: f.id })) ?? [],
   );
   const [removidas, setRemovidas] = useState<string[]>([]);
@@ -73,6 +67,7 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
   const [erros, setErros] = useState<{ modelo?: string; preco?: string; fotos?: string }>({});
   const [erroServidor, setErroServidor] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [criado, setCriado] = useState<{ id: string; slug: string } | null>(null);
   const consignado = vehicle?.source === "consignment";
 
   // Prévias das fotos novas são URLs do navegador; soltas quando a tela fecha.
@@ -108,7 +103,8 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
 
   function formulario() {
     const form = new FormData();
-    if (vehicle) form.set("id", vehicle.id);
+    const id = vehicle?.id ?? criado?.id;
+    if (id) form.set("id", id);
     const campos: Record<string, string> = {
       brand: dados.marca, model: dados.modelo, version: dados.versao, manufactureYear: dados.anoFabricacao,
       modelYear: dados.anoModelo, km: dados.km, doors: dados.portas, bodyType: dados.categoria, color: dados.cor,
@@ -136,43 +132,43 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
     }
 
     setSalvando(true);
-    const salvo = await saveVehicleAction({ error: null }, formulario());
-    if (salvo.error || !salvo.id || !salvo.slug) {
-      setErroServidor(salvo.error ?? "Não foi possível salvar.");
-      setSalvando(false);
-      return;
-    }
-
-    let falhou: string | null = null;
-    for (const photoId of removidas) {
-      const form = new FormData();
-      form.set("photoId", photoId);
-      const r = await removePhotoAction(form);
-      if (r.error) falhou = r.error;
-    }
-    const novas = fotos.filter((f) => f.file);
-    let enviadas = 0;
-    for (const foto of novas) {
+    let saiu = false;
+    try {
+      // Every new photo is reduced first: one that cannot go up stops the save before anything is written.
+      let preparadas: FormPhoto[];
       try {
-        const form = new FormData();
-        form.set("vehicleId", salvo.id);
-        form.set("photo", await prepararFoto(foto.file!));
-        const r = await addPhotoAction(form);
-        if (r.error) falhou = r.error;
-        else enviadas += 1;
-      } catch (erro) {
-        falhou = (erro as Error).message === FORMATO_INVALIDO ? FORMATO_INVALIDO : "Uma foto não foi enviada; tente de novo.";
+        preparadas = await Promise.all(
+          fotos.map(async (f) => (f.savedId || f.upload || !f.file ? f : { ...f, upload: await prepararFoto(f.file) })),
+        );
+      } catch {
+        setErroServidor(FORMATO_INVALIDO);
+        return;
       }
-    }
+      setFotos(preparadas);
 
-    if (falhou) {
-      // The car is saved: editing it again sends the photos that are missing.
-      setErroServidor(`Carro salvo. ${enviadas} de ${novas.length} fotos novas entraram. ${falhou}`);
-      setSalvando(false);
-      router.replace(`/gestao/estoque/${salvo.slug}/editar`);
-      return;
+      const salvo = await saveVehicleAction({ error: null }, formulario());
+      if (salvo.error || !salvo.id || !salvo.slug) {
+        setErroServidor(salvo.error ?? "Não foi possível salvar.");
+        return;
+      }
+      // From here on a new save edits this car instead of creating another one.
+      if (!vehicle) setCriado({ id: salvo.id, slug: salvo.slug });
+
+      const r = await syncPhotos(salvo.id, preparadas, removidas, { add: addPhotoAction, remove: removePhotoAction });
+      setFotos(r.photos);
+      setRemovidas(r.removed);
+      if (r.error) {
+        const contagem = r.total > 0 ? `${r.sent} de ${r.total} fotos novas entraram. ` : "";
+        setErroServidor(`Carro salvo. ${contagem}${r.error} Salve de novo para tentar outra vez.`);
+        return;
+      }
+      saiu = true;
+      router.push(`/gestao/estoque/${salvo.slug}`);
+    } catch {
+      setErroServidor("Não foi possível salvar. Confira a internet e tente de novo.");
+    } finally {
+      if (!saiu) setSalvando(false);
     }
-    router.push(`/gestao/estoque/${salvo.slug}`);
   }
 
   return (
@@ -331,8 +327,8 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
               erro={erros.preco}
             />
             <Moeda
-              label={consignado ? "Repasse ao dono" : "Custo"}
-              ajuda={consignado ? "Quanto a loja repassa ao dono do carro." : "Quanto você pagou no carro."}
+              label={consignado ? "Repasse ao dono" : "Preço de compra"}
+              ajuda={consignado ? "Quanto a loja repassa ao dono do carro." : "Quanto você pagou no carro, sem as despesas."}
               value={dados.custo}
               onChange={set("custo")}
             />

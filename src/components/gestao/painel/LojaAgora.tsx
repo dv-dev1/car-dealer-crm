@@ -44,7 +44,7 @@ export function LojaAgora({
                 <NumeroAnimado valor={resumo.invested ?? resumo.worth} formato="preco" />
               </p>
               <p className="mt-2 text-xs text-muted-strong">
-                {resumo.invested === null ? "preço de tabela" : "custo de aquisição"} dos {resumo.total} carros no pátio
+                {resumo.invested === null ? "preço de tabela" : "custo com despesas"} dos {resumo.total} carros no pátio
               </p>
             </div>
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand text-secondary/55">

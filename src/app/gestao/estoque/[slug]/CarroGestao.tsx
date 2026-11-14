@@ -248,7 +248,7 @@ export function CarroGestao({
             ) : (
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <dt className="text-muted">Custo de aquisição</dt>
+                  <dt className="text-muted">Custo com despesas</dt>
                   <dd className="font-semibold tabular-nums text-secondary">
                     {formatPreco(custo)}
                   </dd>

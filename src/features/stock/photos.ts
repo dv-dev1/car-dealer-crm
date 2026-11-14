@@ -101,6 +101,9 @@ export async function removeVehiclePhoto(
     return photo.path;
   });
   if (path === null) return { ok: false, error: "not_found" };
-  await bucket.delete(path).catch(() => {}); // the row is gone; an object left behind is only storage
+  // Demo photos (demo/<model>/...) are shared by every car of the model in every demo store: keep the object.
+  if (path.startsWith(`stores/${ctx.storeId}/`)) {
+    await bucket.delete(path).catch(() => {}); // the row is gone; an object left behind is only storage
+  }
   return { ok: true };
 }

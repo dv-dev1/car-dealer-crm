@@ -126,3 +126,14 @@ it("answers 404 for a key outside the photo folders or missing", async () => {
     expect(response.status).toBe(404);
   }
 });
+
+it("removing a demo photo keeps the shared object, used by every car of the model", async () => {
+  bucket.objects.set("demo/chevrolet-onix/01.webp", { bytes: WEBP, contentType: "image/webp" });
+  const [row] = await adminQuery(
+    "insert into vehicle_photos (store_id, vehicle_id, position, path) values ($1, $2, 0, 'demo/chevrolet-onix/01.webp') returning id",
+    [owner.storeId, car.id],
+  );
+  expect(await removeVehiclePhoto(owner, bucket, row.id)).toEqual({ ok: true });
+  expect(await photosOf(car.slug)).toEqual([]);
+  expect(bucket.objects.has("demo/chevrolet-onix/01.webp")).toBe(true);
+});

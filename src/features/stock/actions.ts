@@ -26,7 +26,7 @@ const FIELD_LABEL: Record<keyof VehicleInput, string> = {
   features: "Opcionais",
   featured: "Destacar na home",
   price: "Preço de venda",
-  acquisitionCost: "Custo",
+  acquisitionCost: "Preço de compra",
   enteredOn: "Data de aquisição",
   ready: "Pronto para anunciar",
 };
@@ -88,7 +88,7 @@ export async function saveVehicleAction(_prev: VehicleFormState, form: FormData)
   return { error: null, id: result.id, slug: result.slug };
 }
 
-export async function addPhotoAction(form: FormData): Promise<{ error: string | null }> {
+export async function addPhotoAction(form: FormData): Promise<{ error: string | null; id?: string }> {
   const member = await requireMember();
   const photo = form.get("photo");
   if (!(photo instanceof Blob)) return { error: PHOTO_ERROR.not_image };
@@ -96,7 +96,7 @@ export async function addPhotoAction(form: FormData): Promise<{ error: string | 
   const result = await addVehiclePhoto(member, photoBucket(), String(form.get("vehicleId") ?? ""), bytes);
   if (!result.ok) return { error: PHOTO_ERROR[result.error] };
   revalidatePath("/gestao", "layout");
-  return { error: null };
+  return { error: null, id: result.id };
 }
 
 export async function removePhotoAction(form: FormData): Promise<{ error: string | null }> {
