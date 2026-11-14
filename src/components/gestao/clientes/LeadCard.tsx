@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { Car, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { formatPreco } from "@/lib/format";
-import { ddmm, HOJE_ISO } from "@/lib/hoje";
+import { ddmm } from "@/lib/hoje";
 import { whatsappLinkPara } from "@/lib/loja";
-import { ETAPAS, type Etapa, type Lead } from "@/data/clientes-mock";
+import { ETAPAS, type Etapa, type Lead } from "@/features/leads/types";
 
 const ATIVAS: Etapa[] = ETAPAS.filter((e) => !e.fechada);
 
@@ -14,8 +14,8 @@ function primeiroNome(nome: string) {
   return nome.split(" ")[0];
 }
 
-function estaAtrasado(retornarEm?: string) {
-  return !!retornarEm && retornarEm < HOJE_ISO;
+function estaAtrasado(today: string, retornarEm?: string) {
+  return !!retornarEm && retornarEm < today;
 }
 
 /**
@@ -26,12 +26,15 @@ function estaAtrasado(retornarEm?: string) {
  */
 export function LeadCard({
   lead,
+  today,
   onEditar,
   onMoverEtapa,
   slotMover,
   elevado = false,
 }: {
   lead: Lead;
+  /** The store's day ("YYYY-MM-DD"): a call back before it is late. */
+  today: string;
   onEditar?: (lead: Lead) => void;
   /** Setas ◀ ▶ do board: empurram o lead uma etapa pra trás/frente. */
   onMoverEtapa?: (lead: Lead, direcao: -1 | 1) => void;
@@ -41,7 +44,9 @@ export function LeadCard({
 }) {
   const vendeu = lead.estagio === "vendeu";
   const naoComprou = lead.estagio === "nao-comprou";
-  const atrasado = lead.estagio === "ligar-volta" && estaAtrasado(lead.retornarEm);
+  const atrasado = lead.estagio === "ligar-volta" && estaAtrasado(today, lead.retornarEm);
+  // A seller sees a colleague's lead but cannot change it.
+  const podeMexer = lead.canEdit !== false;
 
   const indice = ATIVAS.findIndex((e) => e.id === lead.estagio);
   const anterior = indice > 0 ? ATIVAS[indice - 1] : null;
@@ -99,8 +104,10 @@ export function LeadCard({
       )}
 
       {/* Origem */}
-      {lead.origem && (
-        <p className="mt-1.5 text-xs leading-snug text-muted-strong">{lead.origem}</p>
+      {(lead.origem || lead.sellerName) && (
+        <p className="mt-1.5 text-xs leading-snug text-muted-strong">
+          {[lead.origem, lead.sellerName && `Vendedor: ${lead.sellerName}`].filter(Boolean).join(" · ")}
+        </p>
       )}
 
       {/* Nota — 2 linhas no máximo, pra um card não ficar o dobro do vizinho.
@@ -143,18 +150,20 @@ export function LeadCard({
 
       {/* Ações — mt-auto encosta no rodapé; alvo de 44px no celular */}
       <div className="mt-auto flex items-center gap-2 pt-3 lg:gap-1.5">
-        <a
-          href={whatsappLinkPara(lead.telefone, mensagem)}
-          target="_blank"
-          rel="noopener noreferrer"
-          draggable={false}
-          aria-label={`Chamar ${primeiroNome(lead.nome)} no WhatsApp`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover lg:h-8 lg:w-8"
-        >
-          <WhatsappIcon className="h-4 w-4" />
-        </a>
+        {lead.telefone && (
+          <a
+            href={whatsappLinkPara(lead.telefone, mensagem)}
+            target="_blank"
+            rel="noopener noreferrer"
+            draggable={false}
+            aria-label={`Chamar ${primeiroNome(lead.nome)} no WhatsApp`}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover lg:h-8 lg:w-8"
+          >
+            <WhatsappIcon className="h-4 w-4" />
+          </a>
+        )}
 
-        {onEditar && (
+        {onEditar && podeMexer && (
           <button
             type="button"
             draggable={false}
@@ -168,7 +177,7 @@ export function LeadCard({
 
         {/* Setas: o caminho por clique. Faz a mesma coisa que arrastar — quem
             preferir o mouse, o teclado, ou estiver com pressa, usa daqui. */}
-        {onMoverEtapa && (
+        {onMoverEtapa && podeMexer && (
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <SetaEtapa
               direcao={-1}
@@ -185,7 +194,7 @@ export function LeadCard({
           </div>
         )}
 
-        {slotMover && <div className="ml-auto">{slotMover}</div>}
+        {slotMover && podeMexer && <div className="ml-auto">{slotMover}</div>}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type DragEvent } from "react";
-import { ETAPAS, type Etapa, type EstagioFunil, type Lead } from "@/data/clientes-mock";
+import { ETAPAS, type Etapa, type EstagioFunil, type Lead } from "@/features/leads/types";
 import { LeadCard } from "./LeadCard";
 import { ZonaFechamento } from "./ZonaFechamento";
 
@@ -32,6 +32,7 @@ export interface PropsDrop {
  */
 export function BoardFunil({
   leads,
+  today,
   vendasMes,
   perdasMes,
   onMover,
@@ -39,6 +40,7 @@ export function BoardFunil({
   onEditar,
 }: {
   leads: Lead[];
+  today: string;
   vendasMes: number;
   perdasMes: number;
   onMover: (id: string, destino: EstagioFunil) => void;
@@ -50,7 +52,7 @@ export function BoardFunil({
 
   function soltarEm(id: string, alvo: Alvo) {
     const lead = leads.find((l) => l.id === id);
-    if (!lead || lead.estagio === alvo) return;
+    if (!lead || lead.estagio === alvo || lead.canEdit === false) return;
 
     if (alvo === "vendeu" || alvo === "nao-comprou") {
       onFechar(lead, alvo);
@@ -98,6 +100,7 @@ export function BoardFunil({
             key={etapa.id}
             etapa={etapa}
             leads={leads.filter((l) => l.estagio === etapa.id)}
+            today={today}
             arrastandoId={arrastandoId}
             aceso={sobre === etapa.id}
             drop={propsDrop(etapa.id)}
@@ -123,6 +126,7 @@ export function BoardFunil({
 function Coluna({
   etapa,
   leads,
+  today,
   arrastandoId,
   aceso,
   drop,
@@ -132,6 +136,7 @@ function Coluna({
 }: {
   etapa: Etapa;
   leads: Lead[];
+  today: string;
   arrastandoId: string | null;
   aceso: boolean;
   drop: PropsDrop;
@@ -169,6 +174,7 @@ function Coluna({
           <CartaArrastavel
             key={lead.id}
             lead={lead}
+            today={today}
             arrastando={arrastandoId === lead.id}
             onComecar={onComecar}
             onEditar={onEditar}
@@ -188,12 +194,14 @@ function Coluna({
 
 function CartaArrastavel({
   lead,
+  today,
   arrastando,
   onComecar,
   onEditar,
   onMoverEtapa,
 }: {
   lead: Lead;
+  today: string;
   arrastando: boolean;
   onComecar: (id: string | null) => void;
   onEditar: (lead: Lead) => void;
@@ -212,7 +220,7 @@ function CartaArrastavel({
     // O deslize era enfeite; o card não piscar é requisito. Este card é a peça
     // mais usada do sistema — ela fica quieta.
     <div
-      draggable
+      draggable={lead.canEdit !== false}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", lead.id);
         e.dataTransfer.effectAllowed = "move";
@@ -221,11 +229,13 @@ function CartaArrastavel({
         setTimeout(() => onComecar(lead.id), 0);
       }}
       onDragEnd={() => onComecar(null)}
-      className={`cursor-grab rounded-[calc(var(--radius)-2px)] transition-opacity duration-150 active:cursor-grabbing ${
+      className={`rounded-[calc(var(--radius)-2px)] transition-opacity duration-150 ${
+        lead.canEdit !== false ? "cursor-grab active:cursor-grabbing" : ""
+      } ${
         arrastando ? "opacity-40" : ""
       }`}
     >
-      <LeadCard lead={lead} onEditar={onEditar} onMoverEtapa={onMoverEtapa} />
+      <LeadCard lead={lead} today={today} onEditar={onEditar} onMoverEtapa={onMoverEtapa} />
     </div>
   );
 }

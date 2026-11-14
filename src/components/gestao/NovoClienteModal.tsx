@@ -4,55 +4,48 @@ import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X, Check } from "lucide-react";
 import { formatPreco } from "@/lib/format";
-import { ETAPAS, type EstagioFunil, type Lead } from "@/data/clientes-mock";
-import {
-  ESTAGIOS_FORM as ESTAGIOS,
-  type EstagioForm,
-  type NovoClienteDados,
-} from "@/lib/clientes-store";
+import { createLeadAction, updateLeadAction } from "@/features/leads/actions";
+import { ETAPAS, UI_STAGE, type EstagioFunil, type Lead } from "@/features/leads/types";
+import { formData } from "@/shared/form";
 import { VEU, painel } from "./motion/sobreposicao";
 
-// Na edição o select mostra as etapas REAIS do funil. Os rótulos do cadastro
-// ("Lead novo / Em contato / Negociação / Fechamento") colapsam em só dois
-// estágios pelo mapaEstagio() — usá-los aqui trocaria a etapa do lead sem que
-// ninguém tivesse pedido.
 const ETAPAS_ATIVAS = ETAPAS.filter((e) => !e.fechada);
 
-// Carro do lead que não existe (mais) no estoque — texto livre de um cadastro
+// Carro do lead que não está no estoque à venda — texto livre de um cadastro
 // antigo, ou veículo já vendido. Vira uma opção própria no select pra edição
 // preservar o que está lá em vez de trocar em silêncio pelo primeiro da lista.
 const MANTER_CARRO = "__manter__";
 
-export type { NovoClienteDados };
-
 export interface NovoClienteModalProps {
   aberto: boolean;
   onFechar: () => void;
+  /** Carros à venda. */
   veiculos: { id: string; titulo: string; preco: number }[];
   veiculoInicialId?: string;
-  /** Chamado quando o cliente é salvo — a página decide o que fazer (ex:
-   *  jogar o lead na coluna "Lead novo" do funil). */
-  onSalvar?: (dados: NovoClienteDados) => void;
+  /** Origens do lead (canais da loja). */
+  channels: { id: string; name: string }[];
+  /** Equipe, só para dono e gerente; null para o vendedor (o cliente é dele). */
+  sellers: { id: string; name: string }[] | null;
   /** Preenchido = modo edição: mesmo formulário, campos carregados do lead. */
   leadEmEdicao?: Lead | null;
-  /** Só no modo edição — recebe os campos alterados. */
-  onAtualizar?: (dados: Partial<Lead>) => void;
+  /** Depois que a edição gravou no banco, com o aviso a mostrar. */
+  onSalvo?: (aviso: string) => void;
 }
 
 /**
  * Modal "Novo cliente / negociação". Register product — modal usado com
  * parcimônia (é a exceção certa: capturar um lead no meio do atendimento sem
- * sair do carro). Sem backend ainda: valida e confirma de forma honesta
- * ("registrado" em memória), não finge que salvou no banco.
+ * sair do carro). Grava no banco da loja e mostra o erro aqui dentro.
  */
 export function NovoClienteModal({
   aberto,
   onFechar,
   veiculos,
   veiculoInicialId,
-  onSalvar,
+  channels,
+  sellers,
   leadEmEdicao,
-  onAtualizar,
+  onSalvo,
 }: NovoClienteModalProps) {
   const reduzir = useReducedMotion();
   const nomeRef = useRef<HTMLInputElement>(null);
@@ -61,16 +54,19 @@ export function NovoClienteModal({
 
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [estagio, setEstagio] = useState<EstagioForm>("Lead novo");
   const [etapaFunil, setEtapaFunil] = useState<EstagioFunil>("lead-novo");
-  const [veiculoId, setVeiculoId] = useState(veiculoInicialId ?? veiculos[0]?.id ?? "");
+  const [veiculoId, setVeiculoId] = useState(veiculoInicialId ?? "");
+  const [origem, setOrigem] = useState("");
+  const [vendedor, setVendedor] = useState("");
   const [obs, setObs] = useState("");
   const [conversaEm, setConversaEm] = useState("");
   const [visitaEm, setVisitaEm] = useState("");
   const [horaVisita, setHoraVisita] = useState("");
   const [veioEm, setVeioEm] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
+  const [retornarEm, setRetornarEm] = useState("");
+  const [erro, setErro] = useState<{ texto: string; campo?: string } | null>(null);
   const [enviado, setEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   // ─── Carga do formulário ao (re)abrir ──────────────────────────
   //
@@ -91,26 +87,23 @@ export function NovoClienteModal({
     setMarcaCarregada(marca);
     setNome(l?.nome ?? "");
     setTelefone(l?.telefoneLabel && l.telefoneLabel !== "—" ? l.telefoneLabel : "");
-    setEstagio("Lead novo");
     setEtapaFunil(l?.estagio ?? "lead-novo");
-    // Edição: casa o carro do lead com o do estoque pelo título. Não casou (e o
-    // lead tem carro), seleciona a opção "manter" — nunca o primeiro da lista,
-    // que trocaria o carro do cliente sem ninguém pedir.
-    const doEstoque = l?.carro ? veiculos.find((v) => v.titulo === l.carro)?.id : undefined;
-    setVeiculoId(
-      doEstoque ??
-        (l?.carro ? MANTER_CARRO : undefined) ??
-        veiculoInicialId ??
-        veiculos[0]?.id ??
-        "",
-    );
+    // Edição: o carro do lead se estiver à venda; senão a opção "manter" —
+    // nunca o primeiro da lista, que trocaria o carro do cliente sem ninguém
+    // pedir. Cadastro novo: sem carro, salvo vindo da tela de um carro.
+    const doEstoque = l?.vehicleId && veiculos.some((v) => v.id === l.vehicleId) ? l.vehicleId : undefined;
+    setVeiculoId(doEstoque ?? (l?.carro ? MANTER_CARRO : undefined) ?? veiculoInicialId ?? "");
+    setOrigem(l?.channelId ?? "");
+    setVendedor(l?.sellerId ?? "");
     setObs(l?.nota ?? "");
     setConversaEm(l?.conversaEm ?? "");
     setVisitaEm(l?.visitaEm ?? "");
     setHoraVisita(l?.horaVisita ?? "");
     setVeioEm(l?.veioEm ?? "");
+    setRetornarEm(l?.retornarEm ?? "");
     setErro(null);
     setEnviado(false);
+    setEnviando(false);
   }
 
   // Fechou: libera pra próxima abertura recarregar do zero.
@@ -137,48 +130,54 @@ export function NovoClienteModal({
     };
   }, [aberto, onFechar]);
 
-  function enviar(e: React.FormEvent) {
+  async function enviar(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando) return;
     if (!nome.trim()) {
-      setErro("Informe o nome do cliente pra registrar a negociação.");
+      setErro({ texto: "Informe o nome do cliente pra registrar a negociação.", campo: "name" });
       nomeRef.current?.focus();
       return;
     }
     setErro(null);
 
-    if (editando) {
-      const digitos = telefone.replace(/\D/g, "");
-      onAtualizar?.({
-        nome: nome.trim(),
-        telefone: digitos ? (digitos.startsWith("55") ? digitos : `55${digitos}`) : "",
-        telefoneLabel: telefone.trim() || "—",
-        carro:
-          veiculoId === MANTER_CARRO
-            ? leadEmEdicao?.carro
-            : veiculos.find((v) => v.id === veiculoId)?.titulo,
-        nota: obs.trim() || undefined,
-        estagio: etapaFunil,
-        conversaEm: conversaEm || undefined,
-        visitaEm: visitaEm || undefined,
-        horaVisita: horaVisita || undefined,
-        veioEm: veioEm || undefined,
-      });
-      onFechar();
-      return;
-    }
+    const manter = veiculoId === MANTER_CARRO;
+    // Marcou visita num lead novo → é uma "Visita marcada" de fato.
+    const etapa = !editando && etapaFunil === "lead-novo" && visitaEm ? "visita-marcada" : etapaFunil;
+    const campos: Record<string, string> = {
+      name: nome,
+      phone: telefone,
+      stage: UI_STAGE[etapa],
+      vehicleId: manter ? (leadEmEdicao?.vehicleId ?? "") : veiculoId,
+      interest: manter && !leadEmEdicao?.vehicleId ? (leadEmEdicao?.carro ?? "") : "",
+      channelId: origem,
+      sellerId: sellers ? vendedor : "",
+      note: obs,
+      lastContactOn: conversaEm,
+      visitOn: visitaEm,
+      visitTime: horaVisita,
+      cameOn: veioEm,
+      callBackOn: retornarEm,
+    };
+    if (leadEmEdicao) campos.id = leadEmEdicao.id;
 
-    onSalvar?.({
-      nome: nome.trim(),
-      telefone: telefone.trim(),
-      estagio,
-      veiculoId,
-      observacoes: obs.trim(),
-      conversaEm: conversaEm || undefined,
-      visitaEm: visitaEm || undefined,
-      horaVisita: horaVisita || undefined,
-      veioEm: veioEm || undefined,
-    });
-    setEnviado(true);
+    setEnviando(true);
+    try {
+      const resposta = await (editando ? updateLeadAction : createLeadAction)({ error: null }, formData(campos));
+      if (resposta.error) {
+        setErro({ texto: resposta.error, campo: resposta.field });
+        return;
+      }
+      if (editando) {
+        onSalvo?.(`${nome.trim().split(" ")[0]} atualizado.`);
+        onFechar();
+      } else {
+        setEnviado(true);
+      }
+    } catch {
+      setErro({ texto: "Não foi possível salvar. Confira a internet e tente de novo." });
+    } finally {
+      setEnviando(false);
+    }
   }
 
   const campoBase =
@@ -233,10 +232,6 @@ export function NovoClienteModal({
                   registrado e já aparece no funil de{" "}
                   <span className="font-medium">Clientes</span>.
                 </p>
-                <p className="mt-1.5 max-w-xs text-xs text-muted">
-                  Fica salvo neste navegador. Quando o Supabase entrar, passa a
-                  sincronizar entre todos os dispositivos.
-                </p>
                 <button
                   type="button"
                   onClick={onFechar}
@@ -260,10 +255,9 @@ export function NovoClienteModal({
                       if (erro) setErro(null);
                     }}
                     placeholder="Nome do cliente"
-                    aria-invalid={!!erro}
-                    className={`${campoBase} font-medium ${erro ? "border-danger" : ""}`}
+                    aria-invalid={erro?.campo === "name"}
+                    className={`${campoBase} font-medium ${erro?.campo === "name" ? "border-danger" : ""}`}
                   />
-                  {erro && <p className="mt-1.5 text-xs text-danger-ink">{erro}</p>}
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -282,37 +276,20 @@ export function NovoClienteModal({
                   </div>
                   <div>
                     <label className="sr-only" htmlFor="nc-estagio">
-                      {editando ? "Etapa do funil" : "Estágio"}
+                      Etapa do funil
                     </label>
-                    {editando ? (
-                      <select
-                        id="nc-estagio"
-                        value={etapaFunil}
-                        onChange={(e) => setEtapaFunil(e.target.value as EstagioFunil)}
-                        className={`${campoBase} cursor-pointer`}
-                      >
-                        {ETAPAS_ATIVAS.map((et) => (
-                          <option key={et.id} value={et.id}>
-                            {et.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <select
-                        id="nc-estagio"
-                        value={estagio}
-                        onChange={(e) =>
-                          setEstagio(e.target.value as (typeof ESTAGIOS)[number])
-                        }
-                        className={`${campoBase} cursor-pointer`}
-                      >
-                        {ESTAGIOS.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                    <select
+                      id="nc-estagio"
+                      value={etapaFunil}
+                      onChange={(e) => setEtapaFunil(e.target.value as EstagioFunil)}
+                      className={`${campoBase} cursor-pointer`}
+                    >
+                      {ETAPAS_ATIVAS.map((et) => (
+                        <option key={et.id} value={et.id}>
+                          {et.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -331,12 +308,40 @@ export function NovoClienteModal({
                         {leadEmEdicao.carro} (fora do estoque atual)
                       </option>
                     )}
+                    <option value="">Sem carro definido</option>
                     {veiculos.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.titulo} — {formatPreco(v.preco)}
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div className={`grid grid-cols-1 gap-3 ${sellers ? "sm:grid-cols-2" : ""}`}>
+                  <label className="flex flex-col gap-1 text-xs text-muted">
+                    Origem
+                    <select value={origem} onChange={(e) => setOrigem(e.target.value)} className={`${campoBase} cursor-pointer`}>
+                      <option value="">Não informada</option>
+                      {channels.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {sellers && (
+                    <label className="flex flex-col gap-1 text-xs text-muted">
+                      Vendedor
+                      <select value={vendedor} onChange={(e) => setVendedor(e.target.value)} className={`${campoBase} cursor-pointer`}>
+                        <option value="">{editando ? "Sem vendedor" : "Eu (quem cadastra)"}</option>
+                        {sellers.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
 
                 <div>
@@ -395,14 +400,30 @@ export function NovoClienteModal({
                         className={campoBase}
                       />
                     </label>
+                    <label className="flex flex-col gap-1 text-xs text-muted">
+                      Retornar em
+                      <input
+                        type="date"
+                        value={retornarEm}
+                        onChange={(e) => setRetornarEm(e.target.value)}
+                        className={campoBase}
+                      />
+                    </label>
                   </div>
                 </fieldset>
 
+                {erro && (
+                  <p role="alert" className="text-sm text-danger-ink">
+                    {erro.texto}
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="mt-1 w-full rounded-[var(--radius-control)] bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
+                  disabled={enviando}
+                  className="mt-1 w-full disabled:opacity-60 rounded-[var(--radius-control)] bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-hover"
                 >
-                  {editando ? "Salvar alterações" : "Salvar cliente"}
+                  {enviando ? "Salvando…" : editando ? "Salvar alterações" : "Salvar cliente"}
                 </button>
               </form>
             )}

@@ -9,7 +9,7 @@ import {
   type Etapa,
   type EstagioFunil,
   type Lead,
-} from "@/data/clientes-mock";
+} from "@/features/leads/types";
 import { LeadCard } from "./LeadCard";
 import { VEU, EASE_MARCA as EASE } from "@/components/gestao/motion/sobreposicao";
 
@@ -23,11 +23,13 @@ const ATIVAS: Etapa[] = ETAPAS.filter((e) => !e.fechada);
  */
 export function FunilMobile({
   leads,
+  today,
   onMover,
   onFechar,
   onEditar,
 }: {
   leads: Lead[];
+  today: string;
   onMover: (id: string, destino: EstagioFunil) => void;
   onFechar: (lead: Lead, tipo: "vendeu" | "nao-comprou") => void;
   onEditar: (lead: Lead) => void;
@@ -101,6 +103,7 @@ export function FunilMobile({
             >
               <LeadCard
                 lead={lead}
+                today={today}
                 onEditar={onEditar}
                 slotMover={
                   <button

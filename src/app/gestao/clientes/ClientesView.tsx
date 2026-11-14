@@ -1,21 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
 import { EVENTO_NOVO_CLIENTE } from "@/components/gestao/secoes";
 import { Plus, X } from "lucide-react";
 import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
-import type { EstagioFunil, Lead } from "@/data/clientes-mock";
-import {
-  useLeads,
-  adicionarLead,
-  moverLead,
-  fecharLead,
-  atualizarLead,
-  criarLead,
-  type NovoClienteDados,
-  type DadosFechamento,
-} from "@/lib/clientes-store";
-import { HOJE_ISO } from "@/lib/hoje";
+import { moveLeadAction } from "@/features/leads/actions";
+import { UI_STAGE, type EstagioFunil, type Lead } from "@/features/leads/types";
+import { formData } from "@/shared/form";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { BoardFunil } from "@/components/gestao/clientes/BoardFunil";
 import { FunilMobile } from "@/components/gestao/clientes/FunilMobile";
@@ -25,22 +16,36 @@ import {
 } from "@/components/gestao/clientes/FecharNegocioDialog";
 
 const ATIVAS: EstagioFunil[] = ["lead-novo", "visita-marcada", "negociando", "ligar-volta"];
-const MES_ATUAL = HOJE_ISO.slice(0, 7); // "2026-07"
 
-function noMesAtual(iso?: string) {
-  return !!iso && iso.startsWith(MES_ATUAL);
-}
+type Opcao = { id: string; name: string };
 
 export function ClientesView({
+  leads,
   veiculos,
+  channels,
+  sellers,
+  today,
 }: {
+  /** Open leads and the ones closed this month, from the store's database. */
+  leads: Lead[];
+  /** Cars for sale. */
   veiculos: { id: string; titulo: string; preco: number }[];
+  channels: Opcao[];
+  /** Null for a seller. */
+  sellers: Opcao[] | null;
+  /** The store's day, "YYYY-MM-DD". */
+  today: string;
 }) {
-  const leads = useLeads();
+  // A moved card changes column at once; if the database refuses, it goes back when the transition ends.
+  const [visiveis, moverNaTela] = useOptimistic(leads, (atual, mudanca: { id: string; estagio: EstagioFunil }) =>
+    atual.map((l) => (l.id === mudanca.id ? { ...l, estagio: mudanca.estagio } : l)),
+  );
+  const [, iniciar] = useTransition();
   const [modalAberto, setModalAberto] = useState(false);
   const [leadEditando, setLeadEditando] = useState<Lead | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [fechamento, setFechamento] = useState<Fechamento | null>(null);
+  const mesAtual = today.slice(0, 7);
 
   // Duas portas pro "Novo cliente" da sidebar, porque são dois casos:
   //
@@ -67,14 +72,14 @@ export function ClientesView({
   // ativas no topo de cada coluna — sem cards de estatística repetindo isso).
   const fechados = useMemo(
     () => ({
-      vendasMes: leads.filter((l) => l.estagio === "vendeu" && noMesAtual(l.fechadoEm)).length,
-      perdasMes: leads.filter((l) => l.estagio === "nao-comprou" && noMesAtual(l.fechadoEm)).length,
+      vendasMes: visiveis.filter((l) => l.estagio === "vendeu" && l.fechadoEm?.startsWith(mesAtual)).length,
+      perdasMes: visiveis.filter((l) => l.estagio === "nao-comprou" && l.fechadoEm?.startsWith(mesAtual)).length,
     }),
-    [leads],
+    [visiveis, mesAtual],
   );
 
   // Só as etapas ativas aparecem no board; fechados vivem nos Relatórios.
-  const ativos = useMemo(() => leads.filter((l) => ATIVAS.includes(l.estagio)), [leads]);
+  const ativos = useMemo(() => visiveis.filter((l) => ATIVAS.includes(l.estagio)), [visiveis]);
 
   function toast(msg: string) {
     setAviso(msg);
@@ -83,44 +88,24 @@ export function ClientesView({
   }
 
   function mover(id: string, destino: EstagioFunil) {
-    moverLead(id, destino);
+    iniciar(async () => {
+      moverNaTela({ id, estagio: destino });
+      try {
+        const resposta = await moveLeadAction({ error: null }, formData({ id, stage: UI_STAGE[destino] }));
+        if (resposta.error) toast(resposta.error);
+      } catch {
+        toast("Não foi possível mover. Confira a internet e tente de novo.");
+      }
+    });
   }
 
   function abrirFechamento(lead: Lead, tipo: "vendeu" | "nao-comprou") {
     setFechamento({ lead, tipo });
   }
 
-  function confirmarFechamento(dados: DadosFechamento) {
-    if (!fechamento) return;
-    fecharLead(fechamento.lead.id, fechamento.tipo, dados);
-    const nome = fechamento.lead.nome.split(" ")[0];
-    toast(
-      fechamento.tipo === "vendeu"
-        ? `Venda de ${nome} registrada. Já conta na Meta e nos Relatórios.`
-        : `${nome} marcado como não comprou.`,
-    );
+  function concluido(msg: string) {
+    toast(msg);
     setFechamento(null);
-  }
-
-  function editar(lead: Lead) {
-    setLeadEditando(lead);
-  }
-
-  function salvarEdicao(dados: Partial<Lead>) {
-    if (!leadEditando) return;
-    atualizarLead(leadEditando.id, dados);
-    const mudouEtapa = dados.estagio && dados.estagio !== leadEditando.estagio;
-    toast(
-      mudouEtapa
-        ? `${dados.nome?.split(" ")[0] ?? "Cliente"} atualizado e movido de etapa.`
-        : `${dados.nome?.split(" ")[0] ?? "Cliente"} atualizado.`,
-    );
-    setLeadEditando(null);
-  }
-
-  function salvarCliente(dados: NovoClienteDados) {
-    const carro = veiculos.find((v) => v.id === dados.veiculoId)?.titulo;
-    adicionarLead(criarLead(dados, carro));
   }
 
   return (
@@ -147,22 +132,24 @@ export function ClientesView({
       <div className="hidden lg:block">
         <BoardFunil
           leads={ativos}
+          today={today}
           vendasMes={fechados.vendasMes}
           perdasMes={fechados.perdasMes}
           onMover={mover}
           onFechar={abrirFechamento}
-          onEditar={editar}
+          onEditar={setLeadEditando}
         />
       </div>
       <div className="lg:hidden">
-        <FunilMobile leads={ativos} onMover={mover} onFechar={abrirFechamento} onEditar={editar} />
+        <FunilMobile leads={ativos} today={today} onMover={mover} onFechar={abrirFechamento} onEditar={setLeadEditando} />
       </div>
 
       <NovoClienteModal
         aberto={modalAberto}
         onFechar={() => setModalAberto(false)}
         veiculos={veiculos}
-        onSalvar={salvarCliente}
+        channels={channels}
+        sellers={sellers}
       />
 
       {/* Mesmo formulário, carregado com o lead — não há tela de edição separada */}
@@ -170,13 +157,17 @@ export function ClientesView({
         aberto={!!leadEditando}
         onFechar={() => setLeadEditando(null)}
         veiculos={veiculos}
+        channels={channels}
+        sellers={sellers}
         leadEmEdicao={leadEditando}
-        onAtualizar={salvarEdicao}
+        onSalvo={toast}
       />
 
       <FecharNegocioDialog
         fechamento={fechamento}
-        onConfirmar={confirmarFechamento}
+        veiculos={veiculos}
+        sellers={sellers}
+        onConfirmar={concluido}
         onCancelar={() => setFechamento(null)}
       />
 

@@ -17,20 +17,21 @@ import { formatPreco } from "@/lib/format";
 import type { StockVehicle } from "@/features/stock/model";
 import { STATUS_LABEL } from "@/features/stock/rules";
 import { removeVehicleAction, setMarginAction } from "@/features/stock/actions";
-import {
-  NovoClienteModal,
-  type NovoClienteDados,
-} from "@/components/gestao/NovoClienteModal";
-import { adicionarLead, criarLead } from "@/lib/clientes-store";
+import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
 
 export function CarroGestao({
   veiculo,
   estoque,
   canManage,
+  channels,
+  sellers,
 }: {
   veiculo: StockVehicle;
   estoque: { id: string; titulo: string; preco: number }[];
   canManage: boolean;
+  channels: { id: string; name: string }[];
+  /** Null for a seller. */
+  sellers: { id: string; name: string }[] | null;
 }) {
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [modalAberto, setModalAberto] = useState(false);
@@ -78,13 +79,6 @@ export function CarroGestao({
     setDescontoMax(valor);
     setMargemDefinida(true);
     setEditando(false);
-  }
-
-  // Registra o cliente no funil de Clientes (mesmo store do kanban). O modal
-  // vem com este carro pré-selecionado; resolvemos o título pra gravar no lead.
-  function registrarCliente(dados: NovoClienteDados) {
-    const carro = estoque.find((v) => v.id === dados.veiculoId)?.titulo;
-    adicionarLead(criarLead(dados, carro));
   }
 
   const acaoSecundaria =
@@ -317,7 +311,8 @@ export function CarroGestao({
         onFechar={() => setModalAberto(false)}
         veiculos={estoque}
         veiculoInicialId={veiculo.id}
-        onSalvar={registrarCliente}
+        channels={channels}
+        sellers={sellers}
       />
 
       {/* Toast */}

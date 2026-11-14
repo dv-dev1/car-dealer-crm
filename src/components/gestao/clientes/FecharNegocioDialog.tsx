@@ -3,48 +3,96 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X, BadgeCheck, XCircle } from "lucide-react";
-import type { Lead } from "@/data/clientes-mock";
-import type { DadosFechamento } from "@/lib/clientes-store";
-import type { FormaPagamento } from "@/data/vendas-mock";
+import { loseLeadAction } from "@/features/leads/actions";
+import { PAYMENT_LABEL, type Lead, type Payment } from "@/features/leads/types";
+import { recordSaleAction } from "@/features/sales/actions";
+import { formatPreco } from "@/lib/format";
+import { formData } from "@/shared/form";
 import { VEU, painel } from "@/components/gestao/motion/sobreposicao";
 
-const FORMAS: FormaPagamento[] = ["Financiamento", "Troca + diferença", "À vista"];
+// Trade-in ("Troca + diferença") returns with stage 2, when the car received and its value are recorded too.
+const FORMAS: Payment[] = ["financing", "cash"];
 const MOTIVOS = ["Foi de outro modelo", "Achou caro", "Comprou em outra loja", "Sumiu / não respondeu"];
 
 export interface Fechamento {
-  lead: Lead;
+  /** Null when the sale starts from the car page: the client is then optional. */
+  lead: Lead | null;
   tipo: "vendeu" | "nao-comprou";
+  /** The car is fixed when the sale starts from the car page. */
+  vehicleId?: string;
 }
 
+type Veiculo = { id: string; titulo: string; preco: number };
+
+const digitos = (valor: string) => valor.replace(/\D/g, "");
+const primeiroNome = (nome: string) => nome.split(" ")[0];
+
 /**
- * Diálogo de fechamento — abre ao soltar um card numa zona de fechamento.
- * "Vendeu" pede valor + forma (alimenta Metas/Relatórios); "Não comprou" pede o
- * motivo. Tudo opcional pra não travar o gesto, mas oferecido na hora certa.
+ * Diálogo de fechamento — abre ao soltar um card numa zona de fechamento, ou em
+ * "Marcar como vendido" na tela do carro. "Vendeu" registra a venda (carro,
+ * valor, forma, banco e valor financiado; vendedor só para dono e gerente);
+ * "Não comprou" pede o motivo. Grava no banco e mostra o erro aqui dentro.
  */
 export function FecharNegocioDialog({
   fechamento,
+  veiculos,
+  sellers,
+  leads = [],
   onConfirmar,
   onCancelar,
 }: {
   fechamento: Fechamento | null;
-  onConfirmar: (dados: DadosFechamento) => void;
+  /** Cars for sale. */
+  veiculos: Veiculo[];
+  /** Null for a seller: the sale is theirs. */
+  sellers: { id: string; name: string }[] | null;
+  /** Open leads to pick from when the sale starts from a car. */
+  leads?: Lead[];
+  /** After the database saved it, with the notice to show. */
+  onConfirmar: (aviso: string) => void;
   onCancelar: () => void;
 }) {
   const reduzir = useReducedMotion();
   const tituloId = useId();
   const primeiroRef = useRef<HTMLInputElement>(null);
 
+  const [carroId, setCarroId] = useState("");
+  const [clienteId, setClienteId] = useState("");
   const [valor, setValor] = useState("");
-  const [forma, setForma] = useState<FormaPagamento>("Financiamento");
+  const [forma, setForma] = useState<Payment>("financing");
+  const [banco, setBanco] = useState("");
+  const [financiado, setFinanciado] = useState("");
+  const [vendedor, setVendedor] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
+  const lead = fechamento?.lead ?? null;
   const vendeu = fechamento?.tipo === "vendeu";
+  const carroFixo = fechamento?.vehicleId ? veiculos.find((v) => v.id === fechamento.vehicleId) : undefined;
+
+  // Defaults loaded during render on each opening, as in NovoClienteModal: no empty frame before the values.
+  const marca = fechamento ? `${fechamento.tipo}|${lead?.id ?? ""}|${fechamento.vehicleId ?? ""}` : null;
+  const [marcaCarregada, setMarcaCarregada] = useState<string | null>(null);
+  if (marca && marca !== marcaCarregada) {
+    setMarcaCarregada(marca);
+    // Never the first car of the list: selling the wrong car is worse than one more click.
+    const inicial = fechamento?.vehicleId ?? veiculos.find((v) => v.id === lead?.vehicleId)?.id ?? "";
+    setCarroId(inicial);
+    setValor(String(veiculos.find((v) => v.id === inicial)?.preco ?? ""));
+    setClienteId("");
+    setForma("financing");
+    setBanco("");
+    setFinanciado("");
+    setVendedor(lead?.sellerId ?? "");
+    setMotivo("");
+    setErro(null);
+    setEnviando(false);
+  }
+  if (!marca && marcaCarregada !== null) setMarcaCarregada(null);
 
   useEffect(() => {
     if (!fechamento) return;
-    setValor("");
-    setForma("Financiamento");
-    setMotivo("");
     const t = setTimeout(() => primeiroRef.current?.focus(), 60);
     return () => clearTimeout(t);
   }, [fechamento]);
@@ -61,18 +109,54 @@ export function FecharNegocioDialog({
     };
   }, [fechamento, onCancelar]);
 
-  function confirmar(e: React.FormEvent) {
+  function escolherCarro(id: string) {
+    setCarroId(id);
+    const carro = veiculos.find((v) => v.id === id);
+    if (carro) setValor(String(carro.preco));
+  }
+
+  async function confirmar(e: React.FormEvent) {
     e.preventDefault();
-    if (vendeu) {
-      const num = Number(valor.replace(/\D/g, ""));
-      onConfirmar({ valor: num > 0 ? num : undefined, formaPagamento: forma });
-    } else {
-      onConfirmar({ motivo: motivo.trim() || undefined });
+    if (!fechamento || enviando) return;
+    if (vendeu && !carroId) {
+      setErro("Escolha o carro vendido.");
+      return;
+    }
+    setErro(null);
+    setEnviando(true);
+    try {
+      if (vendeu) {
+        const cliente = lead ?? leads.find((l) => l.id === clienteId) ?? null;
+        const resposta = await recordSaleAction(
+          { error: null },
+          formData({
+            vehicleId: carroId,
+            leadId: cliente?.id ?? "",
+            sellerId: sellers ? vendedor : "",
+            price: digitos(valor),
+            payment: forma,
+            bank: forma === "financing" ? banco : "",
+            financedAmount: forma === "financing" ? digitos(financiado) : "",
+          }),
+        );
+        if (resposta.error) return setErro(resposta.error);
+        const carro = veiculos.find((v) => v.id === carroId)?.titulo ?? "do carro";
+        onConfirmar(cliente ? `Venda de ${primeiroNome(cliente.nome)} registrada.` : `Venda do ${carro} registrada.`);
+      } else if (lead) {
+        const resposta = await loseLeadAction({ error: null }, formData({ id: lead.id, reason: motivo.trim() }));
+        if (resposta.error) return setErro(resposta.error);
+        onConfirmar(`${primeiroNome(lead.nome)} marcado como não comprou.`);
+      }
+    } catch {
+      setErro("Não foi possível salvar. Confira a internet e tente de novo.");
+    } finally {
+      setEnviando(false);
     }
   }
 
   const campoBase =
     "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
+  const rotulo = "flex flex-col gap-1.5 text-xs font-medium text-muted-strong";
 
   return (
     <AnimatePresence>
@@ -89,7 +173,7 @@ export function FecharNegocioDialog({
             role="dialog"
             aria-modal="true"
             aria-labelledby={tituloId}
-            className="relative z-[81] w-full max-w-md overflow-hidden rounded-t-[calc(var(--radius)*1.4)] border border-line bg-surface shadow-[var(--shadow-hover)] sm:rounded-[calc(var(--radius)*1.4)]"
+            className="relative z-[81] flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[calc(var(--radius)*1.4)] border border-line bg-surface shadow-[var(--shadow-hover)] sm:rounded-[calc(var(--radius)*1.4)]"
             // Mesmo movimento do modal de cliente — ver motion/sobreposicao.ts.
             {...painel(!!reduzir)}
           >
@@ -117,22 +201,59 @@ export function FecharNegocioDialog({
               </button>
             </div>
 
-            <form onSubmit={confirmar} className="flex flex-col gap-4 px-5 py-5">
-              <p className="text-sm text-muted-strong">
-                {vendeu ? "Fechou com " : "Marcar "}
-                <span className="font-semibold text-secondary">{fechamento.lead.nome}</span>
-                {fechamento.lead.carro && (
-                  <>
-                    {" "}
-                    — <span className="text-secondary/80">{fechamento.lead.carro}</span>
-                  </>
-                )}
-                {vendeu ? "." : " como não comprou."}
-              </p>
+            <form onSubmit={confirmar} className="flex flex-col gap-4 overflow-y-auto px-5 py-5">
+              {lead ? (
+                <p className="text-sm text-muted-strong">
+                  {vendeu ? "Fechou com " : "Marcar "}
+                  <span className="font-semibold text-secondary">{lead.nome}</span>
+                  {lead.carro && !vendeu && (
+                    <>
+                      {" "}
+                      — <span className="text-secondary/80">{lead.carro}</span>
+                    </>
+                  )}
+                  {vendeu ? "." : " como não comprou."}
+                </p>
+              ) : (
+                carroFixo && (
+                  <p className="text-sm text-muted-strong">
+                    Venda do <span className="font-semibold text-secondary">{carroFixo.titulo}</span>.
+                  </p>
+                )
+              )}
 
               {vendeu ? (
                 <>
-                  <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-strong">
+                  {!carroFixo && (
+                    <label className={rotulo}>
+                      Carro vendido
+                      <select value={carroId} onChange={(e) => escolherCarro(e.target.value)} className={`${campoBase} cursor-pointer`}>
+                        <option value="">Escolha o carro</option>
+                        {veiculos.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.titulo} — {formatPreco(v.preco)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  {!lead && (
+                    <label className={rotulo}>
+                      Cliente (opcional)
+                      <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className={`${campoBase} cursor-pointer`}>
+                        <option value="">Sem cliente no funil</option>
+                        {leads.map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.nome}
+                            {l.carro ? ` — ${l.carro}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  <label className={rotulo}>
                     Valor da venda
                     <input
                       ref={primeiroRef}
@@ -143,10 +264,9 @@ export function FecharNegocioDialog({
                       className={`${campoBase} text-base font-semibold`}
                     />
                   </label>
+
                   <fieldset>
-                    <legend className="mb-1.5 text-xs font-medium text-muted-strong">
-                      Forma de pagamento
-                    </legend>
+                    <legend className="mb-1.5 text-xs font-medium text-muted-strong">Forma de pagamento</legend>
                     <div className="flex flex-wrap gap-2">
                       {FORMAS.map((f) => {
                         const ativo = forma === f;
@@ -162,15 +282,48 @@ export function FecharNegocioDialog({
                                 : "border border-line bg-surface text-secondary/80 hover:bg-sand"
                             }`}
                           >
-                            {f}
+                            {PAYMENT_LABEL[f]}
                           </button>
                         );
                       })}
                     </div>
                   </fieldset>
+
+                  {forma === "financing" && (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className={rotulo}>
+                        Valor financiado
+                        <input
+                          value={financiado}
+                          onChange={(e) => setFinanciado(e.target.value)}
+                          inputMode="numeric"
+                          placeholder="R$ 0"
+                          className={campoBase}
+                        />
+                      </label>
+                      <label className={rotulo}>
+                        Banco (opcional)
+                        <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="Ex.: BV" className={campoBase} />
+                      </label>
+                    </div>
+                  )}
+
+                  {sellers && (
+                    <label className={rotulo}>
+                      Vendedor
+                      <select value={vendedor} onChange={(e) => setVendedor(e.target.value)} className={`${campoBase} cursor-pointer`}>
+                        <option value="">Eu (quem registra)</option>
+                        {sellers.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </>
               ) : (
-                <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-strong">
+                <label className={rotulo}>
                   Motivo (opcional)
                   <input
                     ref={primeiroRef}
@@ -188,6 +341,12 @@ export function FecharNegocioDialog({
                 </label>
               )}
 
+              {erro && (
+                <p role="alert" className="text-sm text-danger-ink">
+                  {erro}
+                </p>
+              )}
+
               <div className="mt-1 flex gap-2.5">
                 <button
                   type="button"
@@ -198,13 +357,14 @@ export function FecharNegocioDialog({
                 </button>
                 <button
                   type="submit"
-                  className={`flex-1 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold transition-colors duration-200 ${
+                  disabled={enviando}
+                  className={`flex-1 rounded-[var(--radius-control)] px-4 py-2.5 text-sm font-semibold transition-colors duration-200 disabled:opacity-60 ${
                     vendeu
                       ? "bg-success text-on-primary hover:bg-success-ink"
                       : "bg-primary text-on-primary hover:bg-primary-hover"
                   }`}
                 >
-                  {vendeu ? "Registrar venda" : "Confirmar"}
+                  {enviando ? "Salvando…" : vendeu ? "Registrar venda" : "Confirmar"}
                 </button>
               </div>
             </form>
