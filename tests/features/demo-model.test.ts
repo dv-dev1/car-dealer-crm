@@ -1,6 +1,6 @@
 import pg from "pg";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { restoreDemoStore } from "@/features/demo/model";
+import { getDemoPanel, restoreDemoStore } from "@/features/demo/model";
 import { DEMO_TABLES, buildDemoData } from "@/features/demo/seed";
 import type { StoreMember } from "@/shared/db/client";
 import { seedDomainRows, seedTwoStores } from "../db/fixtures.ts";
@@ -110,4 +110,19 @@ it("records when the demo was restored", async () => {
   const [{ demo_restored_at: at }] = await adminQuery("select demo_restored_at from stores where id = $1", [seed.a.storeId]);
   expect(at.getTime()).toBeGreaterThanOrEqual(started - 1000);
   expect(at.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+});
+
+it("getDemoPanel gives the restore day in the store's time zone and the team by role and name", async () => {
+  await restoreDemoStore(ana, TODAY);
+  await adminQuery("update stores set demo_restored_at = '2026-11-14 02:30:00+00' where id = $1", [seed.a.storeId]);
+  const panel = await getDemoPanel(ana);
+  expect(panel.restoredOn).toBe("2026-11-13");
+  expect(panel.team.map((m) => `${m.role} ${m.name}`)).toEqual([
+    "owner Ana", "manager Renata Albuquerque", "seller Beto", "seller Bruno Farias", "seller Larissa Melo", "seller Tiago Dantas",
+  ]);
+  expect(panel.team[0].membershipId).toBe(seed.a.ana.id);
+});
+
+it("getDemoPanel gives no restore day to a store never restored", async () => {
+  expect((await getDemoPanel(ana)).restoredOn).toBeNull();
 });

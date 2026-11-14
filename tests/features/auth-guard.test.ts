@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import SemAcessoPage from "@/app/sem-acesso/page";
 import { signOutAction } from "@/features/auth/actions";
-import { requireMember, requireRole } from "@/features/auth/guard";
+import { VIEW_AS_COOKIE, requireDemoOwner, requireMember, requireRole } from "@/features/auth/guard";
 import { NoAccessView } from "@/features/auth/view";
 import { ThemeScope } from "@/themes/ThemeScope";
 import { seedTwoStores } from "../db/fixtures.ts";
@@ -30,6 +30,12 @@ vi.mock("next/navigation", () => nav);
 
 vi.mock("@/features/auth/actions", () => ({ signOutAction: vi.fn() }));
 
+// The request's cookies, as next/headers gives them to a server component.
+const jar = vi.hoisted(() => new Map<string, string>());
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: (name: string) => (jar.has(name) ? { name, value: jar.get(name) } : undefined) }),
+}));
+
 // next/font only works inside the Next compiler.
 vi.mock("next/font/google", () => ({ Archivo: () => ({ variable: "font-archivo" }) }));
 
@@ -50,6 +56,7 @@ beforeEach(async () => {
 });
 afterEach(() => {
   vi.clearAllMocks();
+  jar.clear();
 });
 
 function signIn(user: { id: string; email: string; emailVerified: boolean } | null) {
@@ -122,6 +129,85 @@ describe("requireRole", () => {
   it("returns the member context when the role is allowed", async () => {
     signIn({ id: "user_beto", email: seed.a.beto.email, emailVerified: true });
     expect(await requireRole(["owner", "seller"])).toMatchObject({ membershipId: seed.a.beto.id, role: "seller" });
+  });
+});
+
+describe("view as", () => {
+  async function demoOwnerSignedIn() {
+    const { a } = seed;
+    await admin.query("update stores set is_demo = true where id = $1", [a.storeId]);
+    signIn({ id: "user_ana", email: a.ana.email, emailVerified: true });
+  }
+
+  it("lets the owner of a demo store view as a seller of that store", async () => {
+    await demoOwnerSignedIn();
+    jar.set(VIEW_AS_COOKIE, seed.a.beto.id);
+    expect(await requireMember()).toMatchObject({
+      membershipId: seed.a.beto.id, storeId: seed.a.storeId, role: "seller", name: "Beto", isDemo: true, viewingAs: true,
+    });
+  });
+
+  it("returns the real member with viewingAs false without the cookie", async () => {
+    await demoOwnerSignedIn();
+    expect(await requireMember()).toMatchObject({ membershipId: seed.a.ana.id, role: "owner", viewingAs: false });
+  });
+
+  it("ignores the cookie outside a demo store", async () => {
+    signIn({ id: "user_ana", email: seed.a.ana.email, emailVerified: true });
+    jar.set(VIEW_AS_COOKIE, seed.a.beto.id);
+    expect(await requireMember()).toMatchObject({ membershipId: seed.a.ana.id, role: "owner", viewingAs: false });
+  });
+
+  it("ignores the cookie when the real member is not the owner", async () => {
+    await admin.query("update stores set is_demo = true where id = $1", [seed.a.storeId]);
+    signIn({ id: "user_beto", email: seed.a.beto.email, emailVerified: true });
+    jar.set(VIEW_AS_COOKIE, seed.a.ana.id);
+    expect(await requireMember()).toMatchObject({ membershipId: seed.a.beto.id, role: "seller", viewingAs: false });
+  });
+
+  it("ignores a cookie naming a member of another store or a removed one", async () => {
+    await demoOwnerSignedIn();
+    jar.set(VIEW_AS_COOKIE, seed.b.carla.id);
+    expect(await requireMember()).toMatchObject({ membershipId: seed.a.ana.id, role: "owner", viewingAs: false });
+    jar.set(VIEW_AS_COOKIE, seed.a.beto.id);
+    await admin.query("delete from memberships where id = $1", [seed.a.beto.id]);
+    expect(await requireMember()).toMatchObject({ membershipId: seed.a.ana.id, role: "owner", viewingAs: false });
+  });
+
+  it("ignores a cookie that is not a uuid without querying the database", async () => {
+    await demoOwnerSignedIn();
+    const connect = vi.spyOn(pg.Client.prototype, "connect");
+    try {
+      await requireMember();
+      const withoutCookie = connect.mock.calls.length;
+      jar.set(VIEW_AS_COOKIE, "' or true --");
+      expect(await requireMember()).toMatchObject({ membershipId: seed.a.ana.id, viewingAs: false });
+      expect(connect.mock.calls.length).toBe(2 * withoutCookie);
+    } finally {
+      connect.mockRestore();
+    }
+  });
+
+  it("requireRole uses the viewed role", async () => {
+    await demoOwnerSignedIn();
+    jar.set(VIEW_AS_COOKIE, seed.a.beto.id);
+    await expect(requireRole(["owner"])).rejects.toThrow("/gestao");
+    expect(nav.redirect).toHaveBeenCalledWith("/gestao");
+  });
+
+  it("requireDemoOwner returns the real owner while viewing as a seller", async () => {
+    await demoOwnerSignedIn();
+    jar.set(VIEW_AS_COOKIE, seed.a.beto.id);
+    expect(await requireDemoOwner()).toMatchObject({ membershipId: seed.a.ana.id, role: "owner", isDemo: true });
+    expect(await requireDemoOwner()).not.toHaveProperty("viewingAs");
+  });
+
+  it("requireDemoOwner sends anyone else to /gestao", async () => {
+    signIn({ id: "user_ana", email: seed.a.ana.email, emailVerified: true });
+    await expect(requireDemoOwner()).rejects.toThrow("/gestao");
+    await admin.query("update stores set is_demo = true where id = $1", [seed.a.storeId]);
+    signIn({ id: "user_beto", email: seed.a.beto.email, emailVerified: true });
+    await expect(requireDemoOwner()).rejects.toThrow("/gestao");
   });
 });
 
