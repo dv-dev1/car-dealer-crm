@@ -1,7 +1,7 @@
 import pg from "pg";
 import { beforeEach, expect, it } from "vitest";
 import { convertToDemoStore, createDemoStore } from "../../scripts/demo-store.ts";
-import { seedTwoStores } from "../db/fixtures.ts";
+import { seedDomainRows, seedTwoStores } from "../db/fixtures.ts";
 import { TEST_ADMIN_URL } from "../setup/urls.ts";
 
 async function query(sql: string, params: unknown[] = []) {
@@ -38,6 +38,22 @@ it("convertToDemoStore marks a store as demo, renames it and fills it", async ()
   expect(n).toBeGreaterThan(50);
   const kept = await query("select email from memberships where store_id = $1 and email like '%@lojaa.com' order by email", [seed.a.storeId]);
   expect(kept.map((row) => row.email)).toEqual(["ana@lojaa.com", "beto@lojaa.com"]);
+});
+
+it("convertToDemoStore refuses a store with its own data that is not a demo yet, and changes nothing", async () => {
+  await seedDomainRows(seed.a.storeId, { owner: seed.a.ana.id, seller: seed.a.beto.id, seller2: seed.a.beto.id });
+  await expect(convertToDemoStore(TEST_ADMIN_URL, seed.a.storeId)).rejects.toThrow(/already has data/);
+  const [store] = await query("select name, is_demo from stores where id = $1", [seed.a.storeId]);
+  expect(store).toEqual({ name: "Loja A", is_demo: false });
+  const [{ n }] = await query("select count(*)::int as n from vehicles where store_id = $1", [seed.a.storeId]);
+  expect(n).toBe(2);
+});
+
+it("convertToDemoStore refills a store that is already a demo", async () => {
+  await convertToDemoStore(TEST_ADMIN_URL, seed.a.storeId);
+  await convertToDemoStore(TEST_ADMIN_URL, seed.a.storeId);
+  const [{ n }] = await query("select count(*)::int as n from vehicles where store_id = $1 and status <> 'sold'", [seed.a.storeId]);
+  expect(n).toBe(22);
 });
 
 it("convertToDemoStore refuses a store that does not exist", async () => {

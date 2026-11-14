@@ -104,12 +104,15 @@ it("ties each sale to a sold car, a seller and a won lead", () => {
 
 it("brings trade-ins into stock linked to their sale", () => {
   const sales = byId(d.sales);
+  const tradeInValue = new Map(d.sale_trade_ins.map((t) => [t.sale_id as string, t.trade_in_value]));
+  expect(d.sale_trade_ins).toHaveLength(d.sales.filter((s) => s.trade_in_vehicle_id).length);
+  expect(d.sales.every((s) => !("trade_in_value" in s))).toBe(true);
   const tradeIns = d.vehicles.filter((v) => v.source === "trade_in");
   expect(tradeIns.filter((v) => inStock.includes(v)).length).toBeGreaterThanOrEqual(1);
   for (const v of tradeIns) {
     const sale = sales.get(v.acquired_in_sale_id as string)!;
     expect(sale.trade_in_vehicle_id).toBe(v.id);
-    expect(finances.get(v.id as string)!.purchase_price).toBe(sale.trade_in_value);
+    expect(finances.get(v.id as string)!.purchase_price).toBe(tradeInValue.get(sale.id as string));
     expect(v.entered_on).toBe(sale.sold_on);
   }
 });

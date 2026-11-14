@@ -5,7 +5,7 @@ import { seedDomainRows, seedTwoStores } from "./fixtures.ts";
 
 const DOMAIN = [
   "vehicles", "vehicle_finances", "vehicle_photos", "vehicle_expenses", "vehicle_documents", "channels",
-  "channel_costs", "leads", "lead_contacts", "sales", "sale_finances", "reservations", "commission_rules",
+  "channel_costs", "leads", "lead_contacts", "sales", "sale_finances", "sale_trade_ins", "reservations", "commission_rules",
   "goals", "store_expenses",
 ];
 const MANAGERS_ONLY = ["vehicle_finances", "vehicle_expenses", "sale_finances", "channel_costs", "commission_rules"];
@@ -106,6 +106,31 @@ it("shows a manager every private table except store_expenses", async () => {
     expect(await asApp(manager(), (db) => count(db, table, a.storeId)), table).toBeGreaterThan(0);
   }
   expect(await asApp(manager(), (db) => count(db, "store_expenses", a.storeId))).toBe(0);
+});
+
+it("shows the trade-in value only to owner, manager and the seller of that sale", async () => {
+  const [car] = (await adminQuery("select brand, model, version, model_year, manufacture_year, km, fuel, transmission, entered_on from vehicles where id = $1", [rowsA.vehicleId])).rows;
+  const sold = (await adminQuery(
+    `insert into vehicles (store_id, slug, status, price, ${Object.keys(car).join(", ")}) values ($1, 'onix-3', 'sold', 65000, ${Object.keys(car).map((_, i) => `$${i + 2}`).join(", ")}) returning id`,
+    [a.storeId, ...Object.values(car)],
+  )).rows[0].id;
+  const colleagueSale = (await adminQuery(
+    `insert into sales (store_id, vehicle_id, seller_id, seller_name, sold_on, price, payment, warranty_until)
+     values ($1, $2, $3, 'Dani', '2026-11-02', 65000, 'cash', '2027-01-31') returning id`,
+    [a.storeId, sold, a.seller2],
+  )).rows[0].id;
+  await adminQuery("insert into sale_trade_ins (store_id, sale_id, trade_in_value) values ($1, $2, 25000)", [a.storeId, colleagueSale]);
+  const seen = async (who: { storeId: string; role: string; membershipId: string }) =>
+    (await asApp(who, (db) => db.query("select sale_id, trade_in_value::int as value from sale_trade_ins order by value"))).rows;
+  expect(await seen(seller())).toEqual([{ sale_id: rowsA.saleId, value: 30000 }]);
+  expect(await seen({ storeId: a.storeId, role: "seller", membershipId: a.seller2 })).toEqual([{ sale_id: colleagueSale, value: 25000 }]);
+  expect(await seen(manager())).toHaveLength(2);
+  expect(await seen(owner())).toHaveLength(2);
+  const columns = (await adminQuery("select column_name from information_schema.columns where table_name = 'sales'")).rows;
+  expect(columns.map((row) => row.column_name)).not.toContain("trade_in_value");
+  await expect(
+    asApp(seller(), (db) => db.query("insert into sale_trade_ins (store_id, sale_id, trade_in_value) values ($1, $2, 1)", [a.storeId, colleagueSale])),
+  ).rejects.toMatchObject(byPolicy);
 });
 
 it("shows a seller the store goal and their own, not a colleague's", async () => {

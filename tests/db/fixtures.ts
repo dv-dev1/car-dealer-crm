@@ -95,6 +95,7 @@ export async function seedDomainRows(
       sold_on: "2026-11-01", price: 70000, payment: "financing", bank: "BV", financed_amount: 40000, warranty_until: "2027-01-30",
     });
     await insert("sale_finances", { sale_id: sale.id, financing_return_pct: 0.03 });
+    await insert("sale_trade_ins", { sale_id: sale.id, trade_in_value: 30000 });
     await insert("reservations", { vehicle_id: vehicle.id, lead_id: leadOfSeller2.id, deposit: 1000, expires_on: "2026-11-20", created_by: people.seller2 });
     await insert("commission_rules", { kind: "fixed", value: 350 });
     for (const member_id of new Set([null, people.seller, people.seller2])) await insert("goals", { month: "2026-11-01", member_id, cars: 4 });

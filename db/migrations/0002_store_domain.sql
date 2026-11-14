@@ -185,7 +185,6 @@ create table sales (
   bank text,
   financed_amount numeric(12,2) check (financed_amount > 0 and financed_amount <= price),
   trade_in_vehicle_id uuid,
-  trade_in_value numeric(12,2) check (trade_in_value > 0),
   warranty_until date not null,
   transfer_done_on date,
   created_at timestamptz not null default now(),
@@ -205,6 +204,14 @@ create table sale_finances (
   sale_id uuid primary key,
   store_id uuid not null references stores on delete cascade,
   financing_return_pct numeric(5,4) not null check (financing_return_pct between 0 and 0.2),
+  foreign key (sale_id, store_id) references sales (id, store_id) on delete cascade
+);
+
+-- What the store paid for the car taken in the sale: a cost, so a seller reads only their own sale's.
+create table sale_trade_ins (
+  sale_id uuid primary key,
+  store_id uuid not null references stores on delete cascade,
+  trade_in_value numeric(12,2) not null check (trade_in_value > 0),
   foreign key (sale_id, store_id) references sales (id, store_id) on delete cascade
 );
 
@@ -265,6 +272,7 @@ alter table leads enable row level security;
 alter table lead_contacts enable row level security;
 alter table sales enable row level security;
 alter table sale_finances enable row level security;
+alter table sale_trade_ins enable row level security;
 alter table reservations enable row level security;
 alter table commission_rules enable row level security;
 alter table goals enable row level security;
@@ -290,6 +298,14 @@ create policy vehicle_finances_manage on vehicle_finances for all to app_user
 create policy vehicle_expenses_manage on vehicle_expenses for all to app_user
   using (store_id = app_store_id() and app_is_manager()) with check (store_id = app_store_id() and app_is_manager());
 create policy sale_finances_manage on sale_finances for all to app_user
+  using (store_id = app_store_id() and app_is_manager()) with check (store_id = app_store_id() and app_is_manager());
+
+-- The seller who made the sale negotiated the trade-in, so they see that value; owner and manager write it.
+create policy sale_trade_ins_select on sale_trade_ins for select to app_user using (
+  store_id = app_store_id()
+  and (app_is_manager() or exists (select from sales s where s.id = sale_id and s.seller_id = app_membership_id()))
+);
+create policy sale_trade_ins_manage on sale_trade_ins for all to app_user
   using (store_id = app_store_id() and app_is_manager()) with check (store_id = app_store_id() and app_is_manager());
 
 -- Owner and manager read; only the owner writes.
@@ -348,7 +364,7 @@ create policy reservations_seller_update on reservations for update to app_user
 
 grant select, insert, update, delete on
   channels, channel_costs, vehicles, vehicle_finances, vehicle_photos, vehicle_expenses, vehicle_documents,
-  leads, lead_contacts, sales, sale_finances, reservations, commission_rules, goals, store_expenses
+  leads, lead_contacts, sales, sale_finances, sale_trade_ins, reservations, commission_rules, goals, store_expenses
   to app_user;
 
 -- Restore: only the owner of a demo store. Locks the store row so two restores run one after the other.

@@ -55,8 +55,18 @@ export async function createDemoStore(adminUrl: string, input: DemoStoreInput): 
 }
 
 // Turns an existing store into the Maré: real members stay, its data is replaced by the demo's.
+// A store that is not a demo yet and already has cars, clients or sales is refused: a mistyped id must not wipe a client.
 export async function convertToDemoStore(adminUrl: string, storeId: string): Promise<void> {
   await asOwner(adminUrl, async (client) => {
+    const { rows: [found] } = await client.query<{ is_demo: boolean; has_data: boolean }>(
+      `select is_demo, exists (select from vehicles where store_id = $1) or exists (select from leads where store_id = $1)
+              or exists (select from sales where store_id = $1) as has_data
+         from stores where id = $1 for update`,
+      [storeId],
+    );
+    if (found && !found.is_demo && found.has_data) {
+      throw new Error(`Store ${storeId} already has data and is not a demo store: refusing to replace it`);
+    }
     const { rows } = await client.query<{ id: string; owner_id: string | null }>(
       `update stores set is_demo = true, name = $2, city = $3, whatsapp = $4 where id = $1
        returning id, (select m.id from memberships m where m.store_id = $1 and m.role = 'owner' limit 1) as owner_id`,

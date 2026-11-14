@@ -16,7 +16,7 @@ export const DEMO_STAFF: readonly { key: StaffKey; name: string; email: string; 
 // Insert order: a table comes after every table it references (vehicles <-> sales is deferred).
 export const DEMO_TABLES = [
   "channels", "channel_costs", "vehicles", "vehicle_finances", "vehicle_documents", "vehicle_expenses", "leads",
-  "lead_contacts", "sales", "sale_finances", "reservations", "commission_rules", "goals", "store_expenses",
+  "lead_contacts", "sales", "sale_finances", "sale_trade_ins", "reservations", "commission_rules", "goals", "store_expenses",
 ] as const;
 
 export type DemoTable = (typeof DEMO_TABLES)[number];
@@ -262,7 +262,6 @@ export function buildDemoData(input: { today: string; staff: Record<StaffKey, st
       bank: financed ? pick(BANKS) : null,
       financed_amount: financed ? round(price * (0.4 + rand() * 0.4), 100) : null,
       trade_in_vehicle_id: null,
-      trade_in_value: null,
       warranty_until: addDays(soldOn, 90),
       transfer_done_on: transferDoneOn,
     };
@@ -274,7 +273,7 @@ export function buildDemoData(input: { today: string; staff: Record<StaffKey, st
       const value = round((tradeIn.price as number) * 0.84, 500);
       tradeIn.acquired_in_sale_id = sale.id;
       sale.trade_in_vehicle_id = tradeIn.id;
-      sale.trade_in_value = value;
+      data.sale_trade_ins.push({ sale_id: sale.id, trade_in_value: value });
       finance(tradeIn, value);
       expenses(tradeIn, soldOn, minDate(addDays(soldOn, 10), today), 1);
       tradeInsWaiting.push(tradeIn);
