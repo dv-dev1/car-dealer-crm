@@ -10,9 +10,15 @@ export PATH="$(brew --prefix postgresql@17)/bin:$PATH"
 npm ci
 cp .dev.vars.example .dev.vars   # preencha com os valores do ambiente de staging da WorkOS
 npm run db:dev                   # Postgres local na porta 54328, banco crm_dev; para com: pg_ctl -D .pgdata stop
-MIGRATE_DATABASE_URL=postgres://postgres@127.0.0.1:54328/crm_dev npm run store:create -- --name "Loja Teste" --slug loja-teste --owner-name "Seu Nome" --owner-email voce@exemplo.com
+MIGRATE_DATABASE_URL=postgres://postgres@127.0.0.1:54328/crm_dev npm run demo:store -- --slug mare-veiculos --owner-name "Seu Nome" --owner-email voce@exemplo.com
 npm run preview                  # http://localhost:8787
 ```
+
+O `demo:store` cria a Maré Veículos, a loja de demonstração: você como dono, a equipe fictícia
+(`@exemplo.invalid`, ninguém entra com esses e-mails) e seis meses de estoque, clientes e vendas contados
+a partir de hoje. Para transformar uma loja que já existe na Maré, troque os três parâmetros por
+`--store-id <uuid>`: as pessoas reais ficam, os dados da loja são trocados pelos da demo. Loja de cliente
+de verdade se cria com `npm run store:create -- --name ... --slug ... --owner-name ... --owner-email ...`.
 
 No `.dev.vars`, preencha `WORKOS_API_KEY`, `WORKOS_CLIENT_ID` e `WORKOS_COOKIE_PASSWORD` (32+ caracteres)
 do staging; `NEXT_PUBLIC_WORKOS_REDIRECT_URI` e as chaves de teste do Turnstile já vêm certas. No painel

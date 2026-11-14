@@ -1,4 +1,4 @@
-import { BANKS, COLORS, EXPENSES, FIRST_NAMES, LAST_NAMES, LOST_REASONS, MODELS, type CatalogModel } from "./catalog";
+import { BANKS, COLORS, EXPENSES, FIRST_NAMES, LAST_NAMES, LOST_REASONS, MODELS, type CatalogModel } from "./catalog.ts";
 
 // The demo store. Its WhatsApp is a placeholder until the founders pick a number (a confirmar).
 export const DEMO_STORE = { name: "Maré Veículos", city: "João Pessoa - PB", whatsapp: "558390000000" } as const;
