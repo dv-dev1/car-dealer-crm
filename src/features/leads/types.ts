@@ -65,3 +65,17 @@ export interface Lead {
 /** How a sale's payment reads on screen. */
 export const PAYMENT_LABEL = { cash: "À vista", financing: "Financiamento" } as const;
 export type Payment = keyof typeof PAYMENT_LABEL;
+
+export type DbStage = "new" | "visit_scheduled" | "negotiating" | "call_back" | "won" | "lost";
+export type ActiveStage = Exclude<DbStage, "won" | "lost">;
+export const ACTIVE_STAGES: readonly ActiveStage[] = ["new", "visit_scheduled", "negotiating", "call_back"];
+export const STAGE_UI: Record<DbStage, EstagioFunil> = {
+  new: "lead-novo",
+  visit_scheduled: "visita-marcada",
+  negotiating: "negociando",
+  call_back: "ligar-volta",
+  won: "vendeu",
+  lost: "nao-comprou",
+};
+/** Funnel column → database stage. */
+export const UI_STAGE = Object.fromEntries(Object.entries(STAGE_UI).map(([db, ui]) => [ui, db])) as Record<EstagioFunil, DbStage>;

@@ -1,19 +1,9 @@
 import { UUID, withStore, type Db, type MemberContext } from "@/shared/db/client";
 import { STORE_TIME_ZONE, todayIso } from "@/shared/today";
 
-import { PAYMENT_LABEL, type EstagioFunil, type Lead, type Payment } from "./types";
+import { ACTIVE_STAGES, PAYMENT_LABEL, STAGE_UI, type ActiveStage, type DbStage, type Lead, type Payment } from "./types";
 
-export type DbStage = "new" | "visit_scheduled" | "negotiating" | "call_back" | "won" | "lost";
-export type ActiveStage = Exclude<DbStage, "won" | "lost">;
-export const ACTIVE_STAGES: readonly ActiveStage[] = ["new", "visit_scheduled", "negotiating", "call_back"];
-export const STAGE_UI: Record<DbStage, EstagioFunil> = {
-  new: "lead-novo",
-  visit_scheduled: "visita-marcada",
-  negotiating: "negociando",
-  call_back: "ligar-volta",
-  won: "vendeu",
-  lost: "nao-comprou",
-};
+export { ACTIVE_STAGES, STAGE_UI, type ActiveStage, type DbStage };
 
 /**
  * `sellerId` null means "me" on create and "unchanged" on update; a seller may only name themselves.
