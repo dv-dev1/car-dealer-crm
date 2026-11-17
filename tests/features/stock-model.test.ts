@@ -107,7 +107,33 @@ const INPUT: VehicleInput = {
   acquisitionCost: 61000,
   enteredOn: "2026-11-10",
   ready: true,
+  source: "purchase",
+  consignorName: null,
+  consignorPhone: null,
 };
+const CONSIGNED: VehicleInput = {
+  ...INPUT, source: "consignment", acquisitionCost: 50000, consignorName: "Carlos", consignorPhone: "(83) 90000-1111",
+};
+
+it("creates a consigned car with the owner's payout; a seller gets neither", async () => {
+  const result = await createVehicle(owner, CONSIGNED, TODAY);
+  if (!result.ok) throw new Error(result.error);
+  expect(await getVehicle(owner, result.slug, TODAY)).toMatchObject({
+    source: "consignment", money: { acquisitionCost: 50000 }, consignor: { name: "Carlos", phone: "5583900001111" },
+  });
+  expect(await getVehicle(seller, result.slug, TODAY)).toMatchObject({ money: null, consignor: null });
+  const invalid = (field: string) => ({ ok: false, error: "invalid", field });
+  expect(await createVehicle(owner, { ...CONSIGNED, acquisitionCost: 0 }, TODAY)).toEqual(invalid("acquisitionCost"));
+  expect(await createVehicle(owner, { ...CONSIGNED, consignorPhone: "123" }, TODAY)).toEqual(invalid("consignorPhone"));
+  expect(await createVehicle(owner, { ...CONSIGNED, consignorName: " " }, TODAY)).toEqual(invalid("consignorName"));
+  expect(await createVehicle(owner, { ...CONSIGNED, consignorPhone: null }, TODAY)).toMatchObject({ ok: true });
+});
+
+it("a purchased car has no consignor, whatever the form sent", async () => {
+  const result = await createVehicle(owner, { ...INPUT, consignorName: "Carlos" }, TODAY);
+  if (!result.ok) throw new Error(result.error);
+  expect(await getVehicle(owner, result.slug, TODAY)).toMatchObject({ source: "purchase", consignor: null });
+});
 
 it("creates a car with its cost, visible in the stock", async () => {
   const result = await createVehicle(owner, INPUT, TODAY);
@@ -190,9 +216,12 @@ it("does not edit another store's car", async () => {
 it("keeps the consignment cost in the consignor payout", async () => {
   const consigned = (await listStock(owner, TODAY)).find((c) => c.source === "consignment")!;
   const expenses = consigned.money!.cost - Number((await adminQuery("select consignor_payout from vehicle_finances where vehicle_id = $1", [consigned.id]))[0].consignor_payout);
-  await updateVehicle(owner, consigned.id, { ...INPUT, acquisitionCost: 50000 }, TODAY);
-  expect((await getVehicle(owner, consigned.slug, TODAY))!.money!.cost).toBe(50000 + expenses);
-  expect(await updateVehicle(owner, consigned.id, { ...INPUT, acquisitionCost: 0 }, TODAY)).toEqual({ ok: false, error: "invalid", field: "acquisitionCost" });
+  expect(await updateVehicle(owner, consigned.id, { ...CONSIGNED, consignorName: "Carla", consignorPhone: null }, TODAY)).toMatchObject({ ok: true });
+  const after = (await getVehicle(owner, consigned.slug, TODAY))!;
+  expect(after.money!.cost).toBe(50000 + expenses);
+  expect(after.consignor).toEqual({ name: "Carla", phone: null });
+  expect(await updateVehicle(owner, consigned.id, { ...CONSIGNED, acquisitionCost: 0 }, TODAY)).toEqual({ ok: false, error: "invalid", field: "acquisitionCost" });
+  expect(await updateVehicle(owner, consigned.id, { ...CONSIGNED, consignorName: "" }, TODAY)).toEqual({ ok: false, error: "invalid", field: "consignorName" });
 });
 
 it("the demo catalog uses the form's option lists, so a demo car can be edited", () => {

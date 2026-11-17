@@ -34,6 +34,9 @@ const FIELD_LABEL: Record<keyof VehicleInput, string> = {
   acquisitionCost: "Preço de compra",
   enteredOn: "Data de aquisição",
   ready: "Pronto para anunciar",
+  source: "Origem",
+  consignorName: "Nome do dono do carro",
+  consignorPhone: "WhatsApp do dono do carro",
 };
 
 const SAVE_ERROR = {
@@ -50,7 +53,10 @@ const PHOTO_ERROR = {
   too_many: "Limite de 20 fotos por carro.",
 } as const;
 
-const invalid = (field: keyof VehicleInput): VehicleFormState => ({ error: `Confira o campo: ${FIELD_LABEL[field]}.`, field });
+const invalid = (field: keyof VehicleInput, consigned = false): VehicleFormState => ({
+  error: `Confira o campo: ${consigned && field === "acquisitionCost" ? "Valor a repassar ao dono" : FIELD_LABEL[field]}.`,
+  field,
+});
 const NUMBERS = ["manufactureYear", "modelYear", "km", "price", "acquisitionCost"] as const;
 
 // Numbers arrive as digits only (the form strips the rest); anything else is a typing error, not a guess.
@@ -78,17 +84,21 @@ function readVehicle(form: FormData): { input: VehicleInput } | { field: keyof V
     featured: form.get("featured") === "on",
     enteredOn: value("enteredOn"),
     ready: form.get("ready") === "on",
+    source: value("source") === "consignment" ? "consignment" : "purchase",
+    consignorName: value("consignorName") || null,
+    consignorPhone: value("consignorPhone") || null,
   };
   return { input };
 }
 
 export async function saveVehicleAction(_prev: VehicleFormState, form: FormData): Promise<VehicleFormState> {
   const member = await requireMember();
+  const consigned = form.get("source") === "consignment";
   const read = readVehicle(form);
-  if ("field" in read) return invalid(read.field);
+  if ("field" in read) return invalid(read.field, consigned);
   const id = String(form.get("id") ?? "");
   const result = id ? await updateVehicle(member, id, read.input) : await createVehicle(member, read.input);
-  if (!result.ok) return result.error === "invalid" ? invalid(result.field!) : { error: SAVE_ERROR[result.error] };
+  if (!result.ok) return result.error === "invalid" ? invalid(result.field!, consigned) : { error: SAVE_ERROR[result.error] };
   revalidatePath("/gestao", "layout");
   return { error: null, id: result.id, slug: result.slug };
 }

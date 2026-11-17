@@ -1,4 +1,5 @@
 import { CAMBIOS, CATEGORIAS, COMBUSTIVEIS, CORES, OPCIONAIS } from "@/data/opcoes-veiculo";
+import { normalizePhone } from "@/features/leads/model";
 import { UUID, withStore, type Db, type MemberContext } from "@/shared/db/client";
 import { isIsoDate, todayIso } from "@/shared/today";
 
@@ -45,6 +46,8 @@ export type StockVehicle = {
   /** The open reservation (not canceled, not expired); `mine` when the viewer made it. */
   reservation: { id: string; leadName: string | null; deposit: number; expiresOn: string; mine: boolean } | null;
   money: StockMoney | null;
+  /** Who owns a consigned car; only for owner and manager. */
+  consignor: { name: string; phone: string | null } | null;
 };
 
 type Row = Omit<StockVehicle, "title" | "price" | "minCashPrice" | "photos" | "away" | "money"> & {
@@ -84,8 +87,10 @@ const SELECT = `
 function select(ctx: MemberContext, where: string): string {
   const cost =
     ctx.role === "seller"
-      ? `null::numeric as cost, null::numeric as "acquisitionCost", null::numeric as "moneyRate"`
-      : `c.cost, c.acquisition_cost as "acquisitionCost", (select s.money_rate from stores s where s.id = v.store_id) as "moneyRate"`;
+      ? `null::numeric as cost, null::numeric as "acquisitionCost", null::numeric as "moneyRate", null::json as consignor`
+      : `c.cost, c.acquisition_cost as "acquisitionCost", (select s.money_rate from stores s where s.id = v.store_id) as "moneyRate",
+         (select json_build_object('name', f.consignor_name, 'phone', f.consignor_phone) from vehicle_finances f
+           where f.vehicle_id = v.id and v.source = 'consignment') as consignor`;
   const sql = SELECT.replace("%COST%", cost);
   return ctx.role === "seller"
     ? `${sql} ${where}`
@@ -96,7 +101,7 @@ function toVehicle(row: Row): StockVehicle {
   const price = Number(row.price);
   const minCashPrice = row.minCashPrice === null ? null : Number(row.minCashPrice);
   const cost = row.cost === null ? null : Number(row.cost);
-  const { cost: _cost, acquisitionCost, moneyRate, photos, awayReason, awayUntil, ...rest } = row;
+  const { cost: _cost, acquisitionCost, moneyRate, photos, awayReason, awayUntil, consignor, ...rest } = row;
   return {
     ...rest,
     title: `${row.brand} ${row.model} ${row.version}`,
@@ -104,6 +109,7 @@ function toVehicle(row: Row): StockVehicle {
     minCashPrice,
     photos: photos.map((photo) => ({ id: photo.id, url: photoUrl(photo.path) })),
     away: awayReason ? { reason: awayReason, until: awayUntil } : null,
+    consignor,
     money:
       cost === null
         ? null
@@ -156,6 +162,11 @@ export type VehicleInput = {
   enteredOn: string;
   /** Ready to advertise: available; otherwise in preparation. */
   ready: boolean;
+  /** Fixed once the car is in: an edit keeps the car's own. */
+  source: "purchase" | "consignment";
+  /** The car's owner, for a consigned car; ignored otherwise. The phone is as typed. */
+  consignorName: string | null;
+  consignorPhone: string | null;
 };
 
 export type SaveVehicleResult =
@@ -188,6 +199,12 @@ export function validateVehicle(input: VehicleInput, today: string): keyof Vehic
   if (new Set(input.features).size !== input.features.length || !input.features.every((f) => within(OPCIONAIS, f))) return "features";
   if (!integer(input.price, 1, MAX_MONEY)) return "price";
   if (!integer(input.acquisitionCost, 0, MAX_MONEY)) return "acquisitionCost";
+  if (input.source !== "purchase" && input.source !== "consignment") return "source";
+  if (input.source === "consignment") {
+    if (input.acquisitionCost < 1) return "acquisitionCost";
+    if (!text(input.consignorName ?? "")) return "consignorName";
+    if (normalizePhone(input.consignorPhone ?? "") === undefined) return "consignorPhone";
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.enteredOn) || Number.isNaN(Date.parse(input.enteredOn)) || input.enteredOn > today) {
     return "enteredOn";
   }
@@ -222,6 +239,9 @@ const columns = (input: VehicleInput) => [
   input.enteredOn,
 ];
 
+const consignorOf = (input: VehicleInput) =>
+  input.source === "consignment" ? [input.consignorName!.trim(), normalizePhone(input.consignorPhone ?? "")] : [];
+
 // RLS lets only owner and manager write the stock; the checks here pick the error to show.
 export async function createVehicle(ctx: MemberContext, input: VehicleInput, today: string = todayIso()): Promise<SaveVehicleResult> {
   if (ctx.role === "seller") return { ok: false, error: "forbidden" };
@@ -234,14 +254,16 @@ export async function createVehicle(ctx: MemberContext, input: VehicleInput, tod
     await db.query(
       `insert into vehicles (brand, model, version, model_year, manufacture_year, km, color, fuel, transmission, body_type, doors,
                              description, features, featured, price, entered_on, id, store_id, slug, status, source)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, 'purchase')`,
-      [...columns(input), id, ctx.storeId, slug, input.ready ? "available" : "preparing"],
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+      [...columns(input), id, ctx.storeId, slug, input.ready ? "available" : "preparing", input.source],
     );
-    await db.query("insert into vehicle_finances (vehicle_id, store_id, purchase_price) values ($1, $2, $3)", [
-      id,
-      ctx.storeId,
-      input.acquisitionCost,
-    ]);
+    await db.query(
+      input.source === "consignment"
+        ? `insert into vehicle_finances (vehicle_id, store_id, consignor_payout, consignor_name, consignor_phone)
+           values ($1, $2, $3, $4, $5)`
+        : "insert into vehicle_finances (vehicle_id, store_id, purchase_price) values ($1, $2, $3)",
+      [id, ctx.storeId, input.acquisitionCost, ...consignorOf(input)],
+    );
   });
   return { ok: true, id, slug };
 }
@@ -265,7 +287,11 @@ export async function updateVehicle(
     );
     if (!car) return { ok: false, error: "not_found" };
     if (car.status === "sold" || car.status === "removed") return { ok: false, error: "not_editable" };
-    if (car.source === "consignment" && input.acquisitionCost <= 0) return { ok: false, error: "invalid", field: "acquisitionCost" };
+    // The car's own source rules: a consigned car keeps its owner's payout, name and phone checked.
+    const consigned = car.source === "consignment";
+    const asStored = { ...input, source: consigned ? "consignment" : "purchase" } as const;
+    const stored = validateVehicle(asStored, today);
+    if (stored) return { ok: false, error: "invalid", field: stored };
 
     await db.query(
       `update vehicles set brand = $1, model = $2, version = $3, model_year = $4, manufacture_year = $5, km = $6, color = $7,
@@ -277,11 +303,14 @@ export async function updateVehicle(
         where id = $17`,
       [...columns(input), vehicleId, input.ready ? "available" : "preparing"],
     );
-    const cost = car.source === "consignment" ? "consignor_payout" : "purchase_price";
     await db.query(
-      `insert into vehicle_finances (vehicle_id, store_id, ${cost}) values ($1, $2, $3)
-       on conflict (vehicle_id) do update set ${cost} = excluded.${cost}`,
-      [vehicleId, ctx.storeId, input.acquisitionCost],
+      consigned
+        ? `insert into vehicle_finances (vehicle_id, store_id, consignor_payout, consignor_name, consignor_phone) values ($1, $2, $3, $4, $5)
+           on conflict (vehicle_id) do update set consignor_payout = excluded.consignor_payout,
+             consignor_name = excluded.consignor_name, consignor_phone = excluded.consignor_phone`
+        : `insert into vehicle_finances (vehicle_id, store_id, purchase_price) values ($1, $2, $3)
+           on conflict (vehicle_id) do update set purchase_price = excluded.purchase_price`,
+      [vehicleId, ctx.storeId, input.acquisitionCost, ...consignorOf(asStored)],
     );
     return { ok: true, id: vehicleId, slug: car.slug };
   });

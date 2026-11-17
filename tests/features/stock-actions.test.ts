@@ -64,6 +64,17 @@ it("names the purchase price field by what it holds", async () => {
   });
 });
 
+it("reads a consigned car and names its payout as such", async () => {
+  const consigned = { ...FIELDS, source: "consignment", consignorName: "Carlos", consignorPhone: "(83) 90000-1111" };
+  await saveVehicleAction({ error: null }, form(consigned));
+  expect(model.createVehicle).toHaveBeenCalledWith(ctx, expect.objectContaining({
+    source: "consignment", consignorName: "Carlos", consignorPhone: "(83) 90000-1111",
+  }));
+  expect(await saveVehicleAction({ error: null }, form({ ...consigned, acquisitionCost: "x" }))).toEqual({
+    error: "Confira o campo: Valor a repassar ao dono.", field: "acquisitionCost",
+  });
+});
+
 it("creates when there is no id and edits when there is one", async () => {
   const created = await saveVehicleAction({ error: null }, form({ ...FIELDS, features: ["Ar condicionado", "ABS"] }));
   expect(created).toEqual({ error: null, id: CAR, slug: "chevrolet-onix-lt-1-0-2023-111111" });
@@ -71,6 +82,7 @@ it("creates when there is no id and edits when there is one", async () => {
     brand: "Chevrolet", model: "Onix", version: "LT 1.0", manufactureYear: 2022, modelYear: 2023, km: 32000, color: "Prata",
     fuel: "Flex", transmission: "Manual", bodyType: null, doors: 4, description: "", features: ["Ar condicionado", "ABS"],
     featured: false, price: 72990, acquisitionCost: 61000, enteredOn: "2026-11-10", ready: true,
+    source: "purchase", consignorName: null, consignorPhone: null,
   });
   await saveVehicleAction({ error: null }, form({ ...FIELDS, id: CAR }));
   expect(model.updateVehicle).toHaveBeenCalledWith(ctx, CAR, expect.objectContaining({ price: 72990 }));

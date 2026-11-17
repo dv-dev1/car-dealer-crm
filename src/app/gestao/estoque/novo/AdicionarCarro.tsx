@@ -48,6 +48,7 @@ function dadosIniciais(v: StockVehicle | undefined, today: string) {
     cor: v?.color ?? "", cambio: v?.transmission ?? "", combustivel: v?.fuel ?? "",
     precoVenda: v ? String(v.price) : "", custo: v?.money ? String(v.money.acquisitionCost) : "",
     aquisicao: v?.enteredOn ?? today, descricao: v?.description ?? "",
+    donoNome: v?.consignor?.name ?? "", donoTelefone: v?.consignor?.phone ?? "",
   };
 }
 
@@ -68,7 +69,9 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
   const [erroServidor, setErroServidor] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [criado, setCriado] = useState<{ id: string; slug: string } | null>(null);
-  const consignado = vehicle?.source === "consignment";
+  // The origin is chosen once, when the car comes in.
+  const [origem, setOrigem] = useState<"purchase" | "consignment">(vehicle?.source === "consignment" ? "consignment" : "purchase");
+  const consignado = origem === "consignment";
 
   // Prévias das fotos novas são URLs do navegador; soltas quando a tela fecha.
   useEffect(() => () => fotos.forEach((f) => f.file && URL.revokeObjectURL(f.url)), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -109,7 +112,8 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
       brand: dados.marca, model: dados.modelo, version: dados.versao, manufactureYear: dados.anoFabricacao,
       modelYear: dados.anoModelo, km: dados.km, doors: dados.portas, bodyType: dados.categoria, color: dados.cor,
       transmission: dados.cambio, fuel: dados.combustivel, price: dados.precoVenda, acquisitionCost: dados.custo || "0",
-      enteredOn: dados.aquisicao, description: dados.descricao,
+      enteredOn: dados.aquisicao, description: dados.descricao, source: origem,
+      consignorName: consignado ? dados.donoNome : "", consignorPhone: consignado ? dados.donoTelefone : "",
     };
     for (const [nome, valor] of Object.entries(campos)) form.set(nome, valor);
     for (const o of opcionais) form.append("features", o);
@@ -320,6 +324,26 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
           </p>
 
           <div className="mt-4 flex flex-col gap-4">
+            {!vehicle && (
+              <fieldset>
+                <legend className={rotulo}>Origem</legend>
+                <div className="mt-1.5 flex gap-2">
+                  {(["purchase", "consignment"] as const).map((o) => (
+                    <button
+                      key={o}
+                      type="button"
+                      aria-pressed={origem === o}
+                      onClick={() => setOrigem(o)}
+                      className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium ${
+                        origem === o ? "bg-primary text-on-primary" : "border border-line bg-surface text-secondary/80 hover:bg-sand"
+                      }`}
+                    >
+                      {o === "purchase" ? "Compra" : "Consignado"}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
             <Moeda
               label="Preço de venda" obrigatorio ajuda="Valor anunciado do carro (preço de tabela)."
               value={dados.precoVenda}
@@ -327,11 +351,25 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
               erro={erros.preco}
             />
             <Moeda
-              label={consignado ? "Repasse ao dono" : "Preço de compra"}
+              label={consignado ? "Valor a repassar ao dono" : "Preço de compra"}
               ajuda={consignado ? "Quanto a loja repassa ao dono do carro." : "Quanto você pagou no carro, sem as despesas."}
               value={dados.custo}
               onChange={set("custo")}
             />
+            {consignado && (
+              <>
+                <div>
+                  <label className={rotulo} htmlFor="dono-nome">Nome do dono do carro</label>
+                  <input id="dono-nome" value={dados.donoNome} onChange={(e) => set("donoNome")(e.target.value)}
+                    className={`${campo} mt-1.5`} />
+                </div>
+                <div>
+                  <label className={rotulo} htmlFor="dono-telefone">WhatsApp do dono (opcional)</label>
+                  <input id="dono-telefone" value={dados.donoTelefone} onChange={(e) => set("donoTelefone")(e.target.value)}
+                    inputMode="tel" placeholder="(83) 99999-9999" className={`${campo} mt-1.5`} />
+                </div>
+              </>
+            )}
             <div>
               <label className={rotulo} htmlFor="aquisicao">Data de aquisição</label>
               <p className="mt-0.5 text-xs text-muted-strong">Pra calcular o giro no estoque.</p>
