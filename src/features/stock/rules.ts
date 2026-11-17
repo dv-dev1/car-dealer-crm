@@ -46,3 +46,16 @@ export function stockSummary(cars: StockVehicle[]): StockSummary {
 export function oldestInStock(cars: StockVehicle[], n = 3): StockVehicle[] {
   return [...cars].sort((a, b) => b.daysInStock - a.daysInStock).slice(0, n);
 }
+
+export const EXPENSE_LABEL = {
+  mechanical: "Mecânica",
+  body_paint: "Funilaria e pintura",
+  detailing: "Estética",
+  tires: "Pneus",
+  documents: "Documentação",
+  transport: "Transporte",
+  sourcing_commission: "Comissão de captação",
+  other: "Outra",
+} as const;
+export type ExpenseCategory = keyof typeof EXPENSE_LABEL;
+export type Expense = { id: string; category: ExpenseCategory; spentOn: string; amount: number; description: string };

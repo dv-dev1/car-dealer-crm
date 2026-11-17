@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireMember } from "@/features/auth/guard";
 
 import { createVehicle, removeVehicle, setMargin, updateVehicle, type RemoveReason, type VehicleInput } from "./model";
+import { addExpense, readExpense, removeExpense } from "./expenses";
 import { addVehiclePhoto, photoBucket, removeVehiclePhoto } from "./photos";
 
 export type VehicleFormState = { error: string | null; field?: keyof VehicleInput; id?: string; slug?: string };
@@ -139,4 +140,38 @@ export async function removeVehicleAction(_prev: StockActionState, form: FormDat
   if (!result.ok) return { error: REMOVE_ERROR[result.error] };
   revalidatePath("/gestao", "layout");
   redirect("/gestao/estoque");
+}
+
+export type ExpenseFormState = { error: string | null; field?: "category" | "spentOn" | "amount" | "description" };
+
+const EXPENSE_FIELD_ERROR = {
+  category: "Escolha a categoria da despesa.",
+  spentOn: "Confira a data: não pode passar de hoje.",
+  amount: "Confira o valor: de R$ 1 a R$ 9.999.999.",
+  description: "A descrição vai até 200 letras.",
+} as const;
+
+const EXPENSE_ERROR = {
+  forbidden: "Só o dono e o gerente lançam despesas.",
+  not_found: "Carro ou despesa não encontrados.",
+} as const;
+
+export async function addExpenseAction(_prev: ExpenseFormState, form: FormData): Promise<ExpenseFormState> {
+  const member = await requireMember();
+  const read = readExpense(form);
+  if ("field" in read) return { error: EXPENSE_FIELD_ERROR.amount, field: "amount" };
+  const result = await addExpense(member, read.input);
+  if (!result.ok) {
+    return result.error === "invalid" ? { error: EXPENSE_FIELD_ERROR[result.field], field: result.field } : { error: EXPENSE_ERROR[result.error] };
+  }
+  revalidatePath("/gestao", "layout");
+  return { error: null };
+}
+
+export async function removeExpenseAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const result = await removeExpense(member, String(form.get("expenseId") ?? ""));
+  if (!result.ok) return { error: EXPENSE_ERROR[result.error] };
+  revalidatePath("/gestao", "layout");
+  return { error: null };
 }

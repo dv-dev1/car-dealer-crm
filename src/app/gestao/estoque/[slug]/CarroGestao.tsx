@@ -16,11 +16,13 @@ import {
 } from "lucide-react";
 import { formatPreco } from "@/lib/format";
 import type { StockVehicle } from "@/features/stock/model";
-import { STATUS_LABEL } from "@/features/stock/rules";
+import { STATUS_LABEL, type Expense } from "@/features/stock/rules";
 import { removeVehicleAction, setMarginAction } from "@/features/stock/actions";
 import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
 import { FecharNegocioDialog } from "@/components/gestao/clientes/FecharNegocioDialog";
 import type { Lead } from "@/features/leads/types";
+import { todayIso } from "@/shared/today";
+import { Despesas } from "./Despesas";
 
 export function CarroGestao({
   veiculo,
@@ -30,6 +32,8 @@ export function CarroGestao({
   sellers,
   leads,
   memberId,
+  expenses = null,
+  today = todayIso(),
 }: {
   veiculo: StockVehicle;
   estoque: { id: string; titulo: string; preco: number }[];
@@ -41,6 +45,10 @@ export function CarroGestao({
   leads: Lead[];
   /** The member using the screen. */
   memberId: string;
+  /** The car's expenses; null for a seller. */
+  expenses?: Expense[] | null;
+  /** The store's day, "YYYY-MM-DD". */
+  today?: string;
 }) {
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [modalAberto, setModalAberto] = useState(false);
@@ -252,6 +260,14 @@ export function CarroGestao({
             ) : (
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between">
+                  <dt className="text-muted">{veiculo.source === "consignment" ? "Repasse ao dono" : "Compra"}</dt>
+                  <dd className="tabular-nums text-secondary">{formatPreco(veiculo.money.acquisitionCost)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted">Despesas</dt>
+                  <dd className="tabular-nums text-secondary">{formatPreco(custo - veiculo.money.acquisitionCost)}</dd>
+                </div>
+                <div className="flex items-center justify-between border-t border-line pt-2">
                   <dt className="text-muted">Custo com despesas</dt>
                   <dd className="font-semibold tabular-nums text-secondary">
                     {formatPreco(custo)}
@@ -274,6 +290,8 @@ export function CarroGestao({
             )}
           </div>
           )}
+
+          {canManage && expenses && <Despesas vehicleId={veiculo.id} expenses={expenses} today={today} />}
 
           {/* Ações: one primary, outline secondaries, a text button for the destructive one. */}
           <div className="grid gap-2.5 sm:grid-cols-2">
