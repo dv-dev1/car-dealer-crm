@@ -21,6 +21,8 @@ import { CanaisTabela } from "@/components/gestao/relatorios/CanaisTabela";
 import type { ChannelRow } from "@/features/channels/model";
 import { TempoResposta } from "@/components/gestao/relatorios/TempoResposta";
 import type { ResponseTime } from "@/features/leads/contacts";
+import { RankingVendedores } from "@/components/gestao/relatorios/RankingVendedores";
+import type { SellerRank } from "@/features/reports/seller-goals";
 import { ExportarPdf } from "@/components/gestao/relatorios/ExportarPdf";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
@@ -46,6 +48,8 @@ export function RelatoriosView({
   canais = null,
   resposta = [],
   respostaPropria = false,
+  vendedores = [],
+  today = "",
   meta,
   mesLabel,
   podeEditarMeta,
@@ -66,6 +70,9 @@ export function RelatoriosView({
   /** First-response time by seller; a seller gets only their own line. */
   resposta?: ResponseTime[];
   respostaPropria?: boolean;
+  /** The month's ranking by seller; `today` is the store's day, for the pace. */
+  vendedores?: SellerRank[];
+  today?: string;
   meta: ResumoMetaMes | null;
   mesLabel: string;
   podeEditarMeta: boolean;
@@ -86,6 +93,7 @@ export function RelatoriosView({
 
       {/* Meta do mês (antiga tela Metas, enxugada) */}
       <MetaBloco meta={meta} mesLabel={mesLabel} podeEditar={podeEditarMeta} />
+      {today && <RankingVendedores rows={vendedores} canEdit={podeEditarMeta} today={today} />}
 
       {/* Seletor de período */}
       <div className="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Período">
