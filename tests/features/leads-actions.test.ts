@@ -12,7 +12,8 @@ const leads = vi.hoisted(() => ({ createLead: vi.fn(), updateLead: vi.fn(), move
 vi.mock("@/features/leads/model", () => leads);
 
 const sales = vi.hoisted(() => ({ recordSale: vi.fn() }));
-vi.mock("@/features/sales/model", () => sales);
+// readSale is the real parser; only the database call is mocked.
+vi.mock("@/features/sales/model", async (original) => ({ ...(await original<typeof import("@/features/sales/model")>()), ...sales }));
 
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("next/cache", () => cache);
