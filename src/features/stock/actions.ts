@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 
 import { requireMember } from "@/features/auth/guard";
 
-import { createVehicle, removeVehicle, setMargin, updateVehicle, type RemoveReason, type VehicleInput } from "./model";
+import {
+  createVehicle, removeVehicle, returnToStore, setAway, setMargin, updateVehicle, type AwayReason, type RemoveReason, type VehicleInput,
+} from "./model";
 import { addExpense, readExpense, removeExpense } from "./expenses";
 import { addVehiclePhoto, photoBucket, removeVehiclePhoto } from "./photos";
 
@@ -172,6 +174,29 @@ export async function removeExpenseAction(_prev: StockActionState, form: FormDat
   const member = await requireMember();
   const result = await removeExpense(member, String(form.get("expenseId") ?? ""));
   if (!result.ok) return { error: EXPENSE_ERROR[result.error] };
+  revalidatePath("/gestao", "layout");
+  return { error: null };
+}
+
+const AWAY_ERROR = {
+  forbidden: "Só o dono e o gerente mexem no estoque.",
+  not_found: "Este carro não pode sair da loja: já foi vendido ou removido.",
+  invalid: "Confira o motivo e a volta prevista (hoje ou depois).",
+} as const;
+
+export async function setAwayAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const until = String(form.get("until") ?? "");
+  const result = await setAway(member, String(form.get("vehicleId") ?? ""), String(form.get("reason") ?? "") as AwayReason, until || null);
+  if (!result.ok) return { error: AWAY_ERROR[result.error] };
+  revalidatePath("/gestao", "layout");
+  return { error: null };
+}
+
+export async function returnToStoreAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const result = await returnToStore(member, String(form.get("vehicleId") ?? ""));
+  if (!result.ok) return { error: result.error === "invalid" ? "Este carro já está na loja." : AWAY_ERROR[result.error] };
   revalidatePath("/gestao", "layout");
   return { error: null };
 }

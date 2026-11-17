@@ -1,12 +1,13 @@
 import { CAMBIOS, CATEGORIAS, COMBUSTIVEIS, CORES, OPCIONAIS } from "@/data/opcoes-veiculo";
 import { UUID, withStore, type Db, type MemberContext } from "@/shared/db/client";
-import { todayIso } from "@/shared/today";
+import { isIsoDate, todayIso } from "@/shared/today";
 
 import { photoUrl } from "./photos";
 import { moneyCost } from "./rules";
 
 export type StockStatus = "preparing" | "available" | "reserved" | "away" | "sold";
 export type StockPhoto = { id: string; url: string };
+export type AwayReason = "service" | "repair" | "body_shop" | "other";
 /**
  * `acquisitionCost` is the purchase price (or the consignor payout); `cost` adds the car's expenses.
  * `perDay` and `sinceEntry` are the money cost of the car parked, from the store's monthly rate.
@@ -39,10 +40,14 @@ export type StockVehicle = {
   enteredOn: string;
   daysInStock: number;
   photos: StockPhoto[];
+  /** Why the car is out of the store and when it should be back; null unless its status is "away". */
+  away: { reason: AwayReason; until: string | null } | null;
   money: StockMoney | null;
 };
 
-type Row = Omit<StockVehicle, "title" | "price" | "minCashPrice" | "photos" | "money"> & {
+type Row = Omit<StockVehicle, "title" | "price" | "minCashPrice" | "photos" | "away" | "money"> & {
+  awayReason: AwayReason | null;
+  awayUntil: string | null;
   price: string;
   minCashPrice: string | null;
   photos: { id: string; path: string }[];
@@ -56,6 +61,7 @@ const SELECT = `
   select v.id, v.slug, v.brand, v.model, v.version, v.model_year as "modelYear", v.manufacture_year as "manufactureYear",
          v.km, v.color, v.fuel, v.transmission, v.body_type as "bodyType", v.doors, v.engine, v.power, v.description,
          v.features, v.featured, v.price, v.min_cash_price as "minCashPrice", v.source,
+         v.away_reason as "awayReason", to_char(v.away_until, 'YYYY-MM-DD') as "awayUntil",
          to_char(v.entered_on, 'YYYY-MM-DD') as "enteredOn", ($2::date - v.entered_on) as "daysInStock",
          case when v.status = 'available' and exists (
                 select from reservations r
@@ -83,13 +89,14 @@ function toVehicle(row: Row): StockVehicle {
   const price = Number(row.price);
   const minCashPrice = row.minCashPrice === null ? null : Number(row.minCashPrice);
   const cost = row.cost === null ? null : Number(row.cost);
-  const { cost: _cost, acquisitionCost, moneyRate, photos, ...rest } = row;
+  const { cost: _cost, acquisitionCost, moneyRate, photos, awayReason, awayUntil, ...rest } = row;
   return {
     ...rest,
     title: `${row.brand} ${row.model} ${row.version}`,
     price,
     minCashPrice,
     photos: photos.map((photo) => ({ id: photo.id, url: photoUrl(photo.path) })),
+    away: awayReason ? { reason: awayReason, until: awayUntil } : null,
     money:
       cost === null
         ? null
@@ -273,7 +280,7 @@ export async function updateVehicle(
   });
 }
 
-type StockChangeResult = { ok: true } | { ok: false; error: "forbidden" | "not_found" | "invalid" };
+export type StockChangeResult = { ok: true } | { ok: false; error: "forbidden" | "not_found" | "invalid" };
 
 /** The most the seller may take off the price for cash; null means the margin is not set. */
 export async function setMargin(ctx: MemberContext, vehicleId: string, discount: number | null): Promise<StockChangeResult> {
@@ -316,4 +323,41 @@ export async function removeVehicle(ctx: MemberContext, vehicleId: string, reaso
     );
     return { ok: true };
   });
+}
+
+const AWAY_REASONS: readonly string[] = ["service", "repair", "body_shop", "other"];
+
+/** Takes a car out of the store for a while (service, repair...); it stays in the stock, its money and its days. */
+export async function setAway(
+  ctx: MemberContext,
+  vehicleId: string,
+  reason: AwayReason,
+  until: string | null,
+  today: string = todayIso(),
+): Promise<StockChangeResult> {
+  if (ctx.role === "seller") return { ok: false, error: "forbidden" };
+  if (!AWAY_REASONS.includes(reason) || (until !== null && (!isIsoDate(until) || until < today))) return { ok: false, error: "invalid" };
+  if (!UUID.test(vehicleId)) return { ok: false, error: "not_found" };
+  const rows = await withStore(ctx, (db) =>
+    db.query(
+      `update vehicles set status = 'away', away_reason = $3, away_until = $4
+        where id = $1 and store_id = $2 and status in ('preparing', 'available', 'away') returning id`,
+      [vehicleId, ctx.storeId, reason, until],
+    ),
+  );
+  return rows.length ? { ok: true } : { ok: false, error: "not_found" };
+}
+
+/** The car is back: available again. */
+export async function returnToStore(ctx: MemberContext, vehicleId: string): Promise<StockChangeResult> {
+  if (ctx.role === "seller") return { ok: false, error: "forbidden" };
+  if (!UUID.test(vehicleId)) return { ok: false, error: "not_found" };
+  const rows = await withStore(ctx, (db) =>
+    db.query(
+      `update vehicles set status = 'available', away_reason = null, away_until = null
+        where id = $1 and store_id = $2 and status = 'away' returning id`,
+      [vehicleId, ctx.storeId],
+    ),
+  );
+  return rows.length ? { ok: true } : { ok: false, error: "invalid" };
 }

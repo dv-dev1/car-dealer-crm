@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatPreco } from "@/lib/format";
 import type { StockVehicle } from "@/features/stock/model";
-import { STATUS_LABEL, staleLevel } from "@/features/stock/rules";
+import { staleLevel, statusLabel } from "@/features/stock/rules";
 
 // Tom do selo de "N dias" no pátio: verde fresco, âmbar a partir de 60 dias,
 // vermelho parado (+90d). Sinal de giro, não decoração.
@@ -62,7 +62,7 @@ export function GestaoCarCard({ v, canManage }: { v: StockVehicle; canManage: bo
         </span>
         {v.status !== "available" && (
           <span className="absolute right-2.5 top-2.5 rounded-[var(--radius-control)] bg-surface px-2.5 py-1 text-[0.7rem] font-semibold text-secondary">
-            {STATUS_LABEL[v.status]}
+            {statusLabel(v)}
           </span>
         )}
       </div>

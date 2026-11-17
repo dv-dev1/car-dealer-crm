@@ -16,13 +16,14 @@ import {
 } from "lucide-react";
 import { formatPreco } from "@/lib/format";
 import type { StockVehicle } from "@/features/stock/model";
-import { STATUS_LABEL, type Expense } from "@/features/stock/rules";
+import { statusLabel, type Expense } from "@/features/stock/rules";
 import { removeVehicleAction, setMarginAction } from "@/features/stock/actions";
 import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
 import { FecharNegocioDialog } from "@/components/gestao/clientes/FecharNegocioDialog";
 import type { Lead } from "@/features/leads/types";
 import { todayIso } from "@/shared/today";
 import { Despesas } from "./Despesas";
+import { AvisoForaDaLoja, TirarDaLoja } from "./ForaDaLoja";
 
 export function CarroGestao({
   veiculo,
@@ -124,7 +125,7 @@ export function CarroGestao({
         <div className="flex shrink-0 flex-wrap gap-2">
           {veiculo.status !== "available" && (
             <span className="rounded-[var(--radius-control)] bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              {STATUS_LABEL[veiculo.status]}
+              {statusLabel(veiculo)}
             </span>
           )}
           <span className="rounded-[var(--radius-control)] bg-sand px-3 py-1 text-xs font-medium text-secondary/80">
@@ -175,6 +176,7 @@ export function CarroGestao({
 
         {/* Painel admin */}
         <div className="flex flex-col gap-4">
+          <AvisoForaDaLoja veiculo={veiculo} today={today} canManage={canManage} />
           {/* Preço de tabela */}
           <div className="rounded-[var(--radius)] border border-line bg-surface p-5 shadow-[var(--shadow-soft)]">
             <div className="flex items-end justify-between gap-3">
@@ -344,6 +346,10 @@ export function CarroGestao({
                 <ImageUp size={16} />
                 Editar carro / foto
               </Link>
+            )}
+
+            {veiculo.status !== "sold" && veiculo.status !== "away" && (
+              <TirarDaLoja veiculo={veiculo} today={today} className={acaoSecundaria} />
             )}
 
             {veiculo.status !== "sold" && <RemoverCarro veiculo={veiculo} />}

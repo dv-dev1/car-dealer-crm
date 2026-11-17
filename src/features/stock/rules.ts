@@ -1,5 +1,5 @@
 // Stock rules shared by server and browser: nothing here reads the database.
-import type { StockStatus, StockVehicle } from "./model";
+import type { AwayReason, StockStatus, StockVehicle } from "./model";
 
 export const STALE_ATTENTION_DAYS = 60;
 export const STALE_DAYS = 90;
@@ -17,6 +17,13 @@ export const STATUS_LABEL: Record<StockStatus, string> = {
   away: "Fora da loja",
   sold: "Vendido",
 };
+
+export const AWAY_LABEL: Record<AwayReason, string> = { service: "Revisão", repair: "Oficina", body_shop: "Funilaria", other: "Outro" };
+
+/** The status as shown on a car: an away car says why. */
+export function statusLabel(car: Pick<StockVehicle, "status" | "away">): string {
+  return car.away ? `${STATUS_LABEL.away} · ${AWAY_LABEL[car.away.reason]}` : STATUS_LABEL[car.status];
+}
 
 export type StockSummary = {
   total: number;
