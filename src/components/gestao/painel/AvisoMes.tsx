@@ -4,7 +4,18 @@ import { formatPreco } from "@/lib/format";
 
 /** Só para o dono: quantos carros faltam para o lucro do mês cobrir as despesas fixas e os canais. */
 export function AvisoMes({ mes }: { mes: MonthBreakEven | null }) {
-  if (!mes || mes.carsLeft === null) return null;
+  if (!mes) return null;
+  if (mes.fixed + mes.channels === 0) {
+    return (
+      <Link
+        href="/gestao/loja"
+        className="block rounded-[var(--radius)] border border-line bg-surface px-4 py-3 text-sm font-semibold text-secondary shadow-[var(--shadow-soft)] hover:bg-sand sm:px-5"
+      >
+        Lance as despesas fixas do mês para saber quantos carros faltam para pagá-lo
+      </Link>
+    );
+  }
+  if (mes.carsLeft === null) return null;
   const pago = mes.carsLeft === 0;
   return (
     <section className="rounded-[var(--radius)] border border-line bg-surface px-4 py-3 shadow-[var(--shadow-soft)] sm:px-5">

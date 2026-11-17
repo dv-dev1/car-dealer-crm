@@ -44,7 +44,8 @@ export async function listRules(ctx: MemberContext): Promise<CommissionRule[] | 
       [ctx.storeId],
     ),
   );
-  return rows.map((r) => ({ ...r, value: Number(r.value) * (isPct(r.kind) ? 100 : 1) }));
+  // Rounded: 0.07 * 100 is 7.000000000000001, and the form would refuse its own value.
+  return rows.map((r) => ({ ...r, value: isPct(r.kind) ? Math.round(Number(r.value) * 10000) / 100 : Number(r.value) }));
 }
 
 type RuleResult = { ok: true } | { ok: false; error: "forbidden" | "invalid" };

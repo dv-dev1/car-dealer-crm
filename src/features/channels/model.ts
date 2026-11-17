@@ -11,7 +11,7 @@ export type ChannelRow = {
   sales: number;
   /** Sales over leads; null with no lead. */
   conversion: number | null;
-  /** The channel's monthly costs of every month the period touches. */
+  /** The channel's monthly cost, in proportion to the days of each month inside the period. */
   cost: number;
   costPerLead: number | null;
   costPerSale: number | null;
@@ -23,13 +23,16 @@ const cents = (value: number) => Math.round(value * 100) / 100;
 /** What each channel brought and cost in the period, the most profitable first; null for a seller. */
 export async function channelReport(ctx: MemberContext, { de, ate }: Janela): Promise<ChannelRow[] | null> {
   if (ctx.role === "seller") return null;
-  const rows = await withStore(ctx, (db) =>
-    db.query<{ id: string; name: string; leads: number; sales: number; cost: string; profit: string }>(
+  type Row = { id: string; name: string; leads: number; sales: number; cost: string; profit: string };
+  const rows = await withStore(ctx, async (db) => {
+    const channels = await db.query<Row>(
       `select c.id, c.name,
               (select count(*)::int from leads l
                 where l.channel_id = c.id and (l.created_at at time zone $4)::date between $2 and $3) as leads,
               coalesce(s.sales, 0)::int as sales, coalesce(s.profit, 0) as profit,
-              (select coalesce(sum(k.amount), 0) from channel_costs k
+              (select coalesce(sum(k.amount * (least($3::date, (k.month + interval '1 month - 1 day')::date) - greatest($2::date, k.month) + 1)
+                                   / extract(day from k.month + interval '1 month - 1 day')), 0)
+                 from channel_costs k
                 where k.channel_id = c.id and k.month between date_trunc('month', $2::date) and $3) as cost
          from channels c
          left join lateral (
@@ -39,11 +42,22 @@ export async function channelReport(ctx: MemberContext, { de, ate }: Janela): Pr
          ) s on true
         where c.store_id = $1`,
       [ctx.storeId, de, ate, STORE_TIME_ZONE],
-    ),
-  );
+    );
+    // A sale with no client, or a client with no channel: without this line the table would not add up to the store's sales.
+    const [none] = await db.query<Row>(
+      `select 'none' as id, 'Sem canal' as name, 0 as cost,
+              (select count(*)::int from leads l
+                where l.store_id = $1 and l.channel_id is null and (l.created_at at time zone $4)::date between $2 and $3) as leads,
+              count(*)::int as sales, coalesce(sum(p.profit), 0) as profit
+         from sales s left join leads l on l.id = s.lead_id left join sale_profits p on p.sale_id = s.id
+        where s.store_id = $1 and s.sold_on between $2 and $3 and l.channel_id is null`,
+      [ctx.storeId, de, ate, STORE_TIME_ZONE],
+    );
+    return none.leads || none.sales ? [...channels, none] : channels;
+  });
   return rows
     .map((r) => {
-      const cost = Number(r.cost);
+      const cost = cents(Number(r.cost));
       return {
         id: r.id, name: r.name, leads: r.leads, sales: r.sales, cost, profit: Number(r.profit),
         conversion: r.leads ? r.sales / r.leads : null,

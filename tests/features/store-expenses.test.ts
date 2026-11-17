@@ -87,7 +87,11 @@ it("says how many cars are left to pay the month", async () => {
 it("a paid month leaves zero cars, and no recent sale leaves no estimate", async () => {
   await adminQuery("delete from store_expenses where store_id = $1", [owner.storeId]);
   await adminQuery("delete from channel_costs where store_id = $1", [owner.storeId]);
+  // Nothing to pay is not a paid month: the owner has not entered the expenses yet.
+  expect(await monthBreakEven(owner, TODAY)).toMatchObject({ fixed: 0, channels: 0, carsLeft: null });
+  const small = await addStoreExpense(owner, rent({ amount: 1 }));
   expect((await monthBreakEven(owner, TODAY))!.carsLeft).toBe(0);
+  if (small.ok) await removeStoreExpense(owner, small.id);
   await addStoreExpense(owner, rent({ amount: 9_000_000 }));
   await adminQuery(
     "update sales set sold_on = sold_on - 365, warranty_until = warranty_until - 365 where store_id = $1 and sold_on between '2026-08-01' and '2026-10-31'",
@@ -103,5 +107,8 @@ it("the panel notice says cars left, or that the month is paid, or nothing", () 
   expect(render(1)).toContain("Falta 1 carro para pagar o mês");
   expect(render(0)).toContain("O mês já está pago");
   expect(render(null)).not.toMatch(/Falta|pago/);
+  const empty = text(renderToStaticMarkup(createElement(AvisoMes, { mes: { ...base, fixed: 0, channels: 0, carsLeft: null } })));
+  expect(empty).toContain("Lance as despesas fixas do mês");
+  expect(empty).not.toMatch(/Falta|pago/);
   expect(text(renderToStaticMarkup(createElement(AvisoMes, { mes: null })))).toBe("");
 });

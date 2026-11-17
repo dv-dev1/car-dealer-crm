@@ -101,6 +101,12 @@ it("only the owner sets rules", async () => {
   const [sale] = (await listCommissions(owner, NOV)).sales.filter((s) => s.sellerName !== "Larissa Melo");
   expect(sale.commission).toBe(Math.round(sale.price * 0.02 * 100) / 100);
   expect(await listRules(manager)).toContainEqual({ memberId: null, kind: "sale_pct", value: 2 });
+  // 0.07 * 100 is 7.000000000000001 in floating point: the rule reads back as typed.
+  for (const value of [7, 2.9, 3.55]) {
+    expect(await setRule(owner, { memberId: null, kind: "profit_pct", value })).toEqual({ ok: true });
+    expect(await listRules(owner)).toContainEqual({ memberId: null, kind: "profit_pct", value });
+  }
+  expect(await setRule(owner, { memberId: null, kind: "sale_pct", value: 2 })).toEqual({ ok: true });
   for (const rule of [{ kind: "fixed", value: 0 }, { kind: "sale_pct", value: 101 }, { kind: "profit_pct", value: 0 }, { kind: "x", value: 1 }]) {
     expect(await setRule(owner, { memberId: null, ...rule } as never)).toEqual({ ok: false, error: "invalid" });
   }

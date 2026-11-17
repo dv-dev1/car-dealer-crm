@@ -3,7 +3,7 @@ import { UUID, withStore, type MemberContext } from "@/shared/db/client";
 export type StoreExpenseCategory = "rent" | "payroll" | "accountant" | "utilities" | "other";
 export type StoreExpense = { id: string; category: StoreExpenseCategory; description: string; amount: number };
 export type StoreExpenseInput = Omit<StoreExpense, "id"> & { month: string };
-/** `carsLeft`: 0 when the month is paid; null with no profitable sale in the three months before. */
+/** `carsLeft`: 0 when the month is paid; null with nothing to pay yet or no profitable sale in the three months before. */
 export type MonthBreakEven = { fixed: number; channels: number; profit: number; avgProfitPerCar: number | null; carsLeft: number | null };
 
 const CATEGORIES: readonly string[] = ["rent", "payroll", "accountant", "utilities", "other"];
@@ -76,7 +76,10 @@ export async function monthBreakEven(ctx: MemberContext, today: string): Promise
   const channels = Number(row.channels);
   const profit = Number(row.profit);
   const avgProfitPerCar = row.avg === null ? null : Number(row.avg);
+  // Nothing entered is not a paid month.
   const carsLeft =
-    avgProfitPerCar === null || avgProfitPerCar <= 0 ? null : Math.max(0, Math.ceil((fixed + channels - profit) / avgProfitPerCar));
+    fixed + channels === 0 || avgProfitPerCar === null || avgProfitPerCar <= 0
+      ? null
+      : Math.max(0, Math.ceil((fixed + channels - profit) / avgProfitPerCar));
   return { fixed, channels, profit, avgProfitPerCar, carsLeft };
 }

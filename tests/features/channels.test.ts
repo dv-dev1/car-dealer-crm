@@ -53,7 +53,7 @@ it("each channel's leads, sales, cost and profit match the store's rows", async 
     [owner.storeId, NOV.de, NOV.ate],
   );
   const report = (await channelReport(owner, NOV))!;
-  expect(report).toHaveLength(rows.length);
+  expect(report.filter((c) => c.id !== "none")).toHaveLength(rows.length);
   for (const r of rows) {
     expect(report.find((c) => c.id === r.id)).toEqual({
       id: r.id, name: r.name, leads: r.leads, sales: r.sales, cost: r.cost, profit: r.profit,
@@ -101,4 +101,30 @@ it("the report table shows dashes where there is nothing to divide", async () =>
   expect(html).toContain("20%");
   expect(html).toMatch(/R\$\s?645/);
   expect(html).toContain("Passante —");
+});
+
+it("a partial period carries only its days of the month's cost", async () => {
+  const olx = (await channelReport(owner, { de: "2026-11-01", ate: "2026-11-10" }))!.find((c) => c.name === "OLX")!;
+  expect(olx.cost).toBe(430); // R$ 1.290 in a 30-day month, 10 days
+  expect((await channelReport(owner, { de: "2026-10-22", ate: "2026-11-10" }))!.find((c) => c.name === "OLX")!.cost).toBeCloseTo(
+    430 + (1290 * 10) / 31,
+    2,
+  );
+});
+
+it("sales and clients with no channel show as their own line, so the table adds up", async () => {
+  const [{ n: total }] = await adminQuery("select count(*)::int as n from sales where store_id = $1 and sold_on between $2 and $3", [
+    owner.storeId, NOV.de, NOV.ate,
+  ]);
+  const before = (await channelReport(owner, NOV))!;
+  expect(before.reduce((sum, c) => sum + c.sales, 0)).toBe(total);
+  await adminQuery(
+    "update sales set lead_id = null where id = (select id from sales where store_id = $1 and sold_on between $2 and $3 limit 1)",
+    [owner.storeId, NOV.de, NOV.ate],
+  );
+  const after = (await channelReport(owner, NOV))!;
+  expect(after.reduce((sum, c) => sum + c.sales, 0)).toBe(total);
+  const none = after.find((c) => c.id === "none")!;
+  expect(none).toMatchObject({ name: "Sem canal", cost: 0, costPerSale: 0 });
+  expect(none.sales).toBeGreaterThanOrEqual(1);
 });
