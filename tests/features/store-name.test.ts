@@ -30,6 +30,7 @@ it("the WhatsApp message carries the store's name", () => {
 
 it("the panel tab title is the store's", async () => {
   const meta = await generateMetadata();
-  expect(meta.title).toEqual({ default: "Loja Ç", template: "%s · Loja Ç" });
+  // absolute: the root layout's "%s · <site>" template would otherwise wrap the panel's own title.
+  expect(meta.title).toEqual({ absolute: "Loja Ç", template: "%s · Loja Ç" });
   expect(meta.robots).toEqual({ index: false, follow: false });
 });

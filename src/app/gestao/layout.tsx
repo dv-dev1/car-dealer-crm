@@ -11,7 +11,7 @@ import { ThemeScope } from "@/themes/ThemeScope";
 export async function generateMetadata(): Promise<Metadata> {
   const { storeName } = await requireMember();
   return {
-    title: { default: storeName, template: `%s · ${storeName}` },
+    title: { absolute: storeName, template: `%s · ${storeName}` },
     robots: { index: false, follow: false },
   };
 }
