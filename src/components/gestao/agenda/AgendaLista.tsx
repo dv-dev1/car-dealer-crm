@@ -3,6 +3,7 @@
 import { Car } from "lucide-react";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { whatsappLinkPara } from "@/lib/loja";
+import { tapContact } from "@/components/gestao/clientes/contato";
 import { mensagemDaLoja, useStoreName } from "@/components/gestao/storeName";
 import { diaPorExtenso } from "@/lib/hoje";
 import { TIPO_EVENTO, type EventoAgenda } from "@/data/agenda";
@@ -41,6 +42,7 @@ export function EventoItem({ evento }: { evento: EventoAgenda }) {
           href={whatsappLinkPara(evento.lead.telefone, msg)}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => tapContact(evento.lead, "whatsapp")}
           aria-label={`Chamar ${primeiroNome(evento.lead.nome)} no WhatsApp`}
           className="grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover"
         >

@@ -7,7 +7,7 @@ import { formatPreco } from "@/lib/format";
 import { ddmm } from "@/lib/hoje";
 import { whatsappLinkPara } from "@/lib/loja";
 import { mensagemDaLoja, useStoreName } from "@/components/gestao/storeName";
-import { recordContactAction } from "@/features/leads/actions";
+import { tapContact } from "./contato";
 import type { ContactKind } from "@/features/leads/contacts";
 import { ETAPAS, type Etapa, type Lead } from "@/features/leads/types";
 
@@ -66,10 +66,7 @@ export function LeadCard({
   ].filter(Boolean) as { rotulo: string; valor: string; tom: string }[];
 
   const mensagem = mensagemDaLoja(lead.nome, useStoreName());
-  // Tapping WhatsApp or call is the contact: it stamps the first response and the last contact of who owns the client.
-  const contato = (kind: ContactKind) => {
-    if (podeMexer) void recordContactAction(lead.id, kind).catch(() => {});
-  };
+  const contato = (kind: ContactKind) => tapContact(lead, kind);
   const icone =
     "grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-line text-secondary transition-colors duration-200 hover:bg-sand lg:h-8 lg:w-8";
 
@@ -157,8 +154,8 @@ export function LeadCard({
         </div>
       )}
 
-      {/* Ações — mt-auto encosta no rodapé; alvo de 44px no celular */}
-      <div className="mt-auto flex items-center gap-2 pt-3 lg:gap-1.5">
+      {/* Ações — mt-auto encosta no rodapé; alvo de 44px no celular; quebram a linha em vez de sair do card. Ligar só no celular. */}
+      <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 lg:gap-1.5">
         {lead.telefone && (
           <a
             href={whatsappLinkPara(lead.telefone, mensagem)}
@@ -175,7 +172,7 @@ export function LeadCard({
 
         {lead.telefone && (
           <a href={`tel:+${lead.telefone}`} draggable={false} onClick={() => contato("call")}
-            aria-label={`Ligar para ${primeiroNome(lead.nome)}`} className={icone}>
+            aria-label={`Ligar para ${primeiroNome(lead.nome)}`} className={`${icone} lg:hidden`}>
             <Phone size={14} />
           </a>
         )}
