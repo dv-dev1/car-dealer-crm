@@ -20,7 +20,7 @@ export function AppraisalResult({ result, input, modelSales = 0 }: { result: App
     return (
       <p role="status" className="rounded-[var(--radius-control)] border border-line bg-surface-2 p-4 text-sm text-secondary">
         <strong className="font-semibold">Não vale a troca.</strong> Com a preparação e a margem de {input.marginPct}%, não sobra valor para oferecer
-        por este {input.brand} {input.model}.
+        por este {input.brand} {input.model} em estado {CONDITION[input.condition].label.toLowerCase()}.
       </p>
     );
   }
@@ -31,7 +31,7 @@ export function AppraisalResult({ result, input, modelSales = 0 }: { result: App
         {reais(result.profit)} em cerca de {result.days} {result.days === 1 ? "dia" : "dias"}.
       </p>
       <p className="mt-2 text-xs text-muted-strong">
-        Referência {reais(input.reference)}, preparação {reais(result.prep)}, custo do dinheiro parado {reais(result.moneyCost)}, margem de{" "}
+        Estado {CONDITION[input.condition].label.toLowerCase()}, referência {reais(input.reference)}, preparação {reais(result.prep)}, custo do dinheiro parado {reais(result.moneyCost)}, margem de{" "}
         {input.marginPct}%. Prazo: {modelSales > 0 ? `média de ${modelSales} ${modelSales === 1 ? "venda" : "vendas"} deste modelo na loja` : "média da loja"}.
       </p>
       {kept === null ? (
@@ -55,6 +55,21 @@ export function AppraisalResult({ result, input, modelSales = 0 }: { result: App
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * The car's state. Keyed by the value: after the action React resets the form, and a select, unlike an input,
+ * ignores a new defaultValue once mounted, so it would go back to "Bom" without saying so.
+ */
+export function ConditionSelect({ value }: { value: string | undefined }) {
+  const chosen = value && Object.hasOwn(CONDITION, value) ? value : "good";
+  return (
+    <select key={chosen} name="condition" defaultValue={chosen} className={field}>
+      {(Object.keys(CONDITION) as Condition[]).map((key) => (
+        <option key={key} value={key}>{CONDITION[key].label}</option>
+      ))}
+    </select>
   );
 }
 
@@ -82,11 +97,7 @@ export function AppraisalForm() {
           {input("km", "Quilometragem", { required: true, inputMode: "numeric" })}
           <label className="block text-sm font-medium text-secondary">
             Estado
-            <select name="condition" defaultValue={typed.condition ?? "good"} className={field}>
-              {(Object.keys(CONDITION) as Condition[]).map((key) => (
-                <option key={key} value={key}>{CONDITION[key].label}</option>
-              ))}
-            </select>
+            <ConditionSelect value={typed.condition} />
           </label>
           {input("reference", "FIPE em R$ (opcional)", { inputMode: "numeric" })}
           {input("marginPct", "Margem em % (opcional)", { inputMode: "numeric" })}

@@ -42,7 +42,7 @@ export async function appraiseAction(_prev: AppraisalState, form: FormData): Pro
   return {
     error: null,
     typed,
-    input: { brand, model, year, km, reference, marginPct },
+    input: { brand, model, year, km, condition: condition as Condition, reference, marginPct },
     result: appraise({ reference, year, km, condition: condition as Condition, days: defaults.days, marginPct, monthlyRate: defaults.monthlyRate }, thisYear),
     modelSales: defaults.modelSales,
   };

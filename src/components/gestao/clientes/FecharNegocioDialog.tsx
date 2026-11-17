@@ -120,14 +120,14 @@ export function FecharNegocioDialog({
   // A trade-in appraised in Compras arrives once: it fills the trade-in of the next sale and is forgotten.
   useEffect(() => {
     if (!vendeu) return;
-    const kept = takeAppraisalForSale();
+    const kept = takeAppraisalForSale(gerencia);
     if (!kept) return;
     setTemTroca(true);
     setTroca({
       ...TROCA_VAZIA, tradeBrand: kept.brand, tradeModel: kept.model, tradeManufactureYear: String(kept.year),
       tradeModelYear: String(kept.year), tradeKm: String(kept.km), tradeValue: String(kept.value),
     });
-  }, [marca, vendeu]);
+  }, [marca, vendeu, gerencia]);
 
   useEffect(() => {
     if (!fechamento) return;

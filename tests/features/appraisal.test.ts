@@ -4,7 +4,7 @@ import pg from "pg";
 import { beforeEach, expect, it, vi } from "vitest";
 import { appraiseAction } from "@/features/buying/actions";
 import { appraisalDefaults } from "@/features/buying/appraisal";
-import { AppraisalResult } from "@/features/buying/appraisal-view";
+import { AppraisalResult, ConditionSelect } from "@/features/buying/appraisal-view";
 import { TRADE_IN_KEY, appraise, keepAppraisalForSale, referencePrice, takeAppraisalForSale } from "@/features/buying/rules";
 import { MODELS } from "@/features/demo/catalog";
 import { restoreDemoStore } from "@/features/demo/model";
@@ -121,7 +121,7 @@ it("the action appraises for owner and manager, with the typed reference when th
 });
 
 it("the result reads as an offer, or says the trade is not worth it", () => {
-  const input = { brand: "Chevrolet", model: "Onix", year: 2020, km: 72000, reference: 80000, marginPct: 10 };
+  const input = { brand: "Chevrolet", model: "Onix", year: 2020, km: 72000, condition: "good" as const, reference: 80000, marginPct: 10 };
   const html = text(renderToStaticMarkup(createElement(AppraisalResult, { result: appraise(base, 2026), input })));
   expect(html).toMatch(/Ofereça até R\$\s?67\.400/);
   expect(html).toMatch(/vendendo a R\$\s?77\.600/);
@@ -138,12 +138,41 @@ it("an appraisal kept for the sale is taken once, and a broken one is dropped", 
   };
   const kept = { brand: "Chevrolet", model: "Onix", year: 2020, km: 72000, value: 67400 };
   expect(keepAppraisalForSale(kept, storage)).toBe(true);
-  expect(takeAppraisalForSale(storage)).toEqual(kept);
-  expect(takeAppraisalForSale(storage)).toBeNull();
+  expect(takeAppraisalForSale(true, storage)).toEqual(kept);
+  expect(takeAppraisalForSale(true, storage)).toBeNull();
   for (const broken of ["{broken", JSON.stringify({ brand: 1 }), JSON.stringify({ ...kept, value: "67400" })]) {
     data.set(TRADE_IN_KEY, broken);
-    expect(takeAppraisalForSale(storage)).toBeNull();
+    expect(takeAppraisalForSale(true, storage)).toBeNull();
     expect(data.size).toBe(0);
   }
   expect(keepAppraisalForSale(kept, { ...storage, setItem: () => { throw new Error("private window"); } })).toBe(false);
+});
+
+it("the state field keeps what was chosen after an answer, and the answer says the state it used", () => {
+  // A select ignores a new defaultValue once mounted: it has to mount again with the typed state.
+  expect(ConditionSelect({ value: "poor" }).key).toBe("poor");
+  expect(ConditionSelect({ value: undefined }).key).toBe("good");
+  const input = { brand: "Chevrolet", model: "Onix", year: 2020, km: 72000, condition: "poor" as const, reference: 80000, marginPct: 10 };
+  const html = text(renderToStaticMarkup(createElement(AppraisalResult, { result: appraise({ ...base, condition: "poor" }, 2026), input })));
+  expect(html).toContain("Estado ruim");
+  expect(text(renderToStaticMarkup(createElement(AppraisalResult, { result: null, input })))).toContain("em estado ruim");
+});
+
+it("an appraisal kept in the browser never fills a seller's sale", () => {
+  const data = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => void data.set(key, value),
+    removeItem: (key: string) => void data.delete(key),
+  };
+  const kept = { brand: "Chevrolet", model: "Onix", year: 2020, km: 72000, value: 67400 };
+  keepAppraisalForSale(kept, storage);
+  expect(takeAppraisalForSale(false, storage)).toBeNull();
+  expect(data.size).toBe(1);
+  expect(takeAppraisalForSale(true, storage)).toEqual(kept);
+});
+
+it("the action answers with the state it used", async () => {
+  guard.requireMember.mockResolvedValue(owner);
+  expect((await appraiseAction({ error: null }, form({ condition: "fair" }))).input).toMatchObject({ condition: "fair" });
 });

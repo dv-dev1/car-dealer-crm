@@ -75,7 +75,7 @@ export function appraise(
   return { offer, salePrice, profit: salePrice - offer - prep - moneyCost, days: input.days, prep, moneyCost };
 }
 
-export type AppraisalInput = { brand: string; model: string; year: number; km: number; reference: number; marginPct: number };
+export type AppraisalInput = { brand: string; model: string; year: number; km: number; condition: Condition; reference: number; marginPct: number };
 export type AppraisalState = {
   error: string | null;
   /** What was typed, so the form keeps it after the answer or the error. */
@@ -102,8 +102,13 @@ export function keepAppraisalForSale(appraisal: AppraisalForSale, storage?: Sess
   }
 }
 
-/** The kept appraisal, once: reading it forgets it. Null when there is none or it does not read. */
-export function takeAppraisalForSale(storage?: SessionStore): AppraisalForSale | null {
+/**
+ * The kept appraisal, once: reading it forgets it. Null when there is none or it does not read.
+ * Only for who manages: the offer comes from the store's margin, and the session outlives a change of account
+ * on a shared computer, so a seller's sale leaves it where it is.
+ */
+export function takeAppraisalForSale(managing: boolean, storage?: SessionStore): AppraisalForSale | null {
+  if (!managing) return null;
   try {
     const store = storage ?? window.sessionStorage;
     const raw = store.getItem(TRADE_IN_KEY);
