@@ -70,7 +70,7 @@ it("moves, loses and records with the store's today", async () => {
   }));
   expect(sales.recordSale).toHaveBeenCalledWith(ctx, {
     vehicleId: CAR, leadId: LEAD, sellerId: null, price: 68000, payment: "financing", bank: "BV", financedAmount: 40000,
-    soldOn: todayIso(),
+    soldOn: todayIso(), returnPct: null, tradeIn: null,
   });
   expect(cache.revalidatePath).toHaveBeenCalledWith("/gestao", "layout");
 });

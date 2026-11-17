@@ -35,11 +35,11 @@ beforeEach(async () => {
   await restoreDemoStore(owner, TODAY);
 });
 
-it("an owner sees each sale's profit from the car's real cost", async () => {
+it("an owner sees each sale's profit from the car's real cost and the bank's return", async () => {
   const { vendas } = await loadReport(owner, NOV, TODAY);
   const rows = await adminQuery(
-    `select s.id, (s.price - coalesce(c.cost, 0))::float8 as lucro
-       from sales s left join vehicle_costs c on c.vehicle_id = s.vehicle_id
+    `select s.id, (s.price - coalesce(c.cost, 0) + coalesce(s.financed_amount * f.financing_return_pct, 0))::float8 as lucro
+       from sales s left join vehicle_costs c on c.vehicle_id = s.vehicle_id left join sale_finances f on f.sale_id = s.id
       where s.store_id = $1 and s.sold_on between '2026-11-01' and '2026-11-30'`,
     [owner.storeId],
   );
