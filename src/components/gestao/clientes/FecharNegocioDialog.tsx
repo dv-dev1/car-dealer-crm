@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X, BadgeCheck, XCircle } from "lucide-react";
+import { takeAppraisalForSale } from "@/features/buying/rules";
 import { loseLeadAction } from "@/features/leads/actions";
 import { PAYMENT_LABEL, type Lead, type Payment } from "@/features/leads/types";
 import { recordSaleAction } from "@/features/sales/actions";
@@ -115,6 +116,18 @@ export function FecharNegocioDialog({
     const t = setTimeout(() => primeiroRef.current?.focus(), 60);
     return () => clearTimeout(t);
   }, [fechamento]);
+
+  // A trade-in appraised in Compras arrives once: it fills the trade-in of the next sale and is forgotten.
+  useEffect(() => {
+    if (!vendeu) return;
+    const kept = takeAppraisalForSale();
+    if (!kept) return;
+    setTemTroca(true);
+    setTroca({
+      ...TROCA_VAZIA, tradeBrand: kept.brand, tradeModel: kept.model, tradeManufactureYear: String(kept.year),
+      tradeModelYear: String(kept.year), tradeKm: String(kept.km), tradeValue: String(kept.value),
+    });
+  }, [marca, vendeu]);
 
   useEffect(() => {
     if (!fechamento) return;

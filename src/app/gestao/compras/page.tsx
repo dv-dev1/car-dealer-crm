@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { requireMember } from "@/features/auth/guard";
+import { AppraisalForm } from "@/features/buying/appraisal-view";
 import { buyingReport } from "@/features/buying/model";
 import { BuyingView } from "@/features/buying/view";
 import { todayIso } from "@/shared/today";
@@ -12,5 +13,9 @@ export default async function BuyingPage() {
   const member = await requireMember();
   const report = await buyingReport(member, todayIso());
   if (!report) notFound();
-  return <BuyingView report={report} />;
+  return (
+    <BuyingView report={report}>
+      <AppraisalForm />
+    </BuyingView>
+  );
 }
