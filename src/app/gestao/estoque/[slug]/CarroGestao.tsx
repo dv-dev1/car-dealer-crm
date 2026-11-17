@@ -16,13 +16,14 @@ import {
 } from "lucide-react";
 import { formatPreco } from "@/lib/format";
 import type { StockVehicle } from "@/features/stock/model";
-import { statusLabel, type Expense } from "@/features/stock/rules";
+import { statusLabel, type Expense, type VehicleDocument } from "@/features/stock/rules";
 import { removeVehicleAction, setMarginAction } from "@/features/stock/actions";
 import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
 import { FecharNegocioDialog } from "@/components/gestao/clientes/FecharNegocioDialog";
 import type { Lead } from "@/features/leads/types";
 import { todayIso } from "@/shared/today";
 import { Despesas } from "./Despesas";
+import { Documentos } from "./Documentos";
 import { AvisoForaDaLoja, TirarDaLoja } from "./ForaDaLoja";
 import { AvisoReserva, Reservar } from "./Reserva";
 
@@ -35,10 +36,13 @@ export function CarroGestao({
   leads,
   memberId,
   expenses = null,
+  documents = null,
   today = todayIso(),
 }: {
   veiculo: StockVehicle;
   estoque: { id: string; titulo: string; preco: number }[];
+  /** The car's documents; null where the screen is rendered without them. */
+  documents?: VehicleDocument[] | null;
   canManage: boolean;
   channels: { id: string; name: string }[];
   /** Null for a seller. */
@@ -304,6 +308,8 @@ export function CarroGestao({
           )}
 
           {canManage && expenses && <Despesas vehicleId={veiculo.id} expenses={expenses} today={today} />}
+
+          {documents && <Documentos vehicleId={veiculo.id} documents={documents} canManage={canManage} />}
 
           {/* Ações: one primary, outline secondaries, a text button for the destructive one. */}
           <div className="grid gap-2.5 sm:grid-cols-2">

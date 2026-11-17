@@ -16,7 +16,7 @@ import { staleLevel, stockSummary } from "@/features/stock/rules";
 import { CarThumb, GestaoCarCard, diasNoPatio } from "@/components/gestao/GestaoCarCard";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 
-type Filtro = "todos" | "sem-margem" | "girar" | "preparacao";
+type Filtro = "todos" | "sem-margem" | "girar" | "preparacao" | "documento";
 type Ordem = "relevancia" | "preco-asc" | "preco-desc" | "patio-desc" | "lucro-desc";
 type Modo = "grade" | "lista";
 
@@ -32,6 +32,7 @@ function pertence(v: StockVehicle, f: Filtro) {
   if (f === "sem-margem") return v.minCashPrice === null;
   if (f === "girar") return staleLevel(v.daysInStock) === "stale";
   if (f === "preparacao") return v.status === "preparing";
+  if (f === "documento") return v.pendingDocs > 0;
   return true;
 }
 
@@ -49,6 +50,7 @@ export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicl
       "sem-margem": veiculos.filter((v) => pertence(v, "sem-margem")).length,
       girar: veiculos.filter((v) => pertence(v, "girar")).length,
       preparacao: veiculos.filter((v) => pertence(v, "preparacao")).length,
+      documento: veiculos.filter((v) => pertence(v, "documento")).length,
     }),
     [veiculos],
   );
@@ -86,6 +88,7 @@ export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicl
     { valor: "sem-margem", label: "Sem margem", n: contagem["sem-margem"] },
     { valor: "girar", label: "Girar (+90d)", n: contagem.girar },
     { valor: "preparacao", label: "Em preparação", n: contagem.preparacao },
+    { valor: "documento", label: "Documento pendente", n: contagem.documento },
   ];
 
   return (

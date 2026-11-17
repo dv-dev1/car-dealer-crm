@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CarroGestao } from "./CarroGestao";
 import { requireMember } from "@/features/auth/guard";
 import { listChannels, listLeads, listSellers } from "@/features/leads/model";
+import { listDocuments } from "@/features/stock/documents";
 import { listExpenses } from "@/features/stock/expenses";
 import { getVehicle, listStock } from "@/features/stock/model";
 import { todayIso } from "@/shared/today";
@@ -24,19 +25,21 @@ export default async function CarroGestaoPage({
   if (!veiculo) notFound();
 
   const canManage = member.role !== "seller";
-  const [stock, channels, sellers, leads, expenses] = await Promise.all([
+  const [stock, channels, sellers, leads, expenses, documents] = await Promise.all([
     listStock(member),
     listChannels(member),
     canManage ? listSellers(member) : null,
     listLeads(member),
     listExpenses(member, veiculo.id),
+    listDocuments(member, veiculo.id),
   ]);
   const open = leads.filter((l) => l.estagio !== "vendeu" && l.estagio !== "nao-comprou");
   const estoque = stock.map((v) => ({
     id: v.id, titulo: v.title, preco: v.price,
     consignorPayout: v.source === "consignment" ? (v.money?.acquisitionCost ?? null) : null,
+    pendingDocs: v.pendingDocs,
   }));
 
   return <CarroGestao veiculo={veiculo} estoque={estoque} canManage={canManage} channels={channels} sellers={sellers}
-      leads={open} memberId={member.membershipId} expenses={expenses} today={todayIso()} />;
+      leads={open} memberId={member.membershipId} expenses={expenses} documents={documents} today={todayIso()} />;
 }

@@ -48,6 +48,8 @@ export type StockVehicle = {
   money: StockMoney | null;
   /** Who owns a consigned car; only for owner and manager. */
   consignor: { name: string; phone: string | null } | null;
+  /** Documents marked as pending. */
+  pendingDocs: number;
 };
 
 type Row = Omit<StockVehicle, "title" | "price" | "minCashPrice" | "photos" | "away" | "money"> & {
@@ -78,6 +80,7 @@ const SELECT = `
            where r.vehicle_id = v.id and r.canceled_at is null and r.expires_on >= $2::date
              and v.status not in ('sold', 'removed')
            order by r.created_at desc limit 1) as reservation,
+         (select count(*)::int from vehicle_documents d where d.vehicle_id = v.id and d.status = 'pending') as "pendingDocs",
          coalesce((select json_agg(json_build_object('id', p.id, 'path', p.path) order by p.position)
                      from vehicle_photos p where p.vehicle_id = v.id), '[]') as photos,
          %COST%

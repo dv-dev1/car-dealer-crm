@@ -77,3 +77,22 @@ export const EXPENSE_LABEL = {
 } as const;
 export type ExpenseCategory = keyof typeof EXPENSE_LABEL;
 export type Expense = { id: string; category: ExpenseCategory; spentOn: string; amount: number; description: string };
+
+export const DOCUMENT_ITEMS = ["ipva", "fines", "inspection_report", "lien", "transfer_document", "spare_key", "manual"] as const;
+export type DocumentItem = (typeof DOCUMENT_ITEMS)[number];
+export type DocumentStatus = "ok" | "pending" | "not_applicable";
+/** `status` null: nobody checked this item yet. */
+export type VehicleDocument = { item: DocumentItem; status: DocumentStatus | null; note: string | null };
+
+export const DOCUMENT_LABEL: Record<DocumentItem, string> = {
+  ipva: "IPVA do ano",
+  fines: "Multas",
+  inspection_report: "Laudo cautelar",
+  lien: "Quitação ou gravame",
+  transfer_document: "Documento de transferência",
+  spare_key: "Chave reserva",
+  manual: "Manual",
+};
+export const DOCUMENT_STATUS_LABEL: Record<DocumentStatus, string> = { ok: "Em dia", pending: "Pendente", not_applicable: "Não se aplica" };
+
+export const pendingDocsLabel = (n: number) => `${n} ${n === 1 ? "pendência" : "pendências"}`;

@@ -6,6 +6,7 @@ import { X, BadgeCheck, XCircle } from "lucide-react";
 import { loseLeadAction } from "@/features/leads/actions";
 import { PAYMENT_LABEL, type Lead, type Payment } from "@/features/leads/types";
 import { recordSaleAction } from "@/features/sales/actions";
+import { pendingDocsLabel } from "@/features/stock/rules";
 import { CAMBIOS, COMBUSTIVEIS } from "@/data/opcoes-veiculo";
 import { formatPreco, reaisEmDigitos } from "@/lib/format";
 import { formData } from "@/shared/form";
@@ -23,7 +24,7 @@ export interface Fechamento {
 }
 
 /** `consignorPayout` only for who manages, on a consigned car. */
-type Veiculo = { id: string; titulo: string; preco: number; consignorPayout?: number | null };
+type Veiculo = { id: string; titulo: string; preco: number; consignorPayout?: number | null; pendingDocs?: number };
 
 const TROCA_VAZIA = {
   tradeBrand: "", tradeModel: "", tradeVersion: "", tradeManufactureYear: "", tradeModelYear: "", tradeKm: "",
@@ -178,6 +179,7 @@ export function FecharNegocioDialog({
     "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
   const rotulo = "flex flex-col gap-1.5 text-xs font-medium text-muted-strong";
   const repasse = gerencia ? veiculos.find((v) => v.id === carroId)?.consignorPayout : null;
+  const pendencias = veiculos.find((v) => v.id === carroId)?.pendingDocs ?? 0;
   const campoTroca = (key: keyof typeof TROCA_VAZIA) => ({
     value: troca[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setTroca((t) => ({ ...t, [key]: e.target.value })),
@@ -290,6 +292,12 @@ export function FecharNegocioDialog({
                     />
                     {repasse != null && <span className="font-normal text-muted">Repasse ao dono: {formatPreco(repasse)}</span>}
                   </label>
+
+                  {pendencias > 0 && (
+                    <p className="rounded-[var(--radius-control)] border border-warning/30 bg-warning-bg px-3 py-2 text-xs font-medium text-warning-ink">
+                      Este carro tem {pendingDocsLabel(pendencias)} de documentação. A venda segue; resolva antes da entrega.
+                    </p>
+                  )}
 
                   <fieldset>
                     <legend className="mb-1.5 text-xs font-medium text-muted-strong">Forma de pagamento</legend>

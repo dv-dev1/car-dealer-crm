@@ -16,6 +16,7 @@ export default async function ClientesPage() {
   const veiculos = stock.map((v) => ({
     id: v.id, titulo: v.title, preco: v.price,
     consignorPayout: v.source === "consignment" ? (v.money?.acquisitionCost ?? null) : null,
+    pendingDocs: v.pendingDocs,
   }));
   return <ClientesView leads={leads} veiculos={veiculos} channels={channels} sellers={sellers}
       memberId={member.membershipId} today={today} />;

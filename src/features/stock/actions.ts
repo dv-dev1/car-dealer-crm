@@ -9,7 +9,9 @@ import { reaisEmDigitos } from "@/lib/format";
 import {
   createVehicle, removeVehicle, returnToStore, setAway, setMargin, updateVehicle, type AwayReason, type RemoveReason, type VehicleInput,
 } from "./model";
+import { setDocument } from "./documents";
 import { addExpense, readExpense, removeExpense } from "./expenses";
+import type { DocumentItem, DocumentStatus } from "./rules";
 import { cancelReservation, createReservation } from "./reservations";
 import { addVehiclePhoto, photoBucket, removeVehiclePhoto } from "./photos";
 
@@ -238,6 +240,26 @@ export async function cancelReservationAction(_prev: StockActionState, form: For
   const member = await requireMember();
   const result = await cancelReservation(member, String(form.get("reservationId") ?? ""));
   if (!result.ok) return { error: result.error === "forbidden" ? RESERVATION_ERROR.forbidden : "Esta reserva já foi cancelada." };
+  revalidatePath("/gestao", "layout");
+  return { error: null };
+}
+
+const DOCUMENT_ERROR = {
+  forbidden: "Só o dono e o gerente mexem na documentação.",
+  not_found: "Carro não encontrado.",
+  invalid: "Escolha a situação; a observação tem até 200 letras.",
+} as const;
+
+export async function setDocumentAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const field = (name: string) => String(form.get(name) ?? "");
+  const result = await setDocument(member, {
+    vehicleId: field("vehicleId"),
+    item: field("item") as DocumentItem,
+    status: field("status") as DocumentStatus,
+    note: field("note"),
+  });
+  if (!result.ok) return { error: DOCUMENT_ERROR[result.error] };
   revalidatePath("/gestao", "layout");
   return { error: null };
 }
