@@ -34,6 +34,18 @@ da WorkOS (staging), cadastre o redirecionamento `http://localhost:8787/callback
 O login só funciona pelo preview (porta 8787). O `npm run dev` puro não recebe o `cf-connecting-ip`
 da Cloudflare, e o formulário de login recusa sem ele de propósito (falha fechada); o site público roda nele.
 
+## IA (OpenAI)
+
+As funções de IA chamam a OpenAI só pelo servidor, com `OPENAI_API_KEY` do `.dev.vars` (em produção, `wrangler secret`).
+Sem a chave o painel funciona e cada função de IA responde "A IA ainda não está ligada nesta loja.".
+
+```
+# crie ../secrets/openai.local.json com { "apiKey": "..." } (modo 0600); nunca cole a chave em chat, .md ou log
+npm run ai:key        # copia a chave para o .dev.vars sem imprimir
+```
+
+`OPENAI_MODEL` troca o modelo (padrão `gpt-5-mini`). Cada loja faz até 200 chamadas por dia (`ai_usage`, migração `0011`).
+
 ## Neon
 
 Roteiro para aplicar a migração no Neon e ligar o Worker a ele. Rode tudo de dentro de `repo/`.
