@@ -23,7 +23,7 @@ vi.mock("@/features/leads/actions", () => ({
   createLeadAction: vi.fn(), updateLeadAction: vi.fn(), moveLeadAction: vi.fn(), loseLeadAction: vi.fn(),
 }));
 vi.mock("@/features/sales/actions", () => ({ recordSaleAction: vi.fn() }));
-vi.mock("@/features/store/actions", () => ({ setMoneyRateAction: vi.fn() }));
+vi.mock("@/features/store/actions", () => ({ setStaleLeadDaysAction: vi.fn(), setMoneyRateAction: vi.fn() }));
 
 const TODAY = "2026-11-13";
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
