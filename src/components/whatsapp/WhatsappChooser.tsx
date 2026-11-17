@@ -10,7 +10,7 @@ import { WhatsappIcon } from "../WhatsappIcon";
 const EASE_BRAND: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 // Iniciais pro monograma do avatar (diferencia os atendentes em vez de um
-// ícone-carimbo igual pra todos). "Cassiano Veículos" → CV, "Afonso" → A.
+// ícone-carimbo igual pra todos). "Maré Veículos" → MV, "Ana" → A.
 function iniciais(nome: string) {
   const partes = nome.trim().split(/\s+/);
   const primeira = partes[0]?.[0] ?? "";
@@ -23,7 +23,7 @@ function iniciais(nome: string) {
  * cai no WhatsApp dele já com a mensagem pré-pronta. Nasce do canto (do FAB) no
  * desktop e vira bottom sheet no mobile.
  *
- * Marca: avatares em monograma caramelo (identidade Cassiano) + selo verde do
+ * Marca: avatares em monograma caramelo (cor da marca) + selo verde do
  * WhatsApp no cabeçalho (afordância). Acessível: role="dialog" + aria-modal,
  * foco inicial no primeiro atendente, Esc fecha, Tab preso, foco devolvido ao
  * gatilho, scroll travado. Motion respeita prefers-reduced-motion (só fade).

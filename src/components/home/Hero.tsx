@@ -1,38 +1,18 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { loja, imagens } from "@/lib/loja";
+import { loja } from "@/lib/loja";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { WhatsappTrigger } from "@/components/whatsapp/WhatsappTrigger";
 import { Reveal } from "@/components/Reveal";
 
 /**
- * Hero com o Cassiano — o dono é a cara da marca, e a maioria dos clientes
- * compra pela confiança nele. Composição: ambiente real da loja (concessionária)
- * escurecido e desfocado ao fundo, texto e CTAs à esquerda, Cassiano recortado
- * (PNG transparente) grande à direita, com glow caramelo atrás pra a figura
- * (de polo escuro) descolar do fundo grafite.
- *
- * Mobile: o texto e os CTAs mandam (ficam acima da dobra). O Cassiano vira uma
- * presença atrás, com opacidade menor, pra não empurrar a ação pra baixo.
+ * Hero: fundo grafite com luz caramelo, texto e CTAs à esquerda. Sem foto de
+ * pessoa nem da loja (a Maré é fictícia). Mobile: texto e CTAs acima da dobra.
  */
 export function Hero() {
   return (
     <section className="relative flex min-h-[88svh] items-center overflow-hidden bg-secondary sm:min-h-[92svh]">
-      {/* Ambiente: concessionária ao fundo, escurecida (sem blur — a foto tem
-          resolução boa; o overlay grafite já garante a legibilidade do texto). */}
-      <Image
-        src={imagens.hero}
-        alt=""
-        aria-hidden="true"
-        fill
-        priority
-        quality={90}
-        sizes="100vw"
-        className="object-cover object-center opacity-55"
-      />
-      {/* Overlays grafite: forte à esquerda (texto), o salão respira à direita
-          agora que o Cassiano saiu (ele ganhou seção própria logo abaixo). */}
+      {/* Overlays grafite: forte à esquerda (texto), mais leve à direita. */}
       <div className="absolute inset-0 bg-gradient-to-r from-secondary via-secondary/85 to-secondary/45" />
       <div className="absolute inset-0 bg-gradient-to-t from-secondary via-transparent to-secondary/60" />
 

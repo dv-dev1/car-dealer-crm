@@ -6,7 +6,7 @@ import { Reveal } from "@/components/Reveal";
 
 /**
  * Garantia de 90 dias "para-choque a para-choque" — diferencial autêntico e
- * forte da Cassiano. Não é a garantia limitada de sempre: pifou a bateria, eles
+ * forte da loja. Não é a garantia limitada de sempre: pifou a bateria, eles
  * trocam; furou/gastou o pneu, botam pneu de qualidade. Cobertura de verdade.
  *
  * Estética: bloco escuro drenched (a garantia É o produto aqui), o "90 dias"
@@ -65,7 +65,7 @@ export function Garantia() {
             delay={0.08}
             className="mt-4 max-w-lg text-base leading-relaxed text-white/85 sm:text-lg"
           >
-            Levou um carro da Cassiano e algo deu problema nos primeiros 90 dias?
+            Levou um carro da {loja.nome} e algo deu problema nos primeiros 90 dias?
             A gente resolve. Sem letra miúda, sem empurrar a conta pra você.
           </Reveal>
 

@@ -9,21 +9,25 @@ import { formatKm, formatPreco } from "@/lib/format";
  * "outros carros". Foto com zoom suave no hover (transform, ~0.7s).
  */
 export function VeiculoCard({ veiculo }: { veiculo: Veiculo }) {
-  const capa = veiculo.fotos[0] ?? "/placeholder/veiculo-1.svg";
+  const capa = veiculo.fotos[0];
   return (
     <Link
       href={`/carro/${veiculo.slug}`}
       className="group flex flex-col overflow-hidden rounded-[var(--radius)] border border-line bg-surface shadow-[var(--shadow-soft)] transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ease-brand)] hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] motion-reduce:hover:translate-y-0"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-sand">
-        <Image
-          src={capa}
-          alt={`${veiculo.titulo}, ${veiculo.ano}`}
-          fill
-          quality={90}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition-transform duration-700 ease-[var(--ease-brand)] group-hover:scale-105 motion-reduce:group-hover:scale-100"
-        />
+        {capa ? (
+          <Image
+            src={capa}
+            alt={`${veiculo.titulo}, ${veiculo.ano}`}
+            fill
+            quality={90}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-700 ease-[var(--ease-brand)] group-hover:scale-105 motion-reduce:group-hover:scale-100"
+          />
+        ) : (
+          <span className="absolute inset-0 grid place-items-center text-sm font-medium text-muted">Sem foto</span>
+        )}
         {/* Véu grafite que sobe suave no hover, dando profundidade sem esconder o carro. */}
         <div className="absolute inset-0 bg-gradient-to-t from-secondary/50 via-transparent to-transparent opacity-0 transition-opacity duration-500 ease-[var(--ease-brand)] group-hover:opacity-100 motion-reduce:transition-none" />
         <span className="absolute left-3 top-3 rounded-md bg-secondary/80 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">

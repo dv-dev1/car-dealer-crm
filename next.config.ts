@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     // Qualidade da otimização. O padrão do Next é 75, que re-comprime demais
-    // nossas fotos reais (equipe, Cassiano, veículos) e faz o site parecer de
+    // as fotos dos carros e faz o site parecer de
     // baixa resolução. Subimos pra 90 e permitimos essa qualidade.
     // (No Next 16, `qualities` precisa listar os valores usados nos <Image>.)
     qualities: [75, 90],

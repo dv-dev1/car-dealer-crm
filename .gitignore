@@ -21,7 +21,7 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 
-# env (chaves do Supabase etc.: nunca versionar). O .env.example é modelo e vai versionado.
+# env (chaves e segredos: nunca versionar). O .env.example é modelo e vai versionado.
 .env*
 !.env.example
 

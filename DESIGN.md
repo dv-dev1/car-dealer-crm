@@ -1,7 +1,7 @@
 # Design
 
-Sistema visual da Cassiano Veículos. Composição e ritmo seguem a referência
-bellonimotors.com; cores, tipografia e voz são da Cassiano.
+Sistema visual do site público (herdado do protótipo; a Maré ganha tema próprio
+na etapa 5). Composição e ritmo seguem a referência bellonimotors.com.
 
 ## Theme
 

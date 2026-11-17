@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { WhatsappIcon } from "./WhatsappIcon";
 import { WhatsappTrigger } from "./whatsapp/WhatsappTrigger";
-import { InstagramIcon } from "./InstagramIcon";
 import { loja } from "@/lib/loja";
 
 const navFooter = [
@@ -52,16 +51,6 @@ export function Footer() {
                 WhatsApp
               </WhatsappTrigger>
             </li>
-            <li>
-              <a
-                href={loja.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-colors hover:text-primary"
-              >
-                Instagram
-              </a>
-            </li>
           </ul>
           <div className="mt-4 flex gap-3">
             <WhatsappTrigger
@@ -70,15 +59,6 @@ export function Footer() {
             >
               <WhatsappIcon size={18} />
             </WhatsappTrigger>
-            <a
-              href={loja.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram"
-              className="grid h-11 w-11 place-items-center rounded-[var(--radius)] border border-white/15 transition-colors hover:border-primary hover:text-primary"
-            >
-              <InstagramIcon size={18} />
-            </a>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@
 import { MESES, isoParaData } from "@/lib/hoje";
 
 /**
- * Dias em que a loja ainda pode vender neste mês, contando hoje. A Cassiano
+ * Dias em que a loja ainda pode vender neste mês, contando hoje. A loja
  * abre de segunda a sábado (domingo fechado), então "dia de venda" é qualquer
  * dia que não seja domingo. É o divisor do ritmo ("precisa de X/dia").
  */

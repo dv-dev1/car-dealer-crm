@@ -16,7 +16,7 @@ export interface EventoAgenda {
   lead: Lead;
 }
 
-// Cores dos tipos — sistema Cassiano (contido), NÃO o azul/laranja da
+// Cores dos tipos — sistema do painel (contido), NÃO o azul/laranja da
 // referência: ardósia pra visita (informativo, = "Lead novo" do funil),
 // âmbar pra retorno (pede ação). `cor` é o ponto/legenda; `tinta` é o texto
 // da pílula (mais escuro, pra passar contraste no tamanho pequeno).

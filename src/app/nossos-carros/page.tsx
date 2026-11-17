@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { SiteChrome } from "@/components/SiteChrome";
 import { Reveal } from "@/components/Reveal";
 import { getVeiculos } from "@/lib/veiculos";
+import { loja } from "@/lib/loja";
 import { ListaVeiculos } from "./ListaVeiculos";
 
 export const metadata: Metadata = {
   title: "Nossos carros",
   description:
-    "Estoque de seminovos premium da Cassiano Veículos — SUVs, sedãs e hatches com procedência verificada.",
+    `Estoque de seminovos premium da ${loja.nome} — SUVs, sedãs e hatches com procedência verificada.`,
 };
 
 export default async function NossosCarrosPage() {

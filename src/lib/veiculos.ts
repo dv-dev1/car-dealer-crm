@@ -2,9 +2,8 @@ import type { Veiculo } from "@/types/veiculo";
 import { veiculosMock } from "@/data/veiculos-mock";
 
 // ─── CAMADA DE ACESSO A DADOS ────────────────────────────────
-// Fonte única de veículos pro site. Hoje lê do mock local; quando
-// as chaves do Supabase entrarem (.env.local), estas funções passam
-// a consultar o banco — SEM mudar as telas que as consomem.
+// Fonte única de veículos pro site. Hoje lê o estoque fictício da Maré
+// (data/veiculos-mock); na etapa 5 passa a ler o banco, SEM mudar as telas.
 
 export async function getVeiculos(): Promise<Veiculo[]> {
   return veiculosMock.filter((v) => v.status !== "vendido");

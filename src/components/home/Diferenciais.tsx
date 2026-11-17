@@ -1,5 +1,6 @@
 import { Gem, ShieldCheck, Handshake } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
+import { loja } from "@/lib/loja";
 
 const cards = [
   {
@@ -31,7 +32,7 @@ export function Diferenciais() {
       <div className="mx-auto max-w-[1280px] px-5 sm:px-8">
         <Reveal className="mb-12 max-w-2xl">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Por que a Cassiano
+            Por que a {loja.nome}
           </p>
           <h2 className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-bold leading-tight text-secondary">
             Comprar carro não precisa ser uma aposta.
