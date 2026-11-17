@@ -1,4 +1,4 @@
-import type { ResumoVendas } from "@/data/vendas-mock";
+import type { ResumoVendas } from "@/features/reports/rules";
 import { Sparkline } from "@/components/gestao/painel/Sparkline";
 import {
   NumeroAnimado,
@@ -8,13 +8,15 @@ import {
 /**
  * Banda de KPIs do período. Cinco números que respondem ao seletor de período:
  * três com curva (faturamento, lucro, vendas) e dois estáticos (margem, ticket).
+ * Sem lucro (vendedor), ficam faturamento, vendas e ticket.
  * Mesma linguagem dos cards do Painel — só mais denso, porque aqui é a tela de
  * relatório de fato.
  */
 export function KpiGrid({ resumo }: { resumo: ResumoVendas }) {
   const semVendas = resumo.vendas === 0;
+  const { lucro, margem } = resumo;
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+    <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 ${lucro === null ? "" : "xl:grid-cols-5"}`}>
       <Tile
         label="Faturamento"
         valor={resumo.faturamento}
@@ -22,14 +24,16 @@ export function KpiGrid({ resumo }: { resumo: ResumoVendas }) {
         cor="var(--primary)"
         serie={resumo.serie.faturamento}
       />
-      <Tile
-        label="Lucro"
-        valor={resumo.lucro}
-        formato="preco"
-        cor="var(--success)"
-        serie={resumo.serie.lucro}
-        acento="success"
-      />
+      {lucro !== null && (
+        <Tile
+          label="Lucro"
+          valor={lucro}
+          formato="preco"
+          cor="var(--success)"
+          serie={resumo.serie.lucro ?? undefined}
+          acento="success"
+        />
+      )}
       <Tile
         label="Vendas"
         valor={resumo.vendas}
@@ -37,13 +41,15 @@ export function KpiGrid({ resumo }: { resumo: ResumoVendas }) {
         cor="var(--secondary)"
         serie={resumo.serie.vendas}
       />
-      <Tile
-        label="Margem"
-        valor={semVendas ? null : resumo.margem * 100}
-        formato="decimal1"
-        sufixo="%"
-        nota="lucro sobre o faturamento"
-      />
+      {margem !== null && (
+        <Tile
+          label="Margem"
+          valor={semVendas ? null : margem * 100}
+          formato="decimal1"
+          sufixo="%"
+          nota="lucro sobre o faturamento"
+        />
+      )}
       <Tile
         label="Ticket médio"
         valor={semVendas ? null : resumo.ticketMedio}

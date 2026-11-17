@@ -1,5 +1,5 @@
 // Tipos do domínio usados pelo site e pelos mocks; o banco ainda não tem tabela de veículos.
-// O site consome `Veiculo`; o admin (Fase 2) usa também Venda e Lead.
+// O site consome `Veiculo`; o admin (Fase 2) usa também Lead.
 
 export type StatusVeiculo = "disponivel" | "reservado" | "vendido";
 
@@ -46,14 +46,4 @@ export interface Lead {
   estagio: EstagioLead;
   ordem: number;
   notas?: string;
-}
-
-export interface Venda {
-  id: string;
-  veiculoId?: string;
-  valor: number;
-  dataVenda: string;
-  formaPagamento?: string;
-  vendedor?: string;
-  clienteNome?: string;
 }

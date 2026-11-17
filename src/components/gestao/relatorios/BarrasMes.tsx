@@ -1,7 +1,7 @@
 "use client";
 
 import { formatPreco } from "@/lib/format";
-import { vendasPorMes, type MesResumo } from "@/lib/relatorios";
+import type { MesResumo } from "@/features/reports/rules";
 
 const ALTURA = 190; // px — área útil das barras
 
@@ -12,12 +12,13 @@ function pct(fracao: number): string {
 /**
  * Vendas mês a mês do ano — o gráfico "grande" da tela. Cada barra é o
  * faturamento do mês, empilhado: lucro (verde) na base, custo (caramelo) em
- * cima. Lê de relance quanto entrou e quanto virou lucro. SVG não; divs, pra o
- * tooltip e o realce do mês corrente saírem baratos. Sem lib.
+ * cima. Lê de relance quanto entrou e quanto virou lucro. Sem lucro (vendedor),
+ * a barra é só o faturamento. SVG não; divs, pra o tooltip e o realce do mês
+ * corrente saírem baratos. Sem lib.
  */
-export function BarrasMes({ ano, mesCorrente }: { ano: number; mesCorrente: number }) {
-  const meses = vendasPorMes(ano);
+export function BarrasMes({ meses, ano, mesCorrente }: { meses: MesResumo[]; ano: number; mesCorrente: number }) {
   const maxFat = Math.max(...meses.map((m) => m.faturamento), 1);
+  const comLucro = meses.some((m) => m.lucro !== null);
 
   return (
     <section
@@ -28,13 +29,15 @@ export function BarrasMes({ ano, mesCorrente }: { ano: number; mesCorrente: numb
         <div>
           <h2 className="text-lg font-semibold text-secondary">Vendas mês a mês</h2>
           <p className="mt-0.5 text-sm text-muted-strong">
-            Faturamento de cada mês de {ano}, com o lucro dentro.
+            {comLucro ? `Faturamento de cada mês de ${ano}, com o lucro dentro.` : `Faturamento de cada mês de ${ano}.`}
           </p>
         </div>
-        <div className="flex items-center gap-4 text-xs text-muted-strong">
-          <Legenda cor="var(--success)" texto="Lucro" />
-          <Legenda cor="var(--primary)" texto="Custo" />
-        </div>
+        {comLucro && (
+          <div className="flex items-center gap-4 text-xs text-muted-strong">
+            <Legenda cor="var(--success)" texto="Lucro" />
+            <Legenda cor="var(--primary)" texto="Custo" />
+          </div>
+        )}
       </div>
 
       <div className="mt-5 overflow-x-auto pb-1">
@@ -49,8 +52,10 @@ export function BarrasMes({ ano, mesCorrente }: { ano: number; mesCorrente: numb
 }
 
 function Coluna({ m, maxFat, corrente }: { m: MesResumo; maxFat: number; corrente: boolean }) {
-  const hCusto = ((m.faturamento - m.lucro) / maxFat) * 100;
-  const hLucro = (m.lucro / maxFat) * 100;
+  // Sem lucro, a barra inteira é o faturamento.
+  const lucro = m.lucro ?? 0;
+  const hCusto = ((m.faturamento - lucro) / maxFat) * 100;
+  const hLucro = (lucro / maxFat) * 100;
   const vazio = m.vendas === 0;
 
   return (
@@ -68,15 +73,17 @@ function Coluna({ m, maxFat, corrente }: { m: MesResumo; maxFat: number; corrent
               {formatPreco(m.faturamento)}
             </span>
           </p>
+          {m.lucro !== null && (
+            <p className="text-xs text-muted-strong">
+              Lucro{" "}
+              <span className="font-medium tabular-nums text-success-ink">
+                {formatPreco(m.lucro)}
+              </span>
+            </p>
+          )}
           <p className="text-xs text-muted-strong">
-            Lucro{" "}
-            <span className="font-medium tabular-nums text-success-ink">
-              {formatPreco(m.lucro)}
-            </span>
-          </p>
-          <p className="text-xs text-muted-strong">
-            {m.vendas} {m.vendas === 1 ? "venda" : "vendas"} · margem{" "}
-            {pct(m.faturamento ? m.lucro / m.faturamento : 0)}
+            {m.vendas} {m.vendas === 1 ? "venda" : "vendas"}
+            {m.lucro !== null && <> · margem {pct(m.faturamento ? m.lucro / m.faturamento : 0)}</>}
           </p>
         </div>
       )}

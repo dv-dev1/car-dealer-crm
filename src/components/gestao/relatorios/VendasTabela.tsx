@@ -1,6 +1,6 @@
 import { Car } from "lucide-react";
 import { formatPreco } from "@/lib/format";
-import { vendasMock, type Janela } from "@/data/vendas-mock";
+import type { VendaRelatorio } from "@/features/reports/rules";
 
 function dataBonita(iso: string) {
   const [a, m, d] = iso.split("-");
@@ -13,11 +13,7 @@ function dataBonita(iso: string) {
  * (todas as vendas, não só os leads marcados). Lista, não tabela: encolhe bem no
  * celular sem rolagem lateral.
  */
-export function VendasTabela({ janela, rotulo }: { janela: Janela; rotulo: string }) {
-  const vendas = vendasMock
-    .filter((v) => v.dataVenda >= janela.de && v.dataVenda <= janela.ate)
-    .sort((a, b) => b.dataVenda.localeCompare(a.dataVenda));
-
+export function VendasTabela({ vendas, rotulo }: { vendas: VendaRelatorio[]; rotulo: string }) {
   const total = vendas.reduce((s, v) => s + v.valor, 0);
 
   return (
@@ -46,7 +42,7 @@ export function VendasTabela({ janela, rotulo }: { janela: Janela; rotulo: strin
           {vendas.map((v) => (
             <li key={v.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-secondary">{v.clienteNome}</p>
+                <p className="truncate text-sm font-semibold text-secondary">{v.clienteNome ?? "Cliente não informado"}</p>
                 <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
                   <Car size={13} strokeWidth={1.8} className="shrink-0" />
                   <span className="truncate">{v.modelo}</span>

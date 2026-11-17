@@ -1,20 +1,27 @@
-import { funilConversao } from "@/lib/relatorios";
+import type { EtapaFunil } from "@/features/reports/rules";
 
 // Cores das etapas ecoam as colunas do funil em Clientes — mesma jornada, mesma
 // leitura de cor (neutral → primary → warning → success, all theme tokens).
-const CORES = ["var(--neutral)", "var(--primary)", "var(--warning)", "var(--success)"];
+const CORES = ["var(--neutral)", "var(--primary)", "var(--success)"];
 
 function pct(fracao: number, casas = 0): string {
   return `${(fracao * 100).toLocaleString("pt-BR", { maximumFractionDigits: casas })}%`;
 }
 
 /**
- * Funil de conversão do mês: quantos leads viram visita, negociação e venda.
- * Barra por etapa (largura = fatia dos leads do topo) + taxa de passagem entre
- * etapas. Fecha com a conversão geral — o número que o gestor persegue.
+ * Funil de conversão dos clientes que entraram no período: quantos vieram à loja
+ * e quantos compraram. Barra por etapa (largura = fatia do topo) + taxa de
+ * passagem entre etapas. Fecha com a conversão geral — o número que o gestor persegue.
  */
-export function FunilConversao() {
-  const { etapas, conversaoGeral } = funilConversao();
+export function FunilConversao({
+  etapas,
+  conversaoGeral,
+  rotulo,
+}: {
+  etapas: EtapaFunil[];
+  conversaoGeral: number;
+  rotulo: string;
+}) {
   const topo = etapas[0]?.valor || 1;
 
   return (
@@ -22,7 +29,7 @@ export function FunilConversao() {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold text-secondary">Funil de conversão</h2>
-          <p className="mt-0.5 text-sm text-muted-strong">Do lead à venda, no mês.</p>
+          <p className="mt-0.5 text-sm text-muted-strong">Dos clientes que entraram em {rotulo}.</p>
         </div>
         <p className="text-sm text-muted-strong">
           Conversão geral{" "}

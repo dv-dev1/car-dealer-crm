@@ -1,73 +1,75 @@
-"use client";
-
-import { useMemo, useState } from "react";
-import { FileDown } from "lucide-react";
+import Link from "next/link";
 import {
-  resumoVendas,
-  janelaDoPeriodo,
-  rotuloPeriodo,
   PERIODOS,
-  type Periodo,
+  type EtapaFunil,
+  type FormaResumo,
   type Janela,
-} from "@/data/vendas-mock";
-import { HOJE_ISO } from "@/lib/hoje";
-import { MetaBloco } from "@/components/gestao/relatorios/MetaBloco";
+  type MesResumo,
+  type ModeloResumo,
+  type Periodo,
+  type ResumoVendas,
+  type VendaRelatorio,
+} from "@/features/reports/rules";
 import type { ResumoMetaMes } from "@/lib/metas";
+import { MetaBloco } from "@/components/gestao/relatorios/MetaBloco";
 import { KpiGrid } from "@/components/gestao/relatorios/KpiGrid";
 import { BarrasMes } from "@/components/gestao/relatorios/BarrasMes";
 import { RankingVeiculos } from "@/components/gestao/relatorios/RankingVeiculos";
 import { FunilConversao } from "@/components/gestao/relatorios/FunilConversao";
 import { VendasTabela } from "@/components/gestao/relatorios/VendasTabela";
+import { ExportarPdf } from "@/components/gestao/relatorios/ExportarPdf";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
 
-const [ANO_ATUAL, MES_ATUAL] = (() => {
-  const [a, m] = HOJE_ISO.split("-").map(Number);
-  return [a, m - 1] as const;
-})();
-
 /**
- * Relatórios do gestor. KPIs, ranking e a lista de vendas seguem o seletor de
- * período; o gráfico do ano e o funil do mês são visões fixas (ano inteiro /
- * mês corrente) — o rótulo de cada bloco deixa claro o recorte. Toda a conta
- * vem de `lib/relatorios` + `resumoVendas`; nada de número inventado na tela.
+ * Relatórios do gestor. KPIs, ranking, funil e a lista de vendas seguem o período
+ * da URL; o gráfico do ano é a visão fixa do ano corrente. Toda a conta vem pronta
+ * do servidor (`features/reports`); sem lucro, a tela não fala em lucro, margem
+ * nem custo.
  */
 export function RelatoriosView({
+  periodo,
+  janela,
+  rotulo,
+  resumo,
+  meses,
+  ano,
+  mesCorrente,
+  ranking,
+  formas,
+  funil,
+  vendas,
   meta,
   mesLabel,
   podeEditarMeta,
 }: {
+  periodo: Periodo;
+  janela: Janela;
+  rotulo: string;
+  resumo: ResumoVendas;
+  meses: MesResumo[];
+  ano: number;
+  mesCorrente: number;
+  ranking: ModeloResumo[];
+  formas: FormaResumo[];
+  funil: { etapas: EtapaFunil[]; conversaoGeral: number };
+  vendas: VendaRelatorio[];
   meta: ResumoMetaMes | null;
   mesLabel: string;
   podeEditarMeta: boolean;
 }) {
-  const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const inicial = janelaDoPeriodo("mes");
-  const [custom, setCustom] = useState<Janela>({ de: inicial.de, ate: inicial.ate });
-
-  const janela = useMemo(
-    () => janelaDoPeriodo(periodo, custom),
-    [periodo, custom],
-  );
-  const resumo = useMemo(() => resumoVendas(periodo, custom), [periodo, custom]);
-  const rotulo = rotuloPeriodo(periodo, custom);
-
+  const comLucro = resumo.lucro !== null;
   return (
     <div>
       <CabecalhoGestao
         eyebrow="Central de gestão"
         titulo="Relatórios"
-        apoio="O resultado da loja — vendas, lucro e como o funil converte."
-        acoes={
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-line bg-surface px-3.5 py-2 text-sm font-medium text-secondary transition-[background-color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] hover:bg-sand active:scale-[0.97]"
-          >
-            <FileDown size={16} strokeWidth={1.9} />
-            Exportar PDF
-          </button>
+        apoio={
+          comLucro
+            ? "O resultado da loja — vendas, lucro e como o funil converte."
+            : "O resultado da loja — vendas e como o funil converte."
         }
+        acoes={<ExportarPdf />}
       />
 
       {/* Meta do mês (antiga tela Metas, enxugada) */}
@@ -77,12 +79,12 @@ export function RelatoriosView({
       <div className="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Período">
         {PERIODOS.map((p) => {
           const ativo = periodo === p.valor;
+          const href = p.valor === "custom" ? `?periodo=custom&de=${janela.de}&ate=${janela.ate}` : `?periodo=${p.valor}`;
           return (
-            <button
+            <Link
               key={p.valor}
-              type="button"
-              onClick={() => setPeriodo(p.valor)}
-              aria-pressed={ativo}
+              href={href}
+              aria-current={ativo ? "page" : undefined}
               className={`rounded-[var(--radius-control)] px-3.5 py-1.5 text-sm font-medium transition-[background-color,color,scale] duration-[var(--dur-rapida)] ease-[var(--ease-brand)] active:scale-[0.96] ${
                 ativo
                   ? "bg-primary text-on-primary"
@@ -90,20 +92,24 @@ export function RelatoriosView({
               }`}
             >
               {p.label}
-            </button>
+            </Link>
           );
         })}
       </div>
 
       {periodo === "custom" && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-line bg-surface px-4 py-3">
+        <form
+          method="get"
+          className="mt-3 flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-line bg-surface px-4 py-3"
+        >
+          <input type="hidden" name="periodo" value="custom" />
           <label className="flex items-center gap-2 text-sm text-secondary">
             De
             <input
               type="date"
-              value={custom.de}
-              max={custom.ate}
-              onChange={(e) => setCustom((c) => ({ ...c, de: e.target.value }))}
+              name="de"
+              defaultValue={janela.de}
+              required
               className="rounded-[var(--radius-control)] border border-line bg-background px-2.5 py-1.5 text-sm text-secondary focus:border-primary focus:outline-none"
             />
           </label>
@@ -111,13 +117,20 @@ export function RelatoriosView({
             até
             <input
               type="date"
-              value={custom.ate}
-              min={custom.de}
-              onChange={(e) => setCustom((c) => ({ ...c, ate: e.target.value }))}
+              name="ate"
+              defaultValue={janela.ate}
+              required
               className="rounded-[var(--radius-control)] border border-line bg-background px-2.5 py-1.5 text-sm text-secondary focus:border-primary focus:outline-none"
             />
           </label>
-        </div>
+          <button
+            type="submit"
+            className="rounded-[var(--radius-control)] bg-primary px-3.5 py-1.5 text-sm font-medium text-on-primary"
+          >
+            Ver período
+          </button>
+          <span className="text-xs text-muted">Até um ano por vez.</span>
+        </form>
       )}
 
       {/* KPIs do período */}
@@ -130,22 +143,22 @@ export function RelatoriosView({
 
       {/* Gráfico do ano */}
       <AoEntrar className="mt-8">
-        <BarrasMes ano={ANO_ATUAL} mesCorrente={MES_ATUAL} />
+        <BarrasMes meses={meses} ano={ano} mesCorrente={mesCorrente} />
       </AoEntrar>
 
       {/* Ranking + Funil */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <AoEntrar ordem={0}>
-          <RankingVeiculos janela={janela} />
+          <RankingVeiculos ranking={ranking} formas={formas} />
         </AoEntrar>
         <AoEntrar ordem={1}>
-          <FunilConversao />
+          <FunilConversao etapas={funil.etapas} conversaoGeral={funil.conversaoGeral} rotulo={rotulo} />
         </AoEntrar>
       </div>
 
       {/* Registro de vendas */}
       <AoEntrar className="mt-6">
-        <VendasTabela janela={janela} rotulo={rotulo} />
+        <VendasTabela vendas={vendas} rotulo={rotulo} />
       </AoEntrar>
     </div>
   );

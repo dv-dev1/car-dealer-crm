@@ -1,15 +1,9 @@
 import { formatPreco } from "@/lib/format";
-import {
-  rankingModelos,
-  porFormaPagamento,
-  type FormaResumo,
-} from "@/lib/relatorios";
-import type { Janela, FormaPagamento } from "@/data/vendas-mock";
+import type { FormaPagamento, FormaResumo, ModeloResumo } from "@/features/reports/rules";
 
-// Three distinct tokens: a theme may give primary and secondary the same ink.
+// Distinct tokens: a theme may give primary and secondary the same ink.
 const COR_FORMA: Record<FormaPagamento, string> = {
   Financiamento: "var(--primary)",
-  "Troca + diferença": "var(--neutral)",
   "À vista": "var(--success)",
 };
 
@@ -22,9 +16,7 @@ function pct(fracao: number): string {
  * os clientes pagaram (barra segmentada). Junta as duas leituras que o gestor faz
  * junto — "o que vende" e "como entra o dinheiro".
  */
-export function RankingVeiculos({ janela }: { janela: Janela }) {
-  const ranking = rankingModelos(janela);
-  const formas = porFormaPagamento(janela);
+export function RankingVeiculos({ ranking, formas }: { ranking: ModeloResumo[]; formas: FormaResumo[] }) {
   // A barra mede FATURAMENTO, não contagem: num mês típico cada modelo vende 1,
   // e barras de contagem sairiam todas cheias e iguais — decoração sem leitura.
   // Pelo faturamento a barra diferencia de fato o que pesa no caixa.
