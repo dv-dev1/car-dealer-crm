@@ -6,11 +6,11 @@ import { X, BadgeCheck, XCircle } from "lucide-react";
 import { loseLeadAction } from "@/features/leads/actions";
 import { PAYMENT_LABEL, type Lead, type Payment } from "@/features/leads/types";
 import { recordSaleAction } from "@/features/sales/actions";
+import { CAMBIOS, COMBUSTIVEIS } from "@/data/opcoes-veiculo";
 import { formatPreco, reaisEmDigitos } from "@/lib/format";
 import { formData } from "@/shared/form";
 import { VEU, painel } from "@/components/gestao/motion/sobreposicao";
 
-// Trade-in ("Troca + diferença") returns with stage 2, when the car received and its value are recorded too.
 const FORMAS: Payment[] = ["financing", "cash"];
 const MOTIVOS = ["Foi de outro modelo", "Achou caro", "Comprou em outra loja", "Sumiu / não respondeu"];
 
@@ -22,14 +22,21 @@ export interface Fechamento {
   vehicleId?: string;
 }
 
-type Veiculo = { id: string; titulo: string; preco: number };
+/** `consignorPayout` only for who manages, on a consigned car. */
+type Veiculo = { id: string; titulo: string; preco: number; consignorPayout?: number | null };
+
+const TROCA_VAZIA = {
+  tradeBrand: "", tradeModel: "", tradeVersion: "", tradeManufactureYear: "", tradeModelYear: "", tradeKm: "",
+  tradeFuel: "Flex", tradeTransmission: "Manual", tradeValue: "",
+};
 
 const primeiroNome = (nome: string) => nome.split(" ")[0];
 
 /**
  * Diálogo de fechamento — abre ao soltar um card numa zona de fechamento, ou em
  * "Marcar como vendido" na tela do carro. "Vendeu" registra a venda (carro,
- * valor, forma, banco e valor financiado; vendedor só para dono e gerente);
+ * valor, forma, banco, valor financiado e carro na troca; vendedor, % de retorno
+ * do banco e repasse do consignado só para dono e gerente);
  * "Não comprou" pede o motivo. Grava no banco e mostra o erro aqui dentro.
  */
 export function FecharNegocioDialog({
@@ -65,11 +72,16 @@ export function FecharNegocioDialog({
   const [banco, setBanco] = useState("");
   const [financiado, setFinanciado] = useState("");
   const [vendedor, setVendedor] = useState("");
+  const [retorno, setRetorno] = useState("");
+  const [temTroca, setTemTroca] = useState(false);
+  const [troca, setTroca] = useState(TROCA_VAZIA);
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   const lead = fechamento?.lead ?? null;
+  // Only owner and manager get the sellers list; the same people see the return and the consignor's payout.
+  const gerencia = sellers !== null;
   const vendeu = fechamento?.tipo === "vendeu";
   const carroFixo = fechamento?.vehicleId ? veiculos.find((v) => v.id === fechamento.vehicleId) : undefined;
 
@@ -88,6 +100,9 @@ export function FecharNegocioDialog({
     setFinanciado("");
     // Always an explicit seller: an empty choice would fall back to the lead's seller in record_sale.
     setVendedor(lead?.sellerId ?? memberId);
+    setRetorno("");
+    setTemTroca(false);
+    setTroca(TROCA_VAZIA);
     setMotivo("");
     setErro(null);
     setEnviando(false);
@@ -140,6 +155,8 @@ export function FecharNegocioDialog({
             payment: forma,
             bank: forma === "financing" ? banco : "",
             financedAmount: forma === "financing" ? reaisEmDigitos(financiado) : "",
+            returnPct: gerencia && forma === "financing" ? retorno : "",
+            ...(temTroca ? { tradeIn: "1", ...troca } : {}),
           }),
         );
         if (resposta.error) return setErro(resposta.error);
@@ -160,6 +177,11 @@ export function FecharNegocioDialog({
   const campoBase =
     "w-full rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2.5 text-sm text-secondary placeholder:text-muted focus:border-primary focus:outline-none";
   const rotulo = "flex flex-col gap-1.5 text-xs font-medium text-muted-strong";
+  const repasse = gerencia ? veiculos.find((v) => v.id === carroId)?.consignorPayout : null;
+  const campoTroca = (key: keyof typeof TROCA_VAZIA) => ({
+    value: troca[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setTroca((t) => ({ ...t, [key]: e.target.value })),
+  });
 
   return (
     <AnimatePresence>
@@ -266,6 +288,7 @@ export function FecharNegocioDialog({
                       placeholder="R$ 0"
                       className={`${campoBase} text-base font-semibold`}
                     />
+                    {repasse != null && <span className="font-normal text-muted">Repasse ao dono: {formatPreco(repasse)}</span>}
                   </label>
 
                   <fieldset>
@@ -307,6 +330,71 @@ export function FecharNegocioDialog({
                       <label className={rotulo}>
                         Banco (opcional)
                         <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="Ex.: BV" className={campoBase} />
+                      </label>
+                      {gerencia && (
+                        <label className={rotulo}>
+                          % de retorno do banco (opcional)
+                          <input
+                            value={retorno}
+                            onChange={(e) => setRetorno(e.target.value)}
+                            inputMode="decimal"
+                            placeholder="Ex.: 2,5"
+                            className={campoBase}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  )}
+
+                  <label className="flex items-center gap-2 text-sm text-secondary">
+                    <input type="checkbox" checked={temTroca} onChange={(e) => setTemTroca(e.target.checked)} />
+                    Carro na troca
+                  </label>
+                  {temTroca && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className={rotulo}>
+                        Marca
+                        <input {...campoTroca("tradeBrand")} className={campoBase} />
+                      </label>
+                      <label className={rotulo}>
+                        Modelo
+                        <input {...campoTroca("tradeModel")} className={campoBase} />
+                      </label>
+                      <label className={`${rotulo} col-span-2`}>
+                        Versão
+                        <input {...campoTroca("tradeVersion")} className={campoBase} />
+                      </label>
+                      <label className={rotulo}>
+                        Ano de fabricação
+                        <input {...campoTroca("tradeManufactureYear")} inputMode="numeric" className={campoBase} />
+                      </label>
+                      <label className={rotulo}>
+                        Ano do modelo
+                        <input {...campoTroca("tradeModelYear")} inputMode="numeric" className={campoBase} />
+                      </label>
+                      <label className={rotulo}>
+                        Km
+                        <input {...campoTroca("tradeKm")} inputMode="numeric" className={campoBase} />
+                      </label>
+                      <label className={rotulo}>
+                        Combustível
+                        <select {...campoTroca("tradeFuel")} className={`${campoBase} cursor-pointer`}>
+                          {COMBUSTIVEIS.map((c) => (
+                            <option key={c}>{c}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={rotulo}>
+                        Câmbio
+                        <select {...campoTroca("tradeTransmission")} className={`${campoBase} cursor-pointer`}>
+                          {CAMBIOS.map((c) => (
+                            <option key={c}>{c}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={rotulo}>
+                        Valor dado na troca
+                        <input {...campoTroca("tradeValue")} inputMode="numeric" placeholder="R$ 0" className={campoBase} />
                       </label>
                     </div>
                   )}

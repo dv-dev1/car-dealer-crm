@@ -32,7 +32,10 @@ export default async function CarroGestaoPage({
     listExpenses(member, veiculo.id),
   ]);
   const open = leads.filter((l) => l.estagio !== "vendeu" && l.estagio !== "nao-comprou");
-  const estoque = stock.map((v) => ({ id: v.id, titulo: v.title, preco: v.price }));
+  const estoque = stock.map((v) => ({
+    id: v.id, titulo: v.title, preco: v.price,
+    consignorPayout: v.source === "consignment" ? (v.money?.acquisitionCost ?? null) : null,
+  }));
 
   return <CarroGestao veiculo={veiculo} estoque={estoque} canManage={canManage} channels={channels} sellers={sellers}
       leads={open} memberId={member.membershipId} expenses={expenses} today={todayIso()} />;

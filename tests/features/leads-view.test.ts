@@ -51,13 +51,12 @@ it("marks a call back before the store's today as late", () => {
   expect(text(renderToStaticMarkup(createElement(LeadCard, { lead: { ...late, retornarEm: TODAY }, today: TODAY })))).not.toContain("atrasado");
 });
 
-it("the sale dialog offers cash and financing, not trade-in", () => {
+it("the sale dialog offers cash and financing", () => {
   const html = text(renderToStaticMarkup(createElement(FecharNegocioDialog, {
     fechamento: { lead: lead(), tipo: "vendeu" }, veiculos, sellers: null, memberId: "m1", onConfirmar: noop, onCancelar: noop,
   })));
   expect(html).toContain("À vista");
   expect(html).toContain("Financiamento");
-  expect(html).not.toMatch(/troca/i);
   expect(html).not.toContain("Vendedor");
 });
 

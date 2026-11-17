@@ -1,7 +1,10 @@
 import { CAMBIOS, COMBUSTIVEIS } from "@/data/opcoes-veiculo";
 import { isIsoDate } from "@/features/leads/model";
 import type { Payment } from "@/features/leads/types";
+import { readRatePct } from "@/features/store/model";
+import { reaisEmDigitos } from "@/lib/format";
 import { UUID, withStore, type MemberContext } from "@/shared/db/client";
+import { text } from "@/shared/form";
 import { todayIso } from "@/shared/today";
 
 /** `sellerId` null: the lead's seller, or whoever records it. A cash sale drops bank and financed amount. */
@@ -58,6 +61,43 @@ function validateSale(input: SaleInput, today: string): keyof SaleInput | null {
   }
   if (input.tradeIn !== null && !validTradeIn(input.tradeIn, Number(today.slice(0, 4)))) return "tradeIn";
   return null;
+}
+
+const whole = (raw: string) => (raw === "" ? NaN : Number(raw));
+
+/**
+ * The sale as the dialog sends it, without the date. Money arrives as typed and is read as whole reais; a field
+ * that does not even parse comes back as that field, the rest is checked by `recordSale`.
+ */
+export function readSale(form: FormData): { input: Omit<SaleInput, "soldOn"> } | { field: keyof SaleInput } {
+  const payment = text(form, "payment") as Payment;
+  const financing = payment === "financing";
+  const price = text(form, "price");
+  if (!/^\d+$/.test(price)) return { field: "price" };
+  const financed = text(form, "financedAmount");
+  if (financing && !/^\d+$/.test(financed)) return { field: "financedAmount" };
+  const rawPct = text(form, "returnPct");
+  const returnPct = rawPct.trim() === "" ? null : readRatePct(rawPct);
+  if (returnPct === null && rawPct.trim() !== "") return { field: "returnPct" };
+
+  let tradeIn: TradeInInput | null = null;
+  if (text(form, "tradeIn") === "1") {
+    const value = reaisEmDigitos(text(form, "tradeValue"));
+    if (value === "") return { field: "tradeIn" };
+    tradeIn = {
+      brand: text(form, "tradeBrand"), model: text(form, "tradeModel"), version: text(form, "tradeVersion"),
+      manufactureYear: whole(text(form, "tradeManufactureYear")), modelYear: whole(text(form, "tradeModelYear")),
+      km: whole(reaisEmDigitos(text(form, "tradeKm"))), fuel: text(form, "tradeFuel"), transmission: text(form, "tradeTransmission"),
+      value: Number(value),
+    };
+  }
+  return {
+    input: {
+      vehicleId: text(form, "vehicleId"), leadId: text(form, "leadId") || null, sellerId: text(form, "sellerId") || null,
+      price: Number(price), payment, bank: financing ? text(form, "bank").trim() || null : null,
+      financedAmount: financing ? Number(financed) : null, returnPct, tradeIn,
+    },
+  };
 }
 
 const name = (value: string) => value.trim().length >= 1 && value.trim().length <= 60;
