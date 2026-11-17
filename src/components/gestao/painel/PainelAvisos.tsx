@@ -3,17 +3,40 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Trophy, TriangleAlert, ArrowRight } from "lucide-react";
-import type { ResumoMeta } from "@/data/vendas-mock";
-import { fraseRitmo } from "@/lib/metas";
+import { fraseRitmo, type ResumoMetaMes } from "@/lib/metas";
 import { NumeroAnimado } from "@/components/gestao/motion/NumeroAnimado";
 
 // ── Aviso de meta — fita compacta em grafite (cor de contraste da marca).
 // O % na cor da marca (primary-on-dark) é o único destaque de cor; barra fina de progresso.
-export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
+// Sem meta no mês: quem pode definir ganha o atalho; o vendedor não vê nada.
+export function AvisoMeta({
+  meta,
+  mesLabel,
+  podeDefinir,
+}: {
+  meta: ResumoMetaMes | null;
+  mesLabel: string;
+  podeDefinir: boolean;
+}) {
   const reduzir = useReducedMotion();
+  if (!meta) {
+    if (!podeDefinir) return null;
+    return (
+      <Link
+        href="/gestao/relatorios"
+        className="flex items-center gap-4 rounded-[var(--radius)] bg-inverso px-4 py-3 text-white shadow-[var(--shadow-soft)] sm:px-5"
+      >
+        <span className="hidden h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-primary-on-dark sm:grid">
+          <Trophy size={18} strokeWidth={1.9} />
+        </span>
+        <span className="min-w-0 flex-1 text-sm font-semibold">Defina a meta de {mesLabel.toLowerCase()}</span>
+        <ArrowRight size={16} className="shrink-0 text-primary-on-dark" />
+      </Link>
+    );
+  }
   const pct = Math.round(meta.progresso * 100);
   const largura = Math.min(100, pct);
-  const batido = meta.feito >= meta.alvo;
+  const batido = meta.batido;
 
   // Mesma redação do bloco de meta dos Relatórios — fonte única da frase.
   const ritmo = fraseRitmo({
@@ -22,6 +45,7 @@ export function AvisoMeta({ meta }: { meta: ResumoMeta }) {
     restam: meta.restam,
     diasRestantes: meta.diasRestantes,
     projecao: meta.projecao,
+    unidadeDias: "dias úteis",
   });
 
   return (

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BarChart3, ArrowRight } from "lucide-react";
-import { resumoMeta } from "@/data/vendas-mock";
-import { diaPorExtenso } from "@/lib/hoje";
+import { MESES, diaPorExtenso } from "@/lib/hoje";
+import { resumoMetaMes } from "@/lib/metas";
+import { loadGoal } from "@/features/reports/model";
 import { listStock } from "@/features/stock/model";
 import { oldestInStock, staleLevel, stockSummary } from "@/features/stock/rules";
 import { todayIso } from "@/shared/today";
@@ -14,10 +15,11 @@ import { requireMember } from "@/features/auth/guard";
 export default async function PainelPage() {
   const member = await requireMember();
   const today = todayIso();
-  const estoque = await listStock(member, today);
+  const [estoque, goal] = await Promise.all([listStock(member, today), loadGoal(member, today)]);
   const loja = stockSummary(estoque);
   const giro = oldestInStock(estoque, 3);
-  const meta = resumoMeta();
+  const meta = goal.alvo === null ? null : resumoMetaMes({ ...goal, alvo: goal.alvo }, today);
+  const gestor = member.role !== "seller";
 
   const pedemAtencao = estoque.filter((v) => staleLevel(v.daysInStock) !== "ok").length;
 
@@ -34,8 +36,8 @@ export default async function PainelPage() {
       <div className="space-y-8">
         {/* Avisos */}
         <div className="grid gap-3">
-          <AvisoMeta meta={meta} />
-          {member.role !== "seller" && <AvisoSemMargem quantidade={loja.noMargin} />}
+          <AvisoMeta meta={meta} mesLabel={MESES[Number(today.slice(5, 7)) - 1]} podeDefinir={gestor} />
+          {gestor && <AvisoSemMargem quantidade={loja.noMargin} />}
         </div>
 
         <LojaAgora resumo={loja} giro={giro} pedemAtencao={pedemAtencao} />
@@ -50,7 +52,7 @@ export default async function PainelPage() {
             <BarChart3 size={20} strokeWidth={1.9} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-secondary">Vendas, lucro e metas</p>
+            <p className="text-sm font-semibold text-secondary">{gestor ? "Vendas, lucro e metas" : "Vendas e metas"}</p>
             <p className="text-xs text-muted-strong">
               O resultado completo do mês está nos Relatórios.
             </p>

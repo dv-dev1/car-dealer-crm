@@ -12,6 +12,7 @@ import {
 } from "@/data/vendas-mock";
 import { HOJE_ISO } from "@/lib/hoje";
 import { MetaBloco } from "@/components/gestao/relatorios/MetaBloco";
+import type { ResumoMetaMes } from "@/lib/metas";
 import { KpiGrid } from "@/components/gestao/relatorios/KpiGrid";
 import { BarrasMes } from "@/components/gestao/relatorios/BarrasMes";
 import { RankingVeiculos } from "@/components/gestao/relatorios/RankingVeiculos";
@@ -31,7 +32,15 @@ const [ANO_ATUAL, MES_ATUAL] = (() => {
  * mês corrente) — o rótulo de cada bloco deixa claro o recorte. Toda a conta
  * vem de `lib/relatorios` + `resumoVendas`; nada de número inventado na tela.
  */
-export function RelatoriosView() {
+export function RelatoriosView({
+  meta,
+  mesLabel,
+  podeEditarMeta,
+}: {
+  meta: ResumoMetaMes | null;
+  mesLabel: string;
+  podeEditarMeta: boolean;
+}) {
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const inicial = janelaDoPeriodo("mes");
   const [custom, setCustom] = useState<Janela>({ de: inicial.de, ate: inicial.ate });
@@ -62,7 +71,7 @@ export function RelatoriosView() {
       />
 
       {/* Meta do mês (antiga tela Metas, enxugada) */}
-      <MetaBloco />
+      <MetaBloco meta={meta} mesLabel={mesLabel} podeEditar={podeEditarMeta} />
 
       {/* Seletor de período */}
       <div className="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Período">

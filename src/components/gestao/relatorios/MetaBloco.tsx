@@ -1,29 +1,102 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Trophy, Pencil, Check, X, ArrowRight } from "lucide-react";
-import { leadsMock } from "@/data/clientes-mock";
-import { useMeta, definirMeta } from "@/lib/metas-store";
-import { resumoMetaMes, fraseRitmo } from "@/lib/metas";
+import { setGoalAction } from "@/features/reports/actions";
+import { fraseRitmo, type ResumoMetaMes } from "@/lib/metas";
 
 /**
  * Meta do mês no topo dos Relatórios (a antiga tela "Metas", enxugada). Fita
  * grafite — a assinatura da meta, a mesma do resumo no Painel — mas aqui ela é a
- * versão gerenciável: edita o alvo e sugere a próxima ação.
+ * versão gerenciável: dono e gerente editam o alvo, e ela sugere a próxima ação.
+ * `meta` nulo: o mês ainda não tem meta.
  */
-// shortcut: counts the mock leads, not the store's sales; stage 1c moves the goal and the reports to the database.
-export function MetaBloco() {
-  const alvo = useMeta();
-  const meta = useMemo(() => resumoMetaMes(leadsMock, alvo), [alvo]);
-
+export function MetaBloco({
+  meta,
+  mesLabel,
+  podeEditar,
+}: {
+  meta: ResumoMetaMes | null;
+  mesLabel: string;
+  podeEditar: boolean;
+}) {
   const [editando, setEditando] = useState(false);
-  const [rascunho, setRascunho] = useState(String(alvo));
+  const [state, salvar, salvando] = useActionState(
+    async (prev: { error: string | null }, form: FormData) => {
+      const result = await setGoalAction(prev, form);
+      if (!result.error) setEditando(false);
+      return result;
+    },
+    { error: null },
+  );
+  const mes = mesLabel.toLowerCase();
 
-  function salvar() {
-    const n = Number(rascunho);
-    if (Number.isFinite(n) && n > 0) definirMeta(n);
-    setEditando(false);
+  const editor = podeEditar && (
+    !editando ? (
+      <button
+        type="button"
+        onClick={() => setEditando(true)}
+        className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-1.5 py-0.5 text-[0.7rem] text-white/60 transition-colors duration-200 hover:bg-white/10 hover:text-white"
+      >
+        <Pencil size={11} />
+        {meta ? "Editar meta" : "Definir meta"}
+      </button>
+    ) : (
+      <form action={salvar} className="inline-flex items-center gap-1">
+        <input
+          autoFocus
+          name="cars"
+          defaultValue={meta?.alvo ?? ""}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setEditando(false);
+          }}
+          inputMode="numeric"
+          maxLength={2}
+          aria-label="Nova meta de vendas do mês"
+          className="w-14 rounded-[var(--radius-control)] border border-white/25 bg-white/10 px-2 py-0.5 text-sm font-semibold text-white focus:border-primary-on-dark focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={salvando}
+          aria-label="Salvar meta"
+          className="grid h-6 w-6 place-items-center rounded-full bg-primary-on-dark text-inverso hover:bg-primary-on-dark/85 disabled:opacity-60"
+        >
+          <Check size={13} strokeWidth={2.5} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditando(false)}
+          aria-label="Cancelar"
+          className="grid h-6 w-6 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
+        >
+          <X size={13} />
+        </button>
+      </form>
+    )
+  );
+  const erro = editando && state.error && (
+    <p role="alert" className="mt-1 text-xs text-white">
+      {state.error}
+    </p>
+  );
+
+  if (!meta) {
+    return (
+      <section
+        className="overflow-hidden rounded-[var(--radius)] bg-inverso px-5 py-4 text-white shadow-[var(--shadow-soft)]"
+        aria-label={`Meta de ${mes}`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[0.7rem] font-medium uppercase tracking-wide text-white/55">Meta de {mes}</span>
+          {editor}
+        </div>
+        <p className="mt-1 text-sm text-white/70">
+          {podeEditar ? `Sem meta para ${mes}. Defina quantos carros a loja quer vender.` : `A meta de ${mes} ainda não foi definida.`}
+        </p>
+        {erro}
+      </section>
+    );
   }
 
   // Mesma frase da fita do Painel (fonte única) — só a batida ganha um floreio,
@@ -74,51 +147,9 @@ export function MetaBloco() {
             <span className="text-[0.7rem] font-medium uppercase tracking-wide text-white/55">
               Meta de {meta.mesLabel} {meta.ano}
             </span>
-            {!editando ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setRascunho(String(alvo));
-                  setEditando(true);
-                }}
-                className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-1.5 py-0.5 text-[0.7rem] text-white/60 transition-colors duration-200 hover:bg-white/10 hover:text-white"
-              >
-                <Pencil size={11} />
-                Editar meta
-              </button>
-            ) : (
-              <span className="inline-flex items-center gap-1">
-                <input
-                  autoFocus
-                  value={rascunho}
-                  onChange={(e) => setRascunho(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") salvar();
-                    if (e.key === "Escape") setEditando(false);
-                  }}
-                  inputMode="numeric"
-                  aria-label="Nova meta de vendas do mês"
-                  className="w-14 rounded-[var(--radius-control)] border border-white/25 bg-white/10 px-2 py-0.5 text-sm font-semibold text-white focus:border-primary-on-dark focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={salvar}
-                  aria-label="Salvar meta"
-                  className="grid h-6 w-6 place-items-center rounded-full bg-primary-on-dark text-inverso hover:bg-primary-on-dark/85"
-                >
-                  <Check size={13} strokeWidth={2.5} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditando(false)}
-                  aria-label="Cancelar"
-                  className="grid h-6 w-6 place-items-center rounded-full text-white/60 hover:bg-white/10 hover:text-white"
-                >
-                  <X size={13} />
-                </button>
-              </span>
-            )}
+            {editor}
           </div>
+          {erro}
 
           <p className="mt-1 text-lg font-semibold">
             {meta.feito} <span className="text-white/55">de {meta.alvo} vendas</span>

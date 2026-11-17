@@ -1,18 +1,16 @@
-// ─── SELETOR DA META DO MÊS ──────────────────────────────────────
-// Deriva os números do painel de Metas a partir do FUNIL (leads) + a meta
-// definida. Fonte única: as vendas são os leads em "vendeu" fechados no mês
-// corrente — o mesmo que a tela Clientes conta em "Vendas no mês". Sem isso, o
-// painel de Metas e o kanban mostrariam números diferentes.
+// ─── RESUMO DA META DO MÊS ──────────────────────────────────────
+// Deriva os números da meta a partir do que o banco conta (`loadGoal` em
+// features/reports/model): a meta da loja e as vendas do mês. A fita do Painel e
+// o bloco dos Relatórios usam este mesmo resumo, então mostram o mesmo número.
 
-import type { Lead } from "@/data/clientes-mock";
-import { HOJE_ISO, MESES, isoParaData } from "@/lib/hoje";
+import { MESES, isoParaData } from "@/lib/hoje";
 
 /**
  * Dias em que a loja ainda pode vender neste mês, contando hoje. A Cassiano
  * abre de segunda a sábado (domingo fechado), então "dia de venda" é qualquer
  * dia que não seja domingo. É o divisor do ritmo ("precisa de X/dia").
  */
-export function diasDeVendaRestantes(ref: string = HOJE_ISO): number {
+export function diasDeVendaRestantes(ref: string): number {
   const d = isoParaData(ref);
   const ano = d.getFullYear();
   const mes = d.getMonth();
@@ -81,27 +79,15 @@ export interface ResumoMetaMes {
   ano: number;
 }
 
-function fechadoNoMes(iso: string | undefined, mesRef: string) {
-  return !!iso && iso.startsWith(mesRef);
-}
-
-/** Números do painel de Metas pro mês corrente (ancorado em HOJE_ISO). */
+/** Números da meta do mês de `ref` (o dia da loja). */
 export function resumoMetaMes(
-  leads: Lead[],
-  alvo: number,
-  ref: string = HOJE_ISO,
+  { alvo, feito, emNegociacao, aguardandoRetorno }: { alvo: number; feito: number; emNegociacao: number; aguardandoRetorno: number },
+  ref: string,
 ): ResumoMetaMes {
   const d = isoParaData(ref);
   const ano = d.getFullYear();
   const mes = d.getMonth();
   const diaAtual = d.getDate();
-  const mesRef = `${ano}-${String(mes + 1).padStart(2, "0")}`;
-
-  const feito = leads.filter(
-    (l) => l.estagio === "vendeu" && fechadoNoMes(l.fechadoEm, mesRef),
-  ).length;
-  const emNegociacao = leads.filter((l) => l.estagio === "negociando").length;
-  const aguardandoRetorno = leads.filter((l) => l.estagio === "ligar-volta").length;
 
   const restam = Math.max(0, alvo - feito);
   const diasRestantes = diasDeVendaRestantes(ref);
