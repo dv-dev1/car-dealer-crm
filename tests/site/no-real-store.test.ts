@@ -4,7 +4,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { Galeria } from "@/app/carro/[slug]/Galeria";
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
 import { VeiculoCard } from "@/components/VeiculoCard";
+import { WhatsappProvider } from "@/components/whatsapp/WhatsappProvider";
 import { veiculosMock } from "@/data/veiculos-mock";
 import { MODELS } from "@/features/demo/catalog";
 import { getVeiculoBySlug } from "@/lib/veiculos";
@@ -38,4 +41,12 @@ it("the site's cars are the demo catalog's, without photos", async () => {
     expect(v.fotos).toEqual([]);
   }
   expect(await getVeiculoBySlug("toyota-sw4-diamond")).toBeNull();
+});
+
+it("the menus only link to sections the home still has", () => {
+  for (const menu of [Header, Footer]) {
+    const html = renderToStaticMarkup(createElement(WhatsappProvider, { children: createElement(menu) }));
+    expect(html).toContain("Garantia 90 dias");
+    expect(html).not.toMatch(/#equipe|#fundador|Nossa equipe/);
+  }
 });

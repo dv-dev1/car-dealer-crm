@@ -13,7 +13,6 @@ const navLinks = [
   { href: "/nossos-carros", label: "Nossos carros" },
   { href: "/#diferenciais", label: "Diferenciais" },
   { href: "/#garantia", label: "Garantia 90 dias" },
-  { href: "/#equipe", label: "Nossa equipe" },
   { href: "/#contato", label: "Contato" },
 ];
 
