@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Trophy, Pencil, Check, X, ArrowRight } from "lucide-react";
-import { setGoalAction } from "@/features/reports/actions";
+import { setGoalAction, type GoalState } from "@/features/reports/actions";
 import { fraseRitmo, type ResumoMetaMes } from "@/lib/metas";
 
 /**
@@ -23,11 +23,7 @@ export function MetaBloco({
 }) {
   const [editando, setEditando] = useState(false);
   const [state, salvar, salvando] = useActionState(
-    async (prev: { error: string | null }, form: FormData) => {
-      const result = await setGoalAction(prev, form);
-      if (!result.error) setEditando(false);
-      return result;
-    },
+    (prev: GoalState, form: FormData) => salvarMeta(prev, form, () => setEditando(false)),
     { error: null },
   );
   const mes = mesLabel.toLowerCase();
@@ -190,4 +186,15 @@ export function MetaBloco({
       </Link>
     </section>
   );
+}
+
+/** Saves the goal; a failed request (no internet, server error) becomes a message instead of breaking the screen. */
+export async function salvarMeta(prev: GoalState, form: FormData, fechar: () => void): Promise<GoalState> {
+  try {
+    const result = await setGoalAction(prev, form);
+    if (!result.error) fechar();
+    return result;
+  } catch {
+    return { error: "Não foi possível salvar. Confira a internet e tente de novo." };
+  }
 }

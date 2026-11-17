@@ -2,7 +2,8 @@ import { createElement, type FunctionComponent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 import { AvisoMeta } from "@/components/gestao/painel/PainelAvisos";
-import { MetaBloco } from "@/components/gestao/relatorios/MetaBloco";
+import { MetaBloco, salvarMeta } from "@/components/gestao/relatorios/MetaBloco";
+import { setGoalAction } from "@/features/reports/actions";
 import { resumoMetaMes } from "@/lib/metas";
 
 vi.mock("@/features/reports/actions", () => ({ setGoalAction: vi.fn() }));
@@ -33,4 +34,16 @@ it("a month without a goal", () => {
   expect(seller).toContain("A meta de novembro ainda não foi definida.");
   expect(seller).not.toMatch(/de 0 vendas|Definir meta/);
   expect(text(render(MetaBloco, { meta: null, mesLabel: "Novembro", podeEditar: true }))).toContain("Definir meta");
+});
+
+it("a failed save keeps the form open with a message, instead of breaking the screen", async () => {
+  const fechar = vi.fn();
+  vi.mocked(setGoalAction).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  expect(await salvarMeta({ error: null }, new FormData(), fechar)).toEqual({
+    error: "Não foi possível salvar. Confira a internet e tente de novo.",
+  });
+  expect(fechar).not.toHaveBeenCalled();
+  vi.mocked(setGoalAction).mockResolvedValueOnce({ error: null });
+  expect(await salvarMeta({ error: null }, new FormData(), fechar)).toEqual({ error: null });
+  expect(fechar).toHaveBeenCalledOnce();
 });

@@ -23,6 +23,7 @@ it("reads the period from the URL and falls back to the month", () => {
   expect(lerPeriodo({ periodo: "custom", de: "2026-11-10", ate: "2026-11-01" }, HOJE)).toEqual(mes);
   expect(lerPeriodo({ periodo: "custom", de: "2025-01-01", ate: "2026-11-16" }, HOJE)).toEqual(mes);
   expect(lerPeriodo({ periodo: "xyz" }, HOJE)).toEqual(mes);
+  expect(lerPeriodo({ periodo: "custom", de: "0000-01-01", ate: "0000-01-02" }, HOJE)).toEqual(mes);
   const custom = lerPeriodo({ periodo: "custom", de: "2026-11-01", ate: "2026-11-15" }, HOJE);
   expect(custom).toEqual({ periodo: "custom", janela: { de: "2026-11-01", ate: "2026-11-15" } });
   expect(rotuloPeriodo(custom.periodo, custom.janela)).toBe("01/11/2026 a 15/11/2026");
