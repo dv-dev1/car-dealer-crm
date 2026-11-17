@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 import { formatPreco } from "@/lib/format";
 import type { StockVehicle } from "@/features/stock/model";
-import { staleLevel, stockSummary } from "@/features/stock/rules";
+import { staleLevel, stockSummary, priceSuggestion } from "@/features/stock/rules";
 import { CarThumb, GestaoCarCard, diasNoPatio } from "@/components/gestao/GestaoCarCard";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 
-type Filtro = "todos" | "sem-margem" | "girar" | "preparacao" | "documento";
+type Filtro = "todos" | "sem-margem" | "girar" | "preparacao" | "documento" | "baixar-preco";
 type Ordem = "relevancia" | "preco-asc" | "preco-desc" | "patio-desc" | "lucro-desc";
 type Modo = "grade" | "lista";
 
@@ -33,6 +33,7 @@ function pertence(v: StockVehicle, f: Filtro) {
   if (f === "girar") return staleLevel(v.daysInStock) === "stale";
   if (f === "preparacao") return v.status === "preparing";
   if (f === "documento") return v.pendingDocs > 0;
+  if (f === "baixar-preco") return priceSuggestion(v)?.suggested != null;
   return true;
 }
 
@@ -51,6 +52,7 @@ export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicl
       girar: veiculos.filter((v) => pertence(v, "girar")).length,
       preparacao: veiculos.filter((v) => pertence(v, "preparacao")).length,
       documento: veiculos.filter((v) => pertence(v, "documento")).length,
+      "baixar-preco": veiculos.filter((v) => pertence(v, "baixar-preco")).length,
     }),
     [veiculos],
   );
@@ -89,6 +91,8 @@ export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicl
     { valor: "girar", label: "Girar (+90d)", n: contagem.girar },
     { valor: "preparacao", label: "Em preparação", n: contagem.preparacao },
     { valor: "documento", label: "Documento pendente", n: contagem.documento },
+    // Only who reads the cost gets a suggestion.
+    ...(canManage ? [{ valor: "baixar-preco" as const, label: "Baixar preço", n: contagem["baixar-preco"] }] : []),
   ];
 
   return (

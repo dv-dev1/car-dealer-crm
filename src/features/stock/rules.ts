@@ -96,3 +96,28 @@ export const DOCUMENT_LABEL: Record<DocumentItem, string> = {
 export const DOCUMENT_STATUS_LABEL: Record<DocumentStatus, string> = { ok: "Em dia", pending: "Pendente", not_applicable: "Não se aplica" };
 
 export const pendingDocsLabel = (n: number) => `${n} ${n === 1 ? "pendência" : "pendências"}`;
+
+/** What a parked car loses of its price each month, and the least margin a suggested price keeps over the real cost. */
+export const DEPRECIATION_MONTH = 0.01;
+export const MIN_MARGIN = 0.03;
+export const SUGGEST_AFTER_DAYS = 60;
+
+export type PriceSuggestion = { moneyCost: number; depreciation: number; waitCost: number; floor: number; suggested: number | null };
+
+/**
+ * For a car for sale and parked 60 days or more: what 30 more days cost (the money standing still plus what the car
+ * loses of its price) and the price that gives that up now. Never under the floor: the real cost plus 3%, or the cash
+ * minimum when it is higher. `suggested` is null when the price is already at the floor.
+ * Null for a newer car, a car not for sale now, and for who reads no cost.
+ */
+export function priceSuggestion(
+  car: Pick<StockVehicle, "status" | "reservation" | "daysInStock" | "price" | "minCashPrice" | "money">,
+): PriceSuggestion | null {
+  if (!car.money || car.status !== "available" || car.reservation || car.daysInStock < SUGGEST_AFTER_DAYS) return null;
+  const moneyCost = Math.round(car.money.perDay * 30);
+  const depreciation = Math.round(car.price * DEPRECIATION_MONTH);
+  const waitCost = Math.ceil((moneyCost + depreciation) / 100) * 100;
+  // Whole numbers before the division: 60.000 x 1,03 must not round up to 61.900.
+  const floor = Math.max(Math.ceil((car.money.cost * (100 + MIN_MARGIN * 100)) / 10_000) * 100, car.minCashPrice ?? 0);
+  return { moneyCost, depreciation, waitCost, floor, suggested: floor >= car.price ? null : Math.max(car.price - waitCost, floor) };
+}

@@ -26,6 +26,7 @@ import { Despesas } from "./Despesas";
 import { Documentos } from "./Documentos";
 import { AvisoForaDaLoja, TirarDaLoja } from "./ForaDaLoja";
 import { AvisoReserva, Reservar } from "./Reserva";
+import { SugestaoPreco } from "./SugestaoPreco";
 
 export function CarroGestao({
   veiculo,
@@ -306,6 +307,8 @@ export function CarroGestao({
             )}
           </div>
           )}
+
+          {canManage && <SugestaoPreco veiculo={veiculo} />}
 
           {canManage && expenses && <Despesas vehicleId={veiculo.id} expenses={expenses} today={today} />}
 
