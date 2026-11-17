@@ -39,7 +39,7 @@ async function asApp<T>(who: Who, fn: (db: pg.PoolClient) => Promise<T>): Promis
 
 type Sale = {
   vehicle: string; lead?: string | null; seller?: string | null; price?: number; payment?: string;
-  bank?: string | null; financed?: number | null; soldOn?: string;
+  bank?: string | null; financed?: number | null; soldOn?: string; returnPct?: number | null;
 };
 
 const TODAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Fortaleza" }).format(new Date());
@@ -48,8 +48,9 @@ const TOMORROW = new Date(Date.parse(`${TODAY}T12:00:00Z`) + 86_400_000).toISOSt
 function sell(who: Who, s: Sale) {
   return asApp(who, async (db) => {
     const { rows } = await db.query(
-      "select record_sale($1, $2, $3, $4, $5, $6, $7, $8) as id",
-      [s.vehicle, s.lead ?? null, s.seller ?? null, s.price ?? 68000, s.payment ?? "cash", s.bank ?? null, s.financed ?? null, s.soldOn ?? TODAY],
+      "select record_sale($1, $2, $3, $4, $5, $6, $7, $8, $9, null) as id",
+      [s.vehicle, s.lead ?? null, s.seller ?? null, s.price ?? 68000, s.payment ?? "cash", s.bank ?? null, s.financed ?? null, s.soldOn ?? TODAY,
+       s.returnPct ?? null],
     );
     return rows[0].id as string;
   });
@@ -79,6 +80,19 @@ beforeEach(async () => {
   };
   rows = await seedDomainRows(a.storeId, { owner: a.owner, seller: a.seller, seller2: a.seller2 });
   rowsB = await seedDomainRows(seed.b.storeId, { owner: seed.b.carla.id, seller: seed.b.carla.id, seller2: seed.b.carla.id });
+  // The fixture's reservation holds the car for seller2's lead; these tests are about the sale, not the reservation.
+  await adminQuery("update reservations set canceled_at = now()");
+});
+
+it("refuses the financing return from a seller, also when called directly", async () => {
+  const financed = { vehicle: rows.vehicleId, lead: rows.leadOfSeller, payment: "financing", bank: "BV", financed: 40000, returnPct: 0.02 };
+  await expect(sell(seller(), financed)).rejects.toMatchObject(refused("forbidden"));
+  await expect(sell(manager(), financed)).resolves.toEqual(expect.any(String));
+});
+
+it("refuses a car reserved for another client, also when called directly", async () => {
+  await adminQuery("update reservations set canceled_at = null, expires_on = '2099-01-01' where vehicle_id = $1", [rows.vehicleId]);
+  await expect(sell(seller(), { vehicle: rows.vehicleId, lead: rows.leadOfSeller })).rejects.toMatchObject(refused("reserved"));
 });
 
 it("a seller sells their own lead's car", async () => {

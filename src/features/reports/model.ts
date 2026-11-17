@@ -8,16 +8,16 @@ export type GoalNumbers = { alvo: number | null; feito: number; emNegociacao: nu
 
 type SaleRow = Omit<VendaRelatorio, "valor" | "lucro" | "formaPagamento"> & { price: string; lucro: string | null; payment: Payment };
 
-// A seller never reads vehicle_costs; RLS would return no rows anyway, the query does not rely on it.
+// A seller never reads sale_profits; RLS would return no rows anyway, the query does not rely on it.
 function salesSql(ctx: MemberContext): string {
   const seller = ctx.role === "seller";
   return `select s.id, to_char(s.sold_on, 'YYYY-MM-DD') as "dataVenda", s.price, s.payment,
                  v.brand || ' ' || v.model || ' ' || v.version as modelo, l.name as "clienteNome", s.seller_name as vendedor,
-                 ${seller ? "null::numeric" : "s.price - coalesce(c.cost, 0)"} as lucro
+                 ${seller ? "null::numeric" : "p.profit"} as lucro
             from sales s
             join vehicles v on v.id = s.vehicle_id
             left join leads l on l.id = s.lead_id
-            ${seller ? "" : "left join vehicle_costs c on c.vehicle_id = s.vehicle_id"}
+            ${seller ? "" : "left join sale_profits p on p.sale_id = s.id"}
            where s.store_id = $1 and s.sold_on between $2 and $3
            order by s.sold_on desc, s.created_at desc`;
 }

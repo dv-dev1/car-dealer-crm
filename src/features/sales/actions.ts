@@ -18,6 +18,8 @@ const FIELD_LABEL: Record<keyof SaleInput, string> = {
   bank: "Banco",
   financedAmount: "Valor financiado",
   soldOn: "Data da venda",
+  returnPct: "% de retorno do banco",
+  tradeIn: "Carro na troca",
 };
 
 const SALE_ERROR = {
@@ -25,6 +27,7 @@ const SALE_ERROR = {
   not_found: "Carro ou cliente não encontrado.",
   not_available: "Este carro já foi vendido ou removido.",
   lead_closed: "Este cliente já foi fechado.",
+  reserved: "Este carro está reservado para outro cliente.",
 } as const;
 
 const invalid = (field: keyof SaleInput): ActionState => ({ error: `Confira o campo: ${FIELD_LABEL[field]}.`, field });
@@ -47,6 +50,8 @@ export async function recordSaleAction(_prev: ActionState, form: FormData): Prom
     bank: payment === "financing" ? text(form, "bank").trim() || null : null,
     financedAmount: payment === "financing" ? Number(financed) : null,
     soldOn: todayIso(),
+    returnPct: null,
+    tradeIn: null,
   });
   if (!result.ok) {
     if (result.error !== "invalid") return { error: SALE_ERROR[result.error] };
