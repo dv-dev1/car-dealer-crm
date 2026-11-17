@@ -1,9 +1,9 @@
 import { UUID, withStore, type Db, type MemberContext } from "@/shared/db/client";
-import { STORE_TIME_ZONE, todayIso } from "@/shared/today";
+import { STORE_TIME_ZONE, isIsoDate, todayIso } from "@/shared/today";
 
 import { ACTIVE_STAGES, PAYMENT_LABEL, STAGE_UI, type ActiveStage, type DbStage, type Lead, type Payment } from "./types";
 
-export { ACTIVE_STAGES, STAGE_UI, type ActiveStage, type DbStage };
+export { ACTIVE_STAGES, STAGE_UI, isIsoDate, type ActiveStage, type DbStage };
 
 /**
  * `sellerId` null means "me" on create and "unchanged" on update; a seller may only name themselves.
@@ -46,12 +46,6 @@ export function phoneLabel(phone: string): string {
   const local = phone.slice(4);
   const split = local.length - 4;
   return `(${phone.slice(2, 4)}) ${local.slice(0, split)}-${local.slice(split)}`;
-}
-
-export function isIsoDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function validateLead(input: LeadInput, today: string): keyof LeadInput | null {
