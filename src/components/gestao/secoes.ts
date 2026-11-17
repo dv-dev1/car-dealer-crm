@@ -21,7 +21,7 @@ export interface Secao {
  * está na tela de Clientes. Nesse caso navegar não adianta: a rota é a mesma,
  * o componente não remonta, e o efeito que abre o formulário nunca rodaria.
  */
-export const EVENTO_NOVO_CLIENTE = "cassiano:novo-cliente";
+export const EVENTO_NOVO_CLIENTE = "crm:novo-cliente";
 
 export const secoes: Secao[] = [
   { label: "Painel", href: "/gestao", icon: LayoutDashboard },

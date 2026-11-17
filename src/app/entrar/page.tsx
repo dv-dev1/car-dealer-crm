@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { LoginView } from "@/features/auth/view";
 import { ThemeScope } from "@/themes/ThemeScope";
 
-export const metadata: Metadata = { title: "Entrar", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: "Entrar · Auto Hub" }, robots: { index: false, follow: false } };
 
 export default async function EntrarPage({ searchParams }: { searchParams: Promise<{ erro?: string | string[] }> }) {
   const { user } = await withAuth();

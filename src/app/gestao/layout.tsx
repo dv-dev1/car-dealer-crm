@@ -7,11 +7,14 @@ import { todayIso } from "@/shared/today";
 import { ThemeScope } from "@/themes/ThemeScope";
 
 // Área interna dos vendedores. `noindex` reforça que o público nunca a
-// encontra por busca.
-export const metadata: Metadata = {
-  title: "Gestão",
-  robots: { index: false, follow: false },
-};
+// encontra por busca. A aba leva o nome da loja do banco.
+export async function generateMetadata(): Promise<Metadata> {
+  const { storeName } = await requireMember();
+  return {
+    title: { default: storeName, template: `%s · ${storeName}` },
+    robots: { index: false, follow: false },
+  };
+}
 
 // The demo block reads the real owner: while viewing as a seller the effective member is the seller.
 async function demoPanel(member: PanelMember): Promise<DemoPanelProps> {

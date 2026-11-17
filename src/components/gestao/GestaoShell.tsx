@@ -11,6 +11,7 @@ import { VEU, EASE_MARCA as EASE } from "./motion/sobreposicao";
 import { signOutAction } from "@/features/auth/actions";
 import { AutoHubLogo } from "@/themes/autohub/Logo";
 import { DemoControls, ViewingBanner, type DemoPanelProps } from "@/features/demo/view";
+import { StoreNameProvider } from "./storeName";
 
 const LARGURA = "260px";
 
@@ -245,7 +246,7 @@ export function GestaoShell({
       <div className="lg:pl-[260px]">
         <main className="mx-auto max-w-[1100px] px-5 py-8 sm:px-8">
           {demo?.viewing && <ViewingBanner viewing={demo.viewing} />}
-          {children}
+          <StoreNameProvider name={storeName}>{children}</StoreNameProvider>
         </main>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { NoAccessView } from "@/features/auth/view";
 import { ThemeScope } from "@/themes/ThemeScope";
 
-export const metadata: Metadata = { title: "Sem acesso", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: "Sem acesso · Auto Hub" }, robots: { index: false, follow: false } };
 
 // Never calls requireMember(): it is where requireMember() sends a person without a store.
 export default async function SemAcessoPage() {

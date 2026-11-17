@@ -6,6 +6,7 @@ import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { formatPreco } from "@/lib/format";
 import { ddmm } from "@/lib/hoje";
 import { whatsappLinkPara } from "@/lib/loja";
+import { mensagemDaLoja, useStoreName } from "@/components/gestao/storeName";
 import { ETAPAS, type Etapa, type Lead } from "@/features/leads/types";
 
 const ATIVAS: Etapa[] = ETAPAS.filter((e) => !e.fechada);
@@ -62,7 +63,7 @@ export function LeadCard({
     lead.veioEm && { rotulo: "Veio", valor: ddmm(lead.veioEm), tom: "success" },
   ].filter(Boolean) as { rotulo: string; valor: string; tom: string }[];
 
-  const mensagem = `Olá ${primeiroNome(lead.nome)}, aqui é da Cassiano Veículos 👋`;
+  const mensagem = mensagemDaLoja(lead.nome, useStoreName());
 
   return (
     // flex-col + h-full: cards da mesma coluna terminam alinhados, mesmo quando

@@ -3,6 +3,7 @@
 import { Car } from "lucide-react";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { whatsappLinkPara } from "@/lib/loja";
+import { mensagemDaLoja, useStoreName } from "@/components/gestao/storeName";
 import { diaPorExtenso } from "@/lib/hoje";
 import { TIPO_EVENTO, type EventoAgenda } from "@/data/agenda";
 
@@ -13,7 +14,7 @@ function primeiroNome(nome: string) {
 /** Linha de um evento — reusada no painel do dia e na lista. */
 export function EventoItem({ evento }: { evento: EventoAgenda }) {
   const t = TIPO_EVENTO[evento.tipo];
-  const msg = `Olá ${primeiroNome(evento.lead.nome)}, aqui é da Cassiano Veículos 👋`;
+  const msg = mensagemDaLoja(evento.lead.nome, useStoreName());
   return (
     <div className="flex items-center gap-3 rounded-[calc(var(--radius)-2px)] border border-line bg-surface p-3">
       <span
