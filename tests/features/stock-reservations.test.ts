@@ -4,6 +4,7 @@ import pg from "pg";
 import { beforeEach, expect, it, vi } from "vitest";
 import { restoreDemoStore } from "@/features/demo/model";
 import { createLead } from "@/features/leads/model";
+import { recordSale } from "@/features/sales/model";
 import { getVehicle, listStock } from "@/features/stock/model";
 import { cancelReservation, createReservation } from "@/features/stock/reservations";
 import type { StoreMember } from "@/shared/db/client";
@@ -118,4 +119,14 @@ it("the car page shows the reservation and who can cancel it", async () => {
   const own = car({ status: "reserved", reservation: { ...reservation, mine: true } });
   expect(text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo: own, canManage: false })))).toContain("Cancelar reserva");
   expect(text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo: car(), canManage: false })))).toContain("Reservar");
+});
+
+it("a sold car shows no reservation", async () => {
+  expect((await reserve(seller)).ok).toBe(true);
+  const sold = await recordSale(seller, {
+    vehicleId: carro.id, leadId, sellerId: null, price: 60000, payment: "cash", bank: null, financedAmount: null, soldOn: TODAY,
+    returnPct: null, tradeIn: null,
+  }, TODAY);
+  expect(sold.ok).toBe(true);
+  expect(await getVehicle(owner, carro.slug, TODAY)).toMatchObject({ status: "sold", reservation: null });
 });

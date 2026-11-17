@@ -76,6 +76,7 @@ const SELECT = `
                                    'mine', coalesce(r.created_by = app_membership_id(), false))
             from reservations r left join leads l on l.id = r.lead_id
            where r.vehicle_id = v.id and r.canceled_at is null and r.expires_on >= $2::date
+             and v.status not in ('sold', 'removed')
            order by r.created_at desc limit 1) as reservation,
          coalesce((select json_agg(json_build_object('id', p.id, 'path', p.path) order by p.position)
                      from vehicle_photos p where p.vehicle_id = v.id), '[]') as photos,
@@ -92,8 +93,9 @@ function select(ctx: MemberContext, where: string): string {
          (select json_build_object('name', f.consignor_name, 'phone', f.consignor_phone) from vehicle_finances f
            where f.vehicle_id = v.id and v.source = 'consignment') as consignor`;
   const sql = SELECT.replace("%COST%", cost);
+  // A car taken in trade costs what was given, and its price starts there: a seller sees it once it is ready.
   return ctx.role === "seller"
-    ? `${sql} ${where}`
+    ? `${sql} and not (v.source = 'trade_in' and v.status = 'preparing') ${where}`
     : `${sql.replace("from vehicles v", "from vehicles v left join vehicle_costs c on c.vehicle_id = v.id")} ${where}`;
 }
 

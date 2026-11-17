@@ -4,7 +4,8 @@ import { restoreDemoStore } from "@/features/demo/model";
 import { createLead, listLeads, loseLead } from "@/features/leads/model";
 import { loadReport } from "@/features/reports/model";
 import { recordSale, type SaleInput } from "@/features/sales/model";
-import { getVehicle } from "@/features/stock/model";
+import { getVehicle, listStock } from "@/features/stock/model";
+import { withStore } from "@/shared/db/client";
 import type { StoreMember } from "@/shared/db/client";
 import { seedTwoStores } from "../db/fixtures.ts";
 import { useDatabase } from "../setup/hyperdrive.ts";
@@ -119,7 +120,11 @@ it("a trade-in enters the stock in preparation, costing what was given", async (
   );
   expect(row).toMatchObject({ status: "preparing", source: "trade_in", acquired_in_sale_id: result.id });
   expect(await getVehicle(owner, row.slug, TODAY)).toMatchObject({ title: "Fiat Argo Drive 1.0", km: 60000, money: { acquisitionCost: 45000 } });
-  expect((await getVehicle(seller, row.slug, TODAY))!.money).toBeNull();
+  // What was given in trade is the car's cost: a seller does not see the car until it is ready to sell.
+  expect(await getVehicle(seller, row.slug, TODAY)).toBeNull();
+  expect((await listStock(seller, TODAY)).some((c) => c.slug === row.slug)).toBe(false);
+  await adminQuery("update vehicles set status = 'available', price = 52000 where slug = $1", [row.slug]);
+  expect(await getVehicle(seller, row.slug, TODAY)).toMatchObject({ price: 52000, money: null });
   const [trade] = await adminQuery("select trade_in_value::int as value from sale_trade_ins where sale_id = $1", [result.id]);
   expect(trade.value).toBe(45000);
 });
@@ -147,4 +152,10 @@ it("a reserved car sells only to the reservation's client", async () => {
   await reserve("2099-01-01");
   expect(await recordSale(seller, sale(), TODAY)).toEqual({ ok: false, error: "reserved" });
   expect(await recordSale(seller, sale({ leadId: other.id }), TODAY)).toMatchObject({ ok: true });
+});
+
+it("a seller reads no sale profit, not even through the view", async () => {
+  expect((await recordSale(owner, sale(), TODAY)).ok).toBe(true);
+  expect(await withStore(seller, (db) => db.query("select * from sale_profits"))).toEqual([]);
+  expect((await withStore(owner, (db) => db.query("select * from sale_profits"))).length).toBeGreaterThan(0);
 });

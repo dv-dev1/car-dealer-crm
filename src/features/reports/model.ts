@@ -8,7 +8,7 @@ export type GoalNumbers = { alvo: number | null; feito: number; emNegociacao: nu
 
 type SaleRow = Omit<VendaRelatorio, "valor" | "lucro" | "formaPagamento"> & { price: string; lucro: string | null; payment: Payment };
 
-// A seller never reads sale_profits; RLS would return no rows anyway, the query does not rely on it.
+// A seller never reads sale_profits; it returns them no rows anyway (0007), the query does not rely on it.
 function salesSql(ctx: MemberContext): string {
   const seller = ctx.role === "seller";
   return `select s.id, to_char(s.sold_on, 'YYYY-MM-DD') as "dataVenda", s.price, s.payment,
