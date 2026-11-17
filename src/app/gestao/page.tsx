@@ -3,10 +3,12 @@ import { BarChart3, ArrowRight } from "lucide-react";
 import { MESES, diaPorExtenso } from "@/lib/hoje";
 import { resumoMetaMes } from "@/lib/metas";
 import { loadGoal } from "@/features/reports/model";
+import { monthBreakEven } from "@/features/store/expenses";
 import { listStock } from "@/features/stock/model";
 import { oldestInStock, staleLevel, stockSummary } from "@/features/stock/rules";
 import { todayIso } from "@/shared/today";
 import { AvisoMeta, AvisoSemMargem } from "@/components/gestao/painel/PainelAvisos";
+import { AvisoMes } from "@/components/gestao/painel/AvisoMes";
 import { LojaAgora } from "@/components/gestao/painel/LojaAgora";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
@@ -15,7 +17,11 @@ import { requireMember } from "@/features/auth/guard";
 export default async function PainelPage() {
   const member = await requireMember();
   const today = todayIso();
-  const [estoque, goal] = await Promise.all([listStock(member, today), loadGoal(member, today)]);
+  const [estoque, goal, mes] = await Promise.all([
+    listStock(member, today),
+    loadGoal(member, today),
+    monthBreakEven(member, today),
+  ]);
   const loja = stockSummary(estoque);
   const giro = oldestInStock(estoque, 3);
   const meta = goal.alvo === null ? null : resumoMetaMes({ ...goal, alvo: goal.alvo }, today);
@@ -37,6 +43,7 @@ export default async function PainelPage() {
         {/* Avisos */}
         <div className="grid gap-3">
           <AvisoMeta meta={meta} mesLabel={MESES[Number(today.slice(5, 7)) - 1]} podeDefinir={gestor} />
+          <AvisoMes mes={mes} />
           {gestor && <AvisoSemMargem quantidade={loja.noMargin} />}
         </div>
 
