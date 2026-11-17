@@ -348,7 +348,7 @@ export function CarroGestao({
               </Link>
             )}
 
-            {veiculo.status !== "sold" && veiculo.status !== "away" && (
+            {(veiculo.status === "available" || veiculo.status === "reserved") && (
               <TirarDaLoja veiculo={veiculo} today={today} className={acaoSecundaria} />
             )}
 

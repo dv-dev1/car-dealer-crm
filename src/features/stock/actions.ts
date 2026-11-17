@@ -180,7 +180,7 @@ export async function removeExpenseAction(_prev: StockActionState, form: FormDat
 
 const AWAY_ERROR = {
   forbidden: "Só o dono e o gerente mexem no estoque.",
-  not_found: "Este carro não pode sair da loja: já foi vendido ou removido.",
+  not_found: "Só carro à venda (disponível ou reservado) sai da loja.",
   invalid: "Confira o motivo e a volta prevista (hoje ou depois).",
 } as const;
 

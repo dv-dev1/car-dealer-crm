@@ -73,6 +73,9 @@ it("refuses a bad away", async () => {
   expect(await setAway(owner, available.id, "repair", "2026-02-31", TODAY)).toEqual(invalid);
   const [sold] = await adminQuery("select id from vehicles where store_id = $1 and status = 'sold' limit 1", [owner.storeId]);
   expect(await setAway(owner, sold.id, "repair", null, TODAY)).toEqual({ ok: false, error: "not_found" });
+  // A car in preparation is not on sale yet: taking it out would bring it back as available, ready or not.
+  const [preparing] = await adminQuery("select id from vehicles where store_id = $1 and status = 'preparing' limit 1", [owner.storeId]);
+  expect(await setAway(owner, preparing.id, "body_shop", null, TODAY)).toEqual({ ok: false, error: "not_found" });
   expect(await setAway(seller, available.id, "repair", null, TODAY)).toEqual({ ok: false, error: "forbidden" });
   expect(await returnToStore(owner, available.id)).toEqual(invalid);
   expect(await returnToStore(seller, available.id)).toEqual({ ok: false, error: "forbidden" });
@@ -96,6 +99,9 @@ it("an away car shows the reason and an overdue return", async () => {
   expect(open).not.toContain("Volta prevista");
   const here = text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo: car() })));
   expect(here).toContain("Tirar da loja");
+  expect(text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo: car({ status: "preparing" }) })))).not.toContain(
+    "Tirar da loja",
+  );
   const sellerView = text(renderToStaticMarkup(createElement(CarroGestao, { ...base, canManage: false, veiculo: car({ money: null }) })));
   expect(sellerView).not.toMatch(/Tirar da loja|Voltou para a loja/);
 });

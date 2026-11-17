@@ -327,7 +327,10 @@ export async function removeVehicle(ctx: MemberContext, vehicleId: string, reaso
 
 const AWAY_REASONS: readonly string[] = ["service", "repair", "body_shop", "other"];
 
-/** Takes a car out of the store for a while (service, repair...); it stays in the stock, its money and its days. */
+/**
+ * Takes a car on sale out of the store for a while (service, repair...); it stays in the stock, its money and its days.
+ * A car in preparation is not on sale yet, so it stays as it is: on return it would read as available.
+ */
 export async function setAway(
   ctx: MemberContext,
   vehicleId: string,
@@ -341,7 +344,7 @@ export async function setAway(
   const rows = await withStore(ctx, (db) =>
     db.query(
       `update vehicles set status = 'away', away_reason = $3, away_until = $4
-        where id = $1 and store_id = $2 and status in ('preparing', 'available', 'away') returning id`,
+        where id = $1 and store_id = $2 and status in ('available', 'away') returning id`,
       [vehicleId, ctx.storeId, reason, until],
     ),
   );
