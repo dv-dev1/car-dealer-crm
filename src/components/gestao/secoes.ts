@@ -5,6 +5,7 @@ import {
   Calendar,
   FileText,
   UserCog,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -14,6 +15,8 @@ export interface Secao {
   label: string;
   href: string;
   icon: LucideIcon;
+  /** Only owner and manager see it. */
+  managersOnly?: true;
 }
 
 /**
@@ -30,4 +33,9 @@ export const secoes: Secao[] = [
   { label: "Agenda", href: "/gestao/agenda", icon: Calendar },
   { label: "Relatórios", href: "/gestao/relatorios", icon: FileText },
   { label: "Equipe", href: "/gestao/equipe", icon: UserCog },
+  { label: "Ajustes", href: "/gestao/loja", icon: Settings, managersOnly: true },
 ];
+
+export function secoesPara(canManage: boolean): Secao[] {
+  return secoes.filter((s) => canManage || !s.managersOnly);
+}

@@ -286,6 +286,14 @@ export function CarroGestao({
                     definir.
                   </p>
                 )}
+                {veiculo.status !== "sold" && (
+                  <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2">
+                    <dt className="text-muted">Parado custa {formatPreco(veiculo.money.perDay)} por dia</dt>
+                    <dd className="text-right tabular-nums text-warning-ink">
+                      {formatPreco(veiculo.money.sinceEntry)} em {veiculo.daysInStock} dias
+                    </dd>
+                  </div>
+                )}
               </dl>
             )}
           </div>

@@ -116,13 +116,13 @@ it("the car page shows the real cost in parts to a manager and nothing to a sell
   const { CarroGestao } = await import("@/app/gestao/estoque/[slug]/CarroGestao");
   const base = { estoque: [], channels: [], sellers: [], leads: [], memberId: "m1" };
   const expenses: Expense[] = [{ id: "e1", category: "tires", spentOn: TODAY, amount: 1200, description: "Dois pneus" }];
-  const veiculo = car({ money: { acquisitionCost: 50000, cost: 51200, profit: 9000 } });
+  const veiculo = car({ money: { acquisitionCost: 50000, cost: 51200, profit: 9000, perDay: 0, sinceEntry: 0 } });
   const manager = text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo, canManage: true, expenses })));
   expect(manager).toMatch(/Compra R\$\s?50\.000/);
   expect(manager).toMatch(/Despesas R\$\s?1\.200/);
   expect(manager).toMatch(/Custo com despesas R\$\s?51\.200/);
   expect(manager).toContain("Pneus");
-  const consigned = car({ source: "consignment", money: { acquisitionCost: 50000, cost: 50000, profit: 9000 } });
+  const consigned = car({ source: "consignment", money: { acquisitionCost: 50000, cost: 50000, profit: 9000, perDay: 0, sinceEntry: 0 } });
   expect(text(renderToStaticMarkup(createElement(CarroGestao, { ...base, veiculo: consigned, canManage: true, expenses: [] })))).toContain(
     "Repasse ao dono",
   );

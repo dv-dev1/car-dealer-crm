@@ -38,7 +38,7 @@ export default async function GestaoLayout({
   // Every store gets the Auto Hub theme until a client store has its own; then it comes from the member's store.
   return (
     <ThemeScope theme="autohub">
-      <GestaoShell storeName={member.storeName} demo={demo}>
+      <GestaoShell storeName={member.storeName} demo={demo} canManage={member.role !== "seller"}>
         {children}
       </GestaoShell>
     </ThemeScope>

@@ -28,6 +28,8 @@ export type StockSummary = {
   invested: number | null;
   /** Profit at the minimum cash price added up; null when the viewer does not see cost. */
   expectedProfit: number | null;
+  /** What the cars in the yard cost a day in money tied up; null when the viewer does not see cost. */
+  yardCostPerDay: number | null;
 };
 
 export function stockSummary(cars: StockVehicle[]): StockSummary {
@@ -40,7 +42,16 @@ export function stockSummary(cars: StockVehicle[]): StockSummary {
     worth: sum((car) => car.price),
     invested: hidden ? null : sum((car) => car.money!.cost),
     expectedProfit: hidden ? null : sum((car) => car.money!.profit),
+    yardCostPerDay: hidden ? null : sum((car) => car.money!.perDay),
   };
+}
+
+const cents = (value: number) => Math.round(value * 100) / 100;
+
+/** What the money in a parked car stops earning: a month of the store's rate spread over 30 days. */
+export function moneyCost(cost: number, monthlyRate: number, days: number): { perDay: number; sinceEntry: number } {
+  const perDay = (cost * monthlyRate) / 30;
+  return { perDay: cents(perDay), sinceEntry: cents(perDay * days) };
 }
 
 export function oldestInStock(cars: StockVehicle[], n = 3): StockVehicle[] {

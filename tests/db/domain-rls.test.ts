@@ -227,3 +227,13 @@ it("reset_demo_store refuses a manager and a seller", async () => {
   }
   expect(await asApp(owner(), (db) => count(db, "vehicles", a.storeId))).toBe(2);
 });
+
+it("lets owner and manager change only the store's money rate", async () => {
+  const rate = "update stores set money_rate = 0.02 where id = $1";
+  expect((await asApp(seller(), (db) => db.query(rate, [a.storeId]))).rowCount).toBe(0);
+  expect((await asApp(manager(), (db) => db.query(rate, [a.storeId]))).rowCount).toBe(1);
+  expect((await asApp(owner(), (db) => db.query(rate, [b.storeId]))).rowCount).toBe(0);
+  await expect(asApp(owner(), (db) => db.query("update stores set name = 'x' where id = $1", [a.storeId]))).rejects.toMatchObject({
+    code: "42501",
+  });
+});

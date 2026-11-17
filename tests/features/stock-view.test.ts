@@ -58,7 +58,7 @@ it("the car page also serves its photos straight from /fotos", async () => {
 // One name per number: "custo" with the expenses everywhere it is shown; the form asks for the purchase price.
 it("names the cost with expenses as such on the car page", async () => {
   const { CarroGestao } = await import("@/app/gestao/estoque/[slug]/CarroGestao");
-  const veiculo = car({ money: { acquisitionCost: 50000, cost: 53000, profit: 9000 } });
+  const veiculo = car({ money: { acquisitionCost: 50000, cost: 53000, profit: 9000, perDay: 0, sinceEntry: 0 } });
   const html = text(renderToStaticMarkup(createElement(CarroGestao, { veiculo, estoque: [], canManage: true, channels: [], sellers: [], leads: [], memberId: "m1" })));
   expect(html).toMatch(/Custo com despesas R\$\s?53\.000/);
   expect(html).not.toContain("Custo de aquisição");

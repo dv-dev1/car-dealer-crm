@@ -72,6 +72,18 @@ export function LojaAgora({
             </div>
           </div>
           )}
+
+          {resumo.yardCostPerDay !== null && (
+            <p className="mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-3 text-sm text-muted-strong">
+              <span>
+                O pátio custa <span className="font-semibold tabular-nums text-secondary">{formatPreco(resumo.yardCostPerDay)}</span> por dia
+                em dinheiro parado
+              </span>
+              <Link href="/gestao/loja" className="text-xs font-semibold text-primary hover:text-primary-hover">
+                Ajustar taxa
+              </Link>
+            </p>
+          )}
         </div>
         </AoEntrar>
 

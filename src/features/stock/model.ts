@@ -3,11 +3,15 @@ import { UUID, withStore, type Db, type MemberContext } from "@/shared/db/client
 import { todayIso } from "@/shared/today";
 
 import { photoUrl } from "./photos";
+import { moneyCost } from "./rules";
 
 export type StockStatus = "preparing" | "available" | "reserved" | "away" | "sold";
 export type StockPhoto = { id: string; url: string };
-/** `acquisitionCost` is the purchase price (or the consignor payout); `cost` adds the car's expenses. */
-export type StockMoney = { acquisitionCost: number; cost: number; profit: number };
+/**
+ * `acquisitionCost` is the purchase price (or the consignor payout); `cost` adds the car's expenses.
+ * `perDay` and `sinceEntry` are the money cost of the car parked, from the store's monthly rate.
+ */
+export type StockMoney = { acquisitionCost: number; cost: number; profit: number; perDay: number; sinceEntry: number };
 export type StockVehicle = {
   id: string;
   slug: string;
@@ -44,6 +48,7 @@ type Row = Omit<StockVehicle, "title" | "price" | "minCashPrice" | "photos" | "m
   photos: { id: string; path: string }[];
   cost: string | null;
   acquisitionCost: string | null;
+  moneyRate: string | null;
 };
 
 // "reserved" is not stored: an available car with an open reservation reads as reserved.
@@ -66,8 +71,8 @@ const SELECT = `
 function select(ctx: MemberContext, where: string): string {
   const cost =
     ctx.role === "seller"
-      ? `null::numeric as cost, null::numeric as "acquisitionCost"`
-      : `c.cost, c.acquisition_cost as "acquisitionCost"`;
+      ? `null::numeric as cost, null::numeric as "acquisitionCost", null::numeric as "moneyRate"`
+      : `c.cost, c.acquisition_cost as "acquisitionCost", (select s.money_rate from stores s where s.id = v.store_id) as "moneyRate"`;
   const sql = SELECT.replace("%COST%", cost);
   return ctx.role === "seller"
     ? `${sql} ${where}`
@@ -78,14 +83,22 @@ function toVehicle(row: Row): StockVehicle {
   const price = Number(row.price);
   const minCashPrice = row.minCashPrice === null ? null : Number(row.minCashPrice);
   const cost = row.cost === null ? null : Number(row.cost);
-  const { cost: _cost, acquisitionCost, photos, ...rest } = row;
+  const { cost: _cost, acquisitionCost, moneyRate, photos, ...rest } = row;
   return {
     ...rest,
     title: `${row.brand} ${row.model} ${row.version}`,
     price,
     minCashPrice,
     photos: photos.map((photo) => ({ id: photo.id, url: photoUrl(photo.path) })),
-    money: cost === null ? null : { acquisitionCost: Number(acquisitionCost), cost, profit: (minCashPrice ?? price) - cost },
+    money:
+      cost === null
+        ? null
+        : {
+            acquisitionCost: Number(acquisitionCost),
+            cost,
+            profit: (minCashPrice ?? price) - cost,
+            ...moneyCost(cost, Number(moneyRate), row.daysInStock),
+          },
   };
 }
 

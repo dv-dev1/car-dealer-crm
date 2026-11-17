@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus, Menu, X, Sun, Moon, LogOut } from "lucide-react";
-import { secoes, EVENTO_NOVO_CLIENTE } from "./secoes";
+import { secoesPara, EVENTO_NOVO_CLIENTE } from "./secoes";
 import { useTema } from "@/lib/tema";
 import { VEU, EASE_MARCA as EASE } from "./motion/sobreposicao";
 import { signOutAction } from "@/features/auth/actions";
@@ -40,10 +40,13 @@ function ConteudoSidebar({
   escopo,
   storeName,
   demo,
+  canManage,
 }: {
   pathname: string;
   storeName: string;
   demo: DemoPanelProps | null;
+  /** Owner or manager: sees the store settings. */
+  canManage: boolean;
   onNavegar?: () => void;
   /** Sidebar e drawer ficam montados ao mesmo tempo (o desktop só some por
    *  CSS). Sem escopo, os dois disputariam o mesmo layoutId e o realce
@@ -77,7 +80,7 @@ function ConteudoSidebar({
       </Link>
 
       <nav className="flex flex-col gap-1" aria-label="Navegação da gestão">
-        {secoes.map((s) => {
+        {secoesPara(canManage).map((s) => {
           const Icon = s.icon;
           const ativa = estaAtiva(pathname, s.href);
           return (
@@ -169,10 +172,12 @@ export function GestaoShell({
   children,
   storeName,
   demo,
+  canManage,
 }: {
   children: ReactNode;
   storeName: string;
   demo: DemoPanelProps | null;
+  canManage: boolean;
 }) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
@@ -185,7 +190,7 @@ export function GestaoShell({
         className="fixed inset-y-0 left-0 z-30 hidden border-r border-line bg-surface lg:block"
         style={{ width: LARGURA }}
       >
-        <ConteudoSidebar pathname={pathname} escopo="desktop" storeName={storeName} demo={demo} />
+        <ConteudoSidebar pathname={pathname} escopo="desktop" storeName={storeName} demo={demo} canManage={canManage} />
       </aside>
 
       {/* Top bar — mobile */}
@@ -237,6 +242,7 @@ export function GestaoShell({
               escopo="drawer"
               storeName={storeName}
               demo={demo}
+              canManage={canManage}
             />
           </motion.aside>,
         ]}
