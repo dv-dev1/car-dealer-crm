@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const SCREENS = ["src/components/gestao", "src/app/gestao", "src/features/team", "src/features/auth/view.tsx", "src/features/demo/view.tsx"];
-const SCREEN_DATA = ["src/data/agenda.ts", "src/data/clientes-mock.ts"];
+const SCREEN_DATA = ["src/data/agenda.ts"];
 
 function sourceFiles(path: string): string[] {
   if (statSync(ROOT + path).isFile()) return [path];

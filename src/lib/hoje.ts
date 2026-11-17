@@ -1,10 +1,5 @@
-// Âncora de "hoje" e utilidades de data do painel do gestor.
-//
-// Enquanto os dados são mock (leads/agenda fixos em 2026), "hoje" é uma
-// constante — assim as telas ficam determinísticas e batem com os dados de
-// demonstração. Com o Supabase e dados reais, troca HOJE_ISO por new Date().
-
-export const HOJE_ISO = "2026-07-21"; // 21/07/2026 (terça)
+// Utilidades de data do painel do gestor. "Hoje" é o dia da loja: `todayIso()`
+// em `src/shared/today.ts`.
 
 export const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
