@@ -6,6 +6,7 @@ import { requireMember } from "@/features/auth/guard";
 import type { ActionState } from "@/features/leads/actions";
 import { todayIso } from "@/shared/today";
 
+import { setTransferDone } from "./after-sale";
 import { readSale, recordSale, type SaleInput } from "./model";
 
 const FIELD_LABEL: Record<keyof SaleInput, string> = {
@@ -43,4 +44,11 @@ export async function recordSaleAction(_prev: ActionState, form: FormData): Prom
   }
   revalidatePath("/gestao", "layout");
   return { error: null, id: result.id };
+}
+
+/** The transfer button of the after-sale screen; a refusal leaves the screen as it was. */
+export async function setTransferDoneAction(form: FormData): Promise<void> {
+  const member = await requireMember();
+  const result = await setTransferDone(member, String(form.get("saleId") ?? ""), form.get("done") === "1", todayIso());
+  if (result.ok) revalidatePath("/gestao", "layout");
 }

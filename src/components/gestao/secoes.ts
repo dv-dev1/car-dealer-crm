@@ -6,7 +6,7 @@ import {
   FileText,
   UserCog,
   Settings,
-  HandCoins,
+  HandCoins, ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +34,7 @@ export const secoes: Secao[] = [
   { label: "Agenda", href: "/gestao/agenda", icon: Calendar },
   { label: "Relatórios", href: "/gestao/relatorios", icon: FileText },
   { label: "Comissões", href: "/gestao/comissoes", icon: HandCoins },
+  { label: "Pós-venda", href: "/gestao/pos-venda", icon: ShieldCheck },
   { label: "Equipe", href: "/gestao/equipe", icon: UserCog },
   { label: "Ajustes", href: "/gestao/loja", icon: Settings, managersOnly: true },
 ];

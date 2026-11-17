@@ -25,7 +25,7 @@ export default async function StoreSettingsPage() {
   ]);
   return (
     <div className="space-y-6">
-      <StoreSettingsView moneyRate={settings.moneyRate} staleLeadDays={settings.staleLeadDays} />
+      <StoreSettingsView {...settings} />
       {channels && <ChannelsSettings channels={channels} mesLabel={mesLabel} />}
       {expenses && <StoreExpensesSettings expenses={expenses} mesLabel={mesLabel} />}
     </div>

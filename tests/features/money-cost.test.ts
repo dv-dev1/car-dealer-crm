@@ -23,7 +23,7 @@ vi.mock("@/features/leads/actions", () => ({
   createLeadAction: vi.fn(), updateLeadAction: vi.fn(), moveLeadAction: vi.fn(), loseLeadAction: vi.fn(),
 }));
 vi.mock("@/features/sales/actions", () => ({ recordSaleAction: vi.fn() }));
-vi.mock("@/features/store/actions", () => ({ setStaleLeadDaysAction: vi.fn(), setMoneyRateAction: vi.fn() }));
+vi.mock("@/features/store/actions", () => ({ setStaleLeadDaysAction: vi.fn(), setWarrantyDaysAction: vi.fn(), setMoneyRateAction: vi.fn() }));
 
 const TODAY = "2026-11-13";
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
@@ -112,7 +112,7 @@ it("reads the rate as typed, in percent", () => {
 it("only owner and manager get the store settings", () => {
   expect(secoesPara(true).map((s) => s.href)).toContain("/gestao/loja");
   expect(secoesPara(false).map((s) => s.href)).not.toContain("/gestao/loja");
-  const html = text(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015, staleLeadDays: 3 })));
+  const html = text(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015, staleLeadDays: 3, warrantyDays: 90 })));
   expect(html).toContain("Custo do dinheiro (% ao mês)");
-  expect(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015, staleLeadDays: 3 }))).toContain('value="1,5"');
+  expect(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015, staleLeadDays: 3, warrantyDays: 90 }))).toContain('value="1,5"');
 });

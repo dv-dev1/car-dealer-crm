@@ -8,7 +8,7 @@ import { text } from "@/shared/form";
 import { todayIso } from "@/shared/today";
 
 import { addStoreExpense, removeStoreExpense, type StoreExpenseCategory } from "./expenses";
-import { readRatePct, setMoneyRate, setStaleLeadDays } from "./model";
+import { readRatePct, setMoneyRate, setStaleLeadDays, setWarrantyDays } from "./model";
 
 export type StoreSettingsState = { error: string | null; saved?: boolean };
 
@@ -61,6 +61,17 @@ export async function setStaleLeadDaysAction(_prev: StoreSettingsState, form: Fo
   const result = await setStaleLeadDays(member, /^\d{1,2}$/.test(raw) ? Number(raw) : 0);
   if (!result.ok) {
     return { error: result.error === "forbidden" ? RATE_ERROR.forbidden : "Os dias vão de 1 a 30." };
+  }
+  revalidatePath("/gestao", "layout");
+  return { error: null, saved: true };
+}
+
+export async function setWarrantyDaysAction(_prev: StoreSettingsState, form: FormData): Promise<StoreSettingsState> {
+  const member = await requireMember();
+  const raw = text(form, "warrantyDays");
+  const result = await setWarrantyDays(member, /^\d{1,3}$/.test(raw) ? Number(raw) : -1);
+  if (!result.ok) {
+    return { error: result.error === "forbidden" ? RATE_ERROR.forbidden : "A garantia vai de 0 a 365 dias." };
   }
   revalidatePath("/gestao", "layout");
   return { error: null, saved: true };
