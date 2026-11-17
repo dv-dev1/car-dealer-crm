@@ -17,6 +17,8 @@ import { BarrasMes } from "@/components/gestao/relatorios/BarrasMes";
 import { RankingVeiculos } from "@/components/gestao/relatorios/RankingVeiculos";
 import { FunilConversao } from "@/components/gestao/relatorios/FunilConversao";
 import { VendasTabela } from "@/components/gestao/relatorios/VendasTabela";
+import { CanaisTabela } from "@/components/gestao/relatorios/CanaisTabela";
+import type { ChannelRow } from "@/features/channels/model";
 import { ExportarPdf } from "@/components/gestao/relatorios/ExportarPdf";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
@@ -39,6 +41,7 @@ export function RelatoriosView({
   formas,
   funil,
   vendas,
+  canais = null,
   meta,
   mesLabel,
   podeEditarMeta,
@@ -54,6 +57,8 @@ export function RelatoriosView({
   formas: FormaResumo[];
   funil: { etapas: EtapaFunil[]; conversaoGeral: number };
   vendas: VendaRelatorio[];
+  /** Null for a seller: channels are for owner and manager. */
+  canais?: ChannelRow[] | null;
   meta: ResumoMetaMes | null;
   mesLabel: string;
   podeEditarMeta: boolean;
@@ -155,6 +160,8 @@ export function RelatoriosView({
           <FunilConversao etapas={funil.etapas} conversaoGeral={funil.conversaoGeral} rotulo={rotulo} />
         </AoEntrar>
       </div>
+
+      {canais && <CanaisTabela canais={canais} />}
 
       {/* Registro de vendas */}
       <AoEntrar className="mt-6">
