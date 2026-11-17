@@ -16,7 +16,7 @@ import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
 import { car } from "./stock-car.ts";
 
 vi.mock("@opennextjs/cloudflare", () => import("../setup/hyperdrive.ts"));
-vi.mock("@/features/stock/actions", () => ({ setAwayAction: vi.fn(), returnToStoreAction: vi.fn(), addExpenseAction: vi.fn(), removeExpenseAction: vi.fn(),
+vi.mock("@/features/stock/actions", () => ({ setAwayAction: vi.fn(), returnToStoreAction: vi.fn(), createReservationAction: vi.fn(), cancelReservationAction: vi.fn(), addExpenseAction: vi.fn(), removeExpenseAction: vi.fn(),
   setMarginAction: vi.fn(), removeVehicleAction: vi.fn(),
 }));
 vi.mock("@/features/leads/actions", () => ({

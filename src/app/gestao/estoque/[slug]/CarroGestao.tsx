@@ -24,6 +24,7 @@ import type { Lead } from "@/features/leads/types";
 import { todayIso } from "@/shared/today";
 import { Despesas } from "./Despesas";
 import { AvisoForaDaLoja, TirarDaLoja } from "./ForaDaLoja";
+import { AvisoReserva, Reservar } from "./Reserva";
 
 export function CarroGestao({
   veiculo,
@@ -42,7 +43,7 @@ export function CarroGestao({
   channels: { id: string; name: string }[];
   /** Null for a seller. */
   sellers: { id: string; name: string }[] | null;
-  /** Open leads, to name the client of a sale started here. */
+  /** Open leads, to name the client of a sale or a reservation started here. */
   leads: Lead[];
   /** The member using the screen. */
   memberId: string;
@@ -177,6 +178,7 @@ export function CarroGestao({
         {/* Painel admin */}
         <div className="flex flex-col gap-4">
           <AvisoForaDaLoja veiculo={veiculo} today={today} canManage={canManage} />
+          <AvisoReserva veiculo={veiculo} canManage={canManage} />
           {/* Preço de tabela */}
           <div className="rounded-[var(--radius)] border border-line bg-surface p-5 shadow-[var(--shadow-soft)]">
             <div className="flex items-end justify-between gap-3">
@@ -337,6 +339,10 @@ export function CarroGestao({
                 <Percent size={16} className={margemDefinida ? undefined : "text-warning"} />
                 {margemDefinida ? "Editar margem" : "Definir margem"}
               </button>
+            )}
+
+            {veiculo.status === "available" && (
+              <Reservar veiculo={veiculo} leads={leads.filter((l) => canManage || l.canEdit)} today={today} className={acaoSecundaria} />
             )}
 
             {canManage && (

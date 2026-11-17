@@ -42,6 +42,8 @@ export type StockVehicle = {
   photos: StockPhoto[];
   /** Why the car is out of the store and when it should be back; null unless its status is "away". */
   away: { reason: AwayReason; until: string | null } | null;
+  /** The open reservation (not canceled, not expired); `mine` when the viewer made it. */
+  reservation: { id: string; leadName: string | null; deposit: number; expiresOn: string; mine: boolean } | null;
   money: StockMoney | null;
 };
 
@@ -67,6 +69,11 @@ const SELECT = `
                 select from reservations r
                  where r.vehicle_id = v.id and r.canceled_at is null and r.expires_on >= $2::date
               ) then 'reserved' else v.status end as status,
+         (select json_build_object('id', r.id, 'leadName', l.name, 'deposit', r.deposit, 'expiresOn', to_char(r.expires_on, 'YYYY-MM-DD'),
+                                   'mine', coalesce(r.created_by = app_membership_id(), false))
+            from reservations r left join leads l on l.id = r.lead_id
+           where r.vehicle_id = v.id and r.canceled_at is null and r.expires_on >= $2::date
+           order by r.created_at desc limit 1) as reservation,
          coalesce((select json_agg(json_build_object('id', p.id, 'path', p.path) order by p.position)
                      from vehicle_photos p where p.vehicle_id = v.id), '[]') as photos,
          %COST%

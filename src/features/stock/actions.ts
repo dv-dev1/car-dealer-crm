@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireMember } from "@/features/auth/guard";
+import { reaisEmDigitos } from "@/lib/format";
 
 import {
   createVehicle, removeVehicle, returnToStore, setAway, setMargin, updateVehicle, type AwayReason, type RemoveReason, type VehicleInput,
 } from "./model";
 import { addExpense, readExpense, removeExpense } from "./expenses";
+import { cancelReservation, createReservation } from "./reservations";
 import { addVehiclePhoto, photoBucket, removeVehiclePhoto } from "./photos";
 
 export type VehicleFormState = { error: string | null; field?: keyof VehicleInput; id?: string; slug?: string };
@@ -197,6 +199,35 @@ export async function returnToStoreAction(_prev: StockActionState, form: FormDat
   const member = await requireMember();
   const result = await returnToStore(member, String(form.get("vehicleId") ?? ""));
   if (!result.ok) return { error: result.error === "invalid" ? "Este carro já está na loja." : AWAY_ERROR[result.error] };
+  revalidatePath("/gestao", "layout");
+  return { error: null };
+}
+
+const RESERVATION_ERROR = {
+  forbidden: "Você só reserva para os seus clientes e só cancela as suas reservas.",
+  not_found: "Só carro disponível pode ser reservado.",
+  invalid: "Confira o sinal e a validade (de hoje até 30 dias).",
+  reserved: "Este carro já está reservado.",
+} as const;
+
+export async function createReservationAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const deposit = reaisEmDigitos(String(form.get("deposit") ?? ""));
+  const result = await createReservation(member, {
+    vehicleId: String(form.get("vehicleId") ?? ""),
+    leadId: String(form.get("leadId") ?? "") || null,
+    deposit: deposit === "" ? 0 : Number(deposit),
+    expiresOn: String(form.get("expiresOn") ?? ""),
+  });
+  if (!result.ok) return { error: RESERVATION_ERROR[result.error] };
+  revalidatePath("/gestao", "layout");
+  return { error: null };
+}
+
+export async function cancelReservationAction(_prev: StockActionState, form: FormData): Promise<StockActionState> {
+  const member = await requireMember();
+  const result = await cancelReservation(member, String(form.get("reservationId") ?? ""));
+  if (!result.ok) return { error: result.error === "forbidden" ? RESERVATION_ERROR.forbidden : "Esta reserva já foi cancelada." };
   revalidatePath("/gestao", "layout");
   return { error: null };
 }

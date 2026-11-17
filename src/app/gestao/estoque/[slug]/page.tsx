@@ -28,7 +28,7 @@ export default async function CarroGestaoPage({
     listStock(member),
     listChannels(member),
     canManage ? listSellers(member) : null,
-    canManage ? listLeads(member) : [],
+    listLeads(member),
     listExpenses(member, veiculo.id),
   ]);
   const open = leads.filter((l) => l.estagio !== "vendeu" && l.estagio !== "nao-comprou");

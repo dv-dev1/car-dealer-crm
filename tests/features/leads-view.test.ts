@@ -13,7 +13,7 @@ vi.mock("@/features/leads/actions", () => ({
   createLeadAction: vi.fn(), updateLeadAction: vi.fn(), moveLeadAction: vi.fn(), loseLeadAction: vi.fn(),
 }));
 vi.mock("@/features/sales/actions", () => ({ recordSaleAction: vi.fn() }));
-vi.mock("@/features/stock/actions", () => ({ setAwayAction: vi.fn(), returnToStoreAction: vi.fn(), addExpenseAction: vi.fn(), removeExpenseAction: vi.fn(), setMarginAction: vi.fn(), removeVehicleAction: vi.fn() }));
+vi.mock("@/features/stock/actions", () => ({ setAwayAction: vi.fn(), returnToStoreAction: vi.fn(), createReservationAction: vi.fn(), cancelReservationAction: vi.fn(), addExpenseAction: vi.fn(), removeExpenseAction: vi.fn(), setMarginAction: vi.fn(), removeVehicleAction: vi.fn() }));
 
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 const TODAY = "2026-11-14";

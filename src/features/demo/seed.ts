@@ -1,5 +1,6 @@
 import { BANKS, COLORS, EXPENSES, FIRST_NAMES, LAST_NAMES, LOST_REASONS, MODELS, type CatalogModel } from "./catalog.ts";
 import { DEMO_PHOTOS } from "./photos.ts";
+import { addDays } from "../../shared/today.ts";
 
 // The demo store. Its WhatsApp is a placeholder until the founders pick a number (a confirmar).
 export const DEMO_STORE = { name: "Maré Veículos", city: "João Pessoa - PB", whatsapp: "558390000000" } as const;
@@ -34,7 +35,6 @@ const SALE_MIX: [string, number][] = [["OLX", 17], ["Instagram", 15], ["Indicaç
 const LEAD_MIX = ["OLX", "Instagram", "Webmotors", "OLX", "Instagram", "Mobiauto", "OLX", "Instagram", "Indicação", "Webmotors", "OLX", "Passante", "Instagram", "Site"];
 const DOCUMENT_ITEMS = ["ipva", "fines", "inspection_report", "lien", "transfer_document", "spare_key", "manual"];
 
-const addDays = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10);
 const daysBetween = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / DAY);
 const isSunday = (iso: string) => new Date(`${iso}T00:00:00Z`).getUTCDay() === 0;
 const minDate = (a: string, b: string) => (a < b ? a : b);
