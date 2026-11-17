@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireMember } from "@/features/auth/guard";
+import { recordContact, type ContactKind } from "@/features/leads/contacts";
 import { text } from "@/shared/form";
 
 import { createLead, loseLead, moveLead, updateLead, type ActiveStage, type LeadInput, type LeadResult } from "./model";
@@ -78,4 +79,11 @@ export async function moveLeadAction(_prev: ActionState, form: FormData): Promis
 export async function loseLeadAction(_prev: ActionState, form: FormData): Promise<ActionState> {
   const member = await requireMember();
   return answer(await loseLead(member, text(form, "id"), text(form, "reason") || null));
+}
+
+/** Fired when the seller taps WhatsApp or call on a client, or says they talked to them. A refusal changes nothing on screen. */
+export async function recordContactAction(leadId: string, kind: ContactKind): Promise<void> {
+  const member = await requireMember();
+  const result = await recordContact(member, leadId, kind);
+  if (result.ok) revalidatePath("/gestao", "layout");
 }

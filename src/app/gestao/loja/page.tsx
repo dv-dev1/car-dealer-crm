@@ -18,14 +18,14 @@ export default async function StoreSettingsPage() {
   const today = todayIso();
   const month = `${today.slice(0, 7)}-01`;
   const mesLabel = MESES[Number(today.slice(5, 7)) - 1].toLowerCase();
-  const [{ moneyRate }, channels, expenses] = await Promise.all([
+  const [settings, channels, expenses] = await Promise.all([
     getStoreSettings(member),
     listChannelSettings(member, month),
     listStoreExpenses(member, month),
   ]);
   return (
     <div className="space-y-6">
-      <StoreSettingsView moneyRate={moneyRate} />
+      <StoreSettingsView moneyRate={settings.moneyRate} staleLeadDays={settings.staleLeadDays} />
       {channels && <ChannelsSettings channels={channels} mesLabel={mesLabel} />}
       {expenses && <StoreExpensesSettings expenses={expenses} mesLabel={mesLabel} />}
     </div>

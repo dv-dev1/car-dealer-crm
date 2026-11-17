@@ -6,7 +6,9 @@ import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 
 import { formatPreco } from "@/lib/format";
 
-import { addStoreExpenseAction, removeStoreExpenseAction, setMoneyRateAction, type StoreSettingsState } from "./actions";
+import {
+  addStoreExpenseAction, removeStoreExpenseAction, setMoneyRateAction, setStaleLeadDaysAction, type StoreSettingsState,
+} from "./actions";
 import type { StoreExpense, StoreExpenseCategory } from "./expenses";
 
 const INITIAL: StoreSettingsState = { error: null };
@@ -14,9 +16,10 @@ const field =
   "w-32 rounded-[var(--radius-control)] border border-line bg-surface px-3 py-2 text-secondary tabular-nums focus:border-primary focus:outline-none";
 const pctBr = (rate: number) => String(Number((rate * 100).toFixed(2))).replace(".", ",");
 
-/** Store settings for owner and manager: today only the monthly cost of money. */
-export function StoreSettingsView({ moneyRate }: { moneyRate: number }) {
+/** Store settings for owner and manager: the monthly cost of money and when a client counts as stale. */
+export function StoreSettingsView({ moneyRate, staleLeadDays }: { moneyRate: number; staleLeadDays: number }) {
   const [state, formAction, pending] = useActionState(setMoneyRateAction, INITIAL);
+  const [stale, staleAction, savingStale] = useActionState(setStaleLeadDaysAction, INITIAL);
 
   return (
     <div className="space-y-6">
@@ -47,6 +50,34 @@ export function StoreSettingsView({ moneyRate }: { moneyRate: number }) {
         {state.saved && !state.error && (
           <p role="status" className="text-sm text-success-ink">
             Taxa salva.
+          </p>
+        )}
+      </form>
+      <form action={staleAction} className="max-w-xl space-y-3 rounded-[var(--radius)] border border-line bg-surface p-5">
+        <label htmlFor="stale-lead-days" className="block font-semibold text-secondary">
+          Cliente parado depois de quantos dias
+        </label>
+        <p className="text-sm text-muted-strong">
+          Cliente aberto sem contato há mais dias do que isto aparece como parado no Painel. Padrão: 3 dias.
+        </p>
+        <div className="flex items-center gap-2">
+          <input id="stale-lead-days" name="staleLeadDays" inputMode="numeric" required defaultValue={staleLeadDays} className={field} />
+          <button
+            type="submit"
+            disabled={savingStale}
+            className="rounded-[var(--radius-control)] bg-primary px-4 py-2 font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-60"
+          >
+            {savingStale ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+        {stale.error && (
+          <p role="alert" className="text-sm text-danger-ink">
+            {stale.error}
+          </p>
+        )}
+        {stale.saved && !stale.error && (
+          <p role="status" className="text-sm text-success-ink">
+            Dias salvos.
           </p>
         )}
       </form>

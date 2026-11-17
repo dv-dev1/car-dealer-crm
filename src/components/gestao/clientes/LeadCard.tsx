@@ -1,12 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Car, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { Car, Check, Pencil, Phone, ChevronLeft, ChevronRight } from "lucide-react";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { formatPreco } from "@/lib/format";
 import { ddmm } from "@/lib/hoje";
 import { whatsappLinkPara } from "@/lib/loja";
 import { mensagemDaLoja, useStoreName } from "@/components/gestao/storeName";
+import { recordContactAction } from "@/features/leads/actions";
+import type { ContactKind } from "@/features/leads/contacts";
 import { ETAPAS, type Etapa, type Lead } from "@/features/leads/types";
 
 const ATIVAS: Etapa[] = ETAPAS.filter((e) => !e.fechada);
@@ -64,6 +66,12 @@ export function LeadCard({
   ].filter(Boolean) as { rotulo: string; valor: string; tom: string }[];
 
   const mensagem = mensagemDaLoja(lead.nome, useStoreName());
+  // Tapping WhatsApp or call is the contact: it stamps the first response and the last contact of who owns the client.
+  const contato = (kind: ContactKind) => {
+    if (podeMexer) void recordContactAction(lead.id, kind).catch(() => {});
+  };
+  const icone =
+    "grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] border border-line text-secondary transition-colors duration-200 hover:bg-sand lg:h-8 lg:w-8";
 
   return (
     // flex-col + h-full: cards da mesma coluna terminam alinhados, mesmo quando
@@ -157,11 +165,26 @@ export function LeadCard({
             target="_blank"
             rel="noopener noreferrer"
             draggable={false}
+            onClick={() => contato("whatsapp")}
             aria-label={`Chamar ${primeiroNome(lead.nome)} no WhatsApp`}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-control)] bg-whatsapp text-white transition-colors duration-200 hover:bg-whatsapp-hover lg:h-8 lg:w-8"
           >
             <WhatsappIcon className="h-4 w-4" />
           </a>
+        )}
+
+        {lead.telefone && (
+          <a href={`tel:+${lead.telefone}`} draggable={false} onClick={() => contato("call")}
+            aria-label={`Ligar para ${primeiroNome(lead.nome)}`} className={icone}>
+            <Phone size={14} />
+          </a>
+        )}
+
+        {podeMexer && (
+          <button type="button" draggable={false} onClick={() => contato("note")}
+            aria-label={`Falei com ${primeiroNome(lead.nome)}`} title="Falei com o cliente" className={icone}>
+            <Check size={14} />
+          </button>
         )}
 
         {onEditar && podeMexer && (

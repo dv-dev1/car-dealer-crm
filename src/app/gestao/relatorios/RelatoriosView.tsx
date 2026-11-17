@@ -19,6 +19,8 @@ import { FunilConversao } from "@/components/gestao/relatorios/FunilConversao";
 import { VendasTabela } from "@/components/gestao/relatorios/VendasTabela";
 import { CanaisTabela } from "@/components/gestao/relatorios/CanaisTabela";
 import type { ChannelRow } from "@/features/channels/model";
+import { TempoResposta } from "@/components/gestao/relatorios/TempoResposta";
+import type { ResponseTime } from "@/features/leads/contacts";
 import { ExportarPdf } from "@/components/gestao/relatorios/ExportarPdf";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
@@ -42,6 +44,8 @@ export function RelatoriosView({
   funil,
   vendas,
   canais = null,
+  resposta = [],
+  respostaPropria = false,
   meta,
   mesLabel,
   podeEditarMeta,
@@ -59,6 +63,9 @@ export function RelatoriosView({
   vendas: VendaRelatorio[];
   /** Null for a seller: channels are for owner and manager. */
   canais?: ChannelRow[] | null;
+  /** First-response time by seller; a seller gets only their own line. */
+  resposta?: ResponseTime[];
+  respostaPropria?: boolean;
   meta: ResumoMetaMes | null;
   mesLabel: string;
   podeEditarMeta: boolean;
@@ -162,6 +169,7 @@ export function RelatoriosView({
       </div>
 
       {canais && <CanaisTabela canais={canais} />}
+      <TempoResposta rows={resposta} own={respostaPropria} />
 
       {/* Registro de vendas */}
       <AoEntrar className="mt-6">

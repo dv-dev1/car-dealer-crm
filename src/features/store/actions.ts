@@ -8,7 +8,7 @@ import { text } from "@/shared/form";
 import { todayIso } from "@/shared/today";
 
 import { addStoreExpense, removeStoreExpense, type StoreExpenseCategory } from "./expenses";
-import { readRatePct, setMoneyRate } from "./model";
+import { readRatePct, setMoneyRate, setStaleLeadDays } from "./model";
 
 export type StoreSettingsState = { error: string | null; saved?: boolean };
 
@@ -53,4 +53,15 @@ export async function removeStoreExpenseAction(_prev: StoreSettingsState, form: 
   if (!result.ok) return { error: EXPENSE_ERROR[result.error] };
   revalidatePath("/gestao", "layout");
   return { error: null };
+}
+
+export async function setStaleLeadDaysAction(_prev: StoreSettingsState, form: FormData): Promise<StoreSettingsState> {
+  const member = await requireMember();
+  const raw = text(form, "staleLeadDays");
+  const result = await setStaleLeadDays(member, /^\d{1,2}$/.test(raw) ? Number(raw) : 0);
+  if (!result.ok) {
+    return { error: result.error === "forbidden" ? RATE_ERROR.forbidden : "Os dias vão de 1 a 30." };
+  }
+  revalidatePath("/gestao", "layout");
+  return { error: null, saved: true };
 }

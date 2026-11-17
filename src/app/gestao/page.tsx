@@ -3,12 +3,15 @@ import { BarChart3, ArrowRight } from "lucide-react";
 import { MESES, diaPorExtenso } from "@/lib/hoje";
 import { resumoMetaMes } from "@/lib/metas";
 import { loadGoal } from "@/features/reports/model";
+import { staleLeads } from "@/features/leads/contacts";
 import { monthBreakEven } from "@/features/store/expenses";
+import { getStoreSettings } from "@/features/store/model";
 import { listStock } from "@/features/stock/model";
 import { oldestInStock, staleLevel, stockSummary } from "@/features/stock/rules";
 import { todayIso } from "@/shared/today";
 import { AvisoMeta, AvisoSemMargem } from "@/components/gestao/painel/PainelAvisos";
 import { AvisoMes } from "@/components/gestao/painel/AvisoMes";
+import { ClientesParados } from "@/components/gestao/painel/ClientesParados";
 import { LojaAgora } from "@/components/gestao/painel/LojaAgora";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
@@ -17,10 +20,12 @@ import { requireMember } from "@/features/auth/guard";
 export default async function PainelPage() {
   const member = await requireMember();
   const today = todayIso();
-  const [estoque, goal, mes] = await Promise.all([
+  const [estoque, goal, mes, parados, ajustes] = await Promise.all([
     listStock(member, today),
     loadGoal(member, today),
     monthBreakEven(member, today),
+    staleLeads(member, today),
+    getStoreSettings(member),
   ]);
   const loja = stockSummary(estoque);
   const giro = oldestInStock(estoque, 3);
@@ -45,6 +50,7 @@ export default async function PainelPage() {
           <AvisoMeta meta={meta} mesLabel={MESES[Number(today.slice(5, 7)) - 1]} podeDefinir={gestor} />
           <AvisoMes mes={mes} />
           {gestor && <AvisoSemMargem quantidade={loja.noMargin} />}
+          <ClientesParados leads={parados} days={ajustes.staleLeadDays} />
         </div>
 
         <LojaAgora resumo={loja} giro={giro} pedemAtencao={pedemAtencao} />

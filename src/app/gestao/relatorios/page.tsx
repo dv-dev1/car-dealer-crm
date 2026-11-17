@@ -1,6 +1,7 @@
 import { RelatoriosView } from "./RelatoriosView";
 import { requireMember } from "@/features/auth/guard";
 import { channelReport } from "@/features/channels/model";
+import { responseTimes } from "@/features/leads/contacts";
 import { loadGoal, loadReport } from "@/features/reports/model";
 import {
   funilConversao,
@@ -26,10 +27,11 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
     { periodo: first(params.periodo), de: first(params.de), ate: first(params.ate) },
     today,
   );
-  const [report, goal, canais] = await Promise.all([
+  const [report, goal, canais, resposta] = await Promise.all([
     loadReport(member, janela, today),
     loadGoal(member, today),
     channelReport(member, janela),
+    responseTimes(member, janela),
   ]);
   const comLucro = member.role !== "seller";
   const ano = Number(today.slice(0, 4));
@@ -49,6 +51,8 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
       funil={funilConversao(report.funil)}
       vendas={report.vendas}
       canais={canais}
+      resposta={resposta}
+      respostaPropria={member.role === "seller"}
       meta={goal.alvo === null ? null : resumoMetaMes({ ...goal, alvo: goal.alvo }, today)}
       mesLabel={MESES[mes]}
       podeEditarMeta={comLucro}

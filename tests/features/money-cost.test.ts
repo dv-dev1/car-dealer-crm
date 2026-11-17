@@ -67,9 +67,9 @@ it("each car in the yard carries its money cost; a seller gets none", async () =
 });
 
 it("owner and manager set the money rate; a seller cannot", async () => {
-  expect(await getStoreSettings(owner)).toEqual({ moneyRate: 0.01 });
+  expect(await getStoreSettings(owner)).toMatchObject({ moneyRate: 0.01 });
   expect(await setMoneyRate(owner, 1.5)).toEqual({ ok: true });
-  expect(await getStoreSettings(owner)).toEqual({ moneyRate: 0.015 });
+  expect(await getStoreSettings(owner)).toMatchObject({ moneyRate: 0.015 });
   const [first] = await listStock(owner, TODAY);
   expect(first.money!.perDay).toBe(moneyCost(first.money!.cost, 0.015, first.daysInStock).perDay);
   expect(await setMoneyRate(seller, 2)).toEqual({ ok: false, error: "forbidden" });
@@ -77,9 +77,9 @@ it("owner and manager set the money rate; a seller cannot", async () => {
   expect(await setMoneyRate(owner, 10.01)).toEqual({ ok: false, error: "invalid" });
   expect(await setMoneyRate(owner, 1.234)).toEqual({ ok: false, error: "invalid" });
   expect(await setMoneyRate(owner, 1.1)).toEqual({ ok: true });
-  expect(await getStoreSettings(owner)).toEqual({ moneyRate: 0.011 });
+  expect(await getStoreSettings(owner)).toMatchObject({ moneyRate: 0.011 });
   expect(await setMoneyRate(owner, 0)).toEqual({ ok: true });
-  expect(await getStoreSettings(owner)).toEqual({ moneyRate: 0 });
+  expect(await getStoreSettings(owner)).toMatchObject({ moneyRate: 0 });
 });
 
 it("the panel says what the yard costs a day", () => {
@@ -112,7 +112,7 @@ it("reads the rate as typed, in percent", () => {
 it("only owner and manager get the store settings", () => {
   expect(secoesPara(true).map((s) => s.href)).toContain("/gestao/loja");
   expect(secoesPara(false).map((s) => s.href)).not.toContain("/gestao/loja");
-  const html = text(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015 })));
+  const html = text(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015, staleLeadDays: 3 })));
   expect(html).toContain("Custo do dinheiro (% ao mês)");
-  expect(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015 }))).toContain('value="1,5"');
+  expect(renderToStaticMarkup(createElement(StoreSettingsView, { moneyRate: 0.015, staleLeadDays: 3 }))).toContain('value="1,5"');
 });
