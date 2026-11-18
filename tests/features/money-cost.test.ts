@@ -15,6 +15,7 @@ import { useDatabase } from "../setup/hyperdrive.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
 import { car } from "./stock-car.ts";
 
+vi.mock("@/features/ai/actions", () => ({ readDocumentAction: vi.fn(), generateAdAction: vi.fn(), draftMessageAction: vi.fn(), dailySummaryAction: vi.fn(), askStoreAction: vi.fn() }));
 vi.mock("@opennextjs/cloudflare", () => import("../setup/hyperdrive.ts"));
 vi.mock("@/features/stock/actions", () => ({ setDocumentAction: vi.fn(), setAwayAction: vi.fn(), returnToStoreAction: vi.fn(), createReservationAction: vi.fn(), cancelReservationAction: vi.fn(), addExpenseAction: vi.fn(), removeExpenseAction: vi.fn(),
   setMarginAction: vi.fn(), removeVehicleAction: vi.fn(),

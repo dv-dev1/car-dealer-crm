@@ -9,6 +9,7 @@ import { LeadCard } from "@/components/gestao/clientes/LeadCard";
 import type { Lead } from "@/features/leads/types";
 import { car } from "./stock-car.ts";
 
+vi.mock("@/features/ai/actions", () => ({ readDocumentAction: vi.fn(), generateAdAction: vi.fn(), draftMessageAction: vi.fn(), dailySummaryAction: vi.fn(), askStoreAction: vi.fn() }));
 vi.mock("@/features/leads/actions", () => ({
   createLeadAction: vi.fn(), updateLeadAction: vi.fn(), moveLeadAction: vi.fn(), loseLeadAction: vi.fn(),
 }));

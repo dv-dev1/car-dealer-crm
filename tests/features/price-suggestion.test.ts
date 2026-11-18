@@ -4,6 +4,7 @@ import { expect, it, vi } from "vitest";
 import { priceSuggestion } from "@/features/stock/rules";
 import { car } from "./stock-car.ts";
 
+vi.mock("@/features/ai/actions", () => ({ readDocumentAction: vi.fn(), generateAdAction: vi.fn(), draftMessageAction: vi.fn(), dailySummaryAction: vi.fn(), askStoreAction: vi.fn() }));
 vi.mock("@/features/stock/actions", () => ({ setDocumentAction: vi.fn(), setAwayAction: vi.fn(), returnToStoreAction: vi.fn(), createReservationAction: vi.fn(), cancelReservationAction: vi.fn(), addExpenseAction: vi.fn(), removeExpenseAction: vi.fn(),
   setMarginAction: vi.fn(), removeVehicleAction: vi.fn(),
 }));
