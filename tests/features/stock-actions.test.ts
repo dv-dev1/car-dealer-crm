@@ -76,13 +76,15 @@ it("reads a consigned car and names its payout as such", async () => {
 });
 
 it("creates when there is no id and edits when there is one", async () => {
-  const created = await saveVehicleAction({ error: null }, form({ ...FIELDS, features: ["Ar condicionado", "ABS"] }));
+  const created = await saveVehicleAction({ error: null }, form({ ...FIELDS, features: ["Ar condicionado", "ABS"], plate: "abc-1d23" }));
   expect(created).toEqual({ error: null, id: CAR, slug: "chevrolet-onix-lt-1-0-2023-111111" });
   expect(model.createVehicle).toHaveBeenCalledWith(ctx, {
     brand: "Chevrolet", model: "Onix", version: "LT 1.0", manufactureYear: 2022, modelYear: 2023, km: 32000, color: "Prata",
     fuel: "Flex", transmission: "Manual", bodyType: null, doors: 4, description: "", features: ["Ar condicionado", "ABS"],
     featured: false, price: 72990, acquisitionCost: 61000, enteredOn: "2026-11-10", ready: true,
     source: "purchase", consignorName: null, consignorPhone: null,
+    // The plate goes as the document writes it; an empty renavam or chassis clears.
+    plate: "ABC1D23", renavam: null, chassis: null,
   });
   await saveVehicleAction({ error: null }, form({ ...FIELDS, id: CAR }));
   expect(model.updateVehicle).toHaveBeenCalledWith(ctx, CAR, expect.objectContaining({ price: 72990 }));
