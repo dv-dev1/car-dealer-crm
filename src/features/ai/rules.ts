@@ -95,3 +95,30 @@ export function cleanAd(raw: unknown): AdTexts | null {
   }
   return ad;
 }
+
+// The message for the client.
+
+export type MessageKind = "first_contact" | "resume" | "after_visit" | "after_sale";
+export const MESSAGE_KIND_LABEL: Record<MessageKind, string> = {
+  first_contact: "Primeiro contato",
+  resume: "Retomada",
+  after_visit: "Pós-visita",
+  after_sale: "Pós-venda",
+};
+
+/** A visit counts as recent for this many days. */
+const AFTER_VISIT_DAYS = 7;
+const MAX_MESSAGE = 600;
+
+/** Which message fits: after the sale, the first one, after a recent visit, or picking the talk up again. */
+export function messageKind(lead: { won: boolean; answered: boolean; daysSinceVisit: number | null }): MessageKind {
+  if (lead.won) return "after_sale";
+  if (!lead.answered) return "first_contact";
+  return lead.daysSinceVisit !== null && lead.daysSinceVisit <= AFTER_VISIT_DAYS ? "after_visit" : "resume";
+}
+
+/** The model's text without the quotes it likes to add, cut to size; null when nothing is left. */
+export function cleanMessage(raw: string): string | null {
+  const text = raw.trim().replace(/^["“”']+|["“”']+$/g, "").trim().slice(0, MAX_MESSAGE);
+  return text === "" ? null : text;
+}

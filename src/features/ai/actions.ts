@@ -5,7 +5,8 @@ import { todayIso } from "@/shared/today";
 
 import { generateAd } from "./ads";
 import { readVehicleDocument } from "./document";
-import { AI_ERROR, type AdTexts, type DocumentFields } from "./rules";
+import { draftMessage } from "./messages";
+import { AI_ERROR, type AdTexts, type DocumentFields, type MessageKind } from "./rules";
 
 const DOCUMENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 // The same ceiling as a car photo: the form reduces the picture before sending it.
@@ -30,4 +31,13 @@ export async function generateAdAction(slug: string): Promise<{ error: string } 
   const member = await requireMember();
   const result = await generateAd(member, todayIso(), String(slug), member.storeName);
   return result.ok ? { ad: result.ad } : { error: AD_ERROR[result.reason] };
+}
+
+const MESSAGE_ERROR = { ...AI_ERROR, not_found: "Cliente não encontrado.", forbidden: "Este cliente é de outro vendedor." };
+
+/** The WhatsApp message for a client, by the stage and the history. A seller only for his own client. */
+export async function draftMessageAction(leadId: string): Promise<{ error: string } | { kind: MessageKind; text: string }> {
+  const member = await requireMember();
+  const result = await draftMessage(member, todayIso(), String(leadId), member.storeName);
+  return result.ok ? { kind: result.kind, text: result.text } : { error: MESSAGE_ERROR[result.reason] };
 }

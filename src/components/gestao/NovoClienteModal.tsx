@@ -7,6 +7,7 @@ import { formatPreco } from "@/lib/format";
 import { createLeadAction, updateLeadAction } from "@/features/leads/actions";
 import { ETAPAS, UI_STAGE, type EstagioFunil, type Lead } from "@/features/leads/types";
 import { formData } from "@/shared/form";
+import { MensagemIA } from "./clientes/MensagemIA";
 import { VEU, painel } from "./motion/sobreposicao";
 
 const ETAPAS_ATIVAS = ETAPAS.filter((e) => !e.fechada);
@@ -425,6 +426,7 @@ export function NovoClienteModal({
                 >
                   {enviando ? "Salvando…" : editando ? "Salvar alterações" : "Salvar cliente"}
                 </button>
+                {leadEmEdicao && <MensagemIA key={leadEmEdicao.id} lead={leadEmEdicao} />}
               </form>
             )}
           </motion.div>
