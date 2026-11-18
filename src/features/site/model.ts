@@ -67,3 +67,11 @@ async function readSiteVehicles(today: string): Promise<Veiculo[]> {
 
 /** The cars for sale of the site's store, featured first. Read once per request, however many blocks ask. */
 export const listSiteVehicles = cache((today: string = todayIso()) => readSiteVehicles(today));
+
+/** A visitor's interest in a car of the site's store. False when the car is no longer on the site. */
+export async function createSiteLead(input: { vehicleSlug: string; name: string; phone: string }): Promise<boolean> {
+  const [{ ok }] = await withoutStore((db) =>
+    db.query<{ ok: boolean }>("select create_site_lead($1, $2, $3, $4) as ok", [siteStoreSlug(), input.vehicleSlug, input.name, input.phone]),
+  );
+  return ok;
+}

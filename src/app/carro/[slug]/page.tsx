@@ -22,6 +22,7 @@ import { getVeiculoBySlug, getOutrosVeiculos } from "@/lib/veiculos";
 import { formatKm, formatPreco } from "@/lib/format";
 import { loja } from "@/lib/loja";
 import { Galeria } from "./Galeria";
+import { Interesse } from "./Interesse";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -146,6 +147,9 @@ export default async function CarroPage({ params }: Props) {
                     Documentação completa
                   </span>
                 </div>
+
+                {/* Read per request on the server: the build does not see the Turnstile key. */}
+                <Interesse slug={veiculo.slug} siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ""} />
               </div>
             </aside>
           </div>
