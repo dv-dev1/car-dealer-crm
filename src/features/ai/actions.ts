@@ -4,10 +4,11 @@ import { requireMember } from "@/features/auth/guard";
 import { todayIso } from "@/shared/today";
 
 import { generateAd } from "./ads";
+import { askStore } from "./ask";
 import { dailySummary } from "./daily";
 import { readVehicleDocument } from "./document";
 import { draftMessage } from "./messages";
-import { AI_ERROR, type AdTexts, type DocumentFields, type MessageKind } from "./rules";
+import { AI_ERROR, type AdTexts, type AskState, type DocumentFields, type MessageKind } from "./rules";
 
 const DOCUMENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 // The same ceiling as a car photo: the form reduces the picture before sending it.
@@ -54,4 +55,14 @@ export async function dailySummaryAction(): Promise<{ error: string } | { text: 
       ? "A IA citou um número que o servidor não calculou. O resumo acima segue valendo."
       : `${AI_ERROR[summary.reason ?? "failed"]} O resumo acima segue valendo.`;
   return { text: summary.text, byAi: false, aviso };
+}
+
+const ASK_ERROR = { ...AI_ERROR, invalid: "Escreva a pergunta com 3 a 300 letras." };
+
+/** A question about the store, typed or tapped from the examples. Every role, each with what that role may read. */
+export async function askStoreAction(_prev: AskState, form: FormData): Promise<AskState> {
+  const member = await requireMember();
+  const question = String(form.get("example") || form.get("question") || "").trim();
+  const result = await askStore(member, todayIso(), question);
+  return result.ok ? { error: null, question, answer: result.answer } : { error: ASK_ERROR[result.reason], question };
 }

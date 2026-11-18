@@ -159,3 +159,8 @@ export function onlyKnownNumbers(text: string, facts: DailyFacts): boolean {
   const known = new Set([...Object.values(facts), 60, 90].map(String));
   return (text.match(/[0-9]+(?:[.,][0-9]+)*/g) ?? []).every((written) => known.has(written));
 }
+
+// Ask the store.
+
+export type AskState = { error: string | null; question?: string; answer?: string };
+export const ASK_EXAMPLES = ["Quantos carros vendemos este mês?", "Quantos carros passaram de 60 dias no pátio?", "Quantos clientes estão parados?"];
