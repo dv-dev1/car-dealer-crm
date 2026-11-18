@@ -33,6 +33,9 @@ export function VeiculoCard({ veiculo }: { veiculo: Veiculo }) {
         <span className="absolute left-3 top-3 rounded-md bg-secondary/80 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
           {veiculo.ano}
         </span>
+        {veiculo.status === "reservado" && (
+          <span className="absolute right-3 top-3 rounded-md bg-primary px-2 py-1 text-xs font-semibold text-white">Reservado</span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col p-4">

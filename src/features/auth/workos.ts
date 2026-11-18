@@ -98,7 +98,9 @@ export function createAuthDeps(): AuthDeps<Session> {
           console.error("Turnstile siteverify failed", { status: response.status });
           return false;
         }
-        const { success } = (await response.json()) as { success?: unknown };
+        const { success, "error-codes": codes } = (await response.json()) as { success?: unknown; "error-codes"?: unknown };
+        // The codes are Cloudflare's fixed words (missing-input-secret, timeout-or-duplicate): no token, no ip.
+        if (success !== true) console.error("Turnstile refused", { codes });
         return success === true;
       } catch (error) {
         console.error("Turnstile siteverify failed", { name: (error as Error)?.name, message: (error as Error)?.message });

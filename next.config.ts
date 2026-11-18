@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
         { key: "X-Frame-Options", value: "DENY" },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+        // The site shows a fictitious store: no search engine, so no real buyer finds it and leaves a phone. Remove for a real store.
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
       ],
     },
   ],

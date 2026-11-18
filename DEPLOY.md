@@ -21,15 +21,17 @@ neon branches delete ensaio-publicacao --project-id gentle-math-15516382
 
 export MIGRATE_DATABASE_URL="$(neon connection-string main --project-id gentle-math-15516382)"
 node db/migrate.ts
-npm run demo:store -- --store-id <uuid da Maré>     # refaz os dados da demo com o catálogo atual
+node --input-type=module -e 'import { createPool } from "./db/migrate.ts"; const pool = createPool(process.env.MIGRATE_DATABASE_URL); console.table((await pool.query("select id, slug, name from stores where is_demo")).rows); await pool.end()'
+npm run demo:store -- --store-id <id da Maré, da linha acima>     # refaz os dados da demo com o catálogo atual
 unset MIGRATE_DATABASE_URL
 ```
 
 Loja de demonstração para outra pessoa (o sócio, um lojista em teste):
 `npm run demo:store -- --slug <slug> --owner-name "<nome>" --owner-email <e-mail>`, com o `MIGRATE_DATABASE_URL` da principal.
 
-O site mostra a loja de `SITE_STORE_SLUG` (`vars` do `wrangler.jsonc`, hoje `mare-veiculos`). Se o slug da Maré
-no Neon for outro, troque ali antes de publicar: com slug errado o site abre sem nenhum carro.
+O site mostra a loja de `SITE_STORE_SLUG` (`vars` do `wrangler.jsonc`, hoje `mare-veiculos`). Se o `slug` que a
+linha acima mostrou for outro, troque ali antes de publicar: com slug errado o site abre sem nenhum carro e sem erro.
+Em 2026-11-17 a Maré do Neon tinha o slug `mare-veiculos`.
 
 ## 2. Fotos (R2)
 
@@ -65,9 +67,13 @@ npx wrangler secret put OPENAI_API_KEY                     # opcional
 ## 5. Publicar
 
 ```bash
+export PATH="$(brew --prefix postgresql@17)/bin:$PATH"     # os testes sobem um Postgres próprio
 npm test && npx tsc --noEmit
 npm run deploy
 ```
+
+Publique só por `npm run deploy`. Um `wrangler deploy` direto sobe sem o nome `__Host-` do cookie da sessão:
+todo mundo sai do painel e a proteção some sem aviso.
 
 O `deploy` monta o app, confere que nenhum valor do `.dev.vars` foi parar no pacote e publica com o cookie da
 sessão preso ao endereço (`__Host-wos-session`).
@@ -89,6 +95,10 @@ curl -s <endereço>/nossos-carros | grep -c "/carro/"      # mais que zero: o si
 - O Hyperdrive conecta no Neon sem `channel_binding` na URL (se falhar: `npx wrangler hyperdrive update` com a URL sem o parâmetro).
 - O limite `LOGIN_RATE_LIMITER` (5 por minuto) conta por localidade da Cloudflare; o limite por e-mail no banco
   (`use_login_attempt`, 10 em 15 minutos) é o que vale no mundo inteiro.
+- Quem erra o código de login 10 vezes em 15 minutos fica sem entrar por código até a janela passar (o Google
+  segue funcionando). Cada tentativa pede o Turnstile, então travar o e-mail de outra pessoa custa um desafio por tentativa.
+- O site responde `X-Robots-Tag: noindex` em tudo, porque a loja é fictícia. Tire do `next.config.ts` e do
+  `public/_headers` quando o site for de uma loja de verdade.
 - Cadastro de carro com foto num iPhone (o Safari manda JPEG).
 - `wa.me/558390000000` (WhatsApp fictício da demo) não cai num celular de verdade.
 

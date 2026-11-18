@@ -9,6 +9,8 @@
 	],
 	// Published on the account's workers.dev address; no custom domain yet. See DEPLOY.md.
 	"workers_dev": true,
+	// No address per version: an old version must not stay reachable after a fix.
+	"preview_urls": false,
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"

@@ -98,7 +98,12 @@ it("a car that left the site answers so, and a database failure asks for WhatsAp
   expect(await siteLeads()).toEqual([]);
 
   useDatabase("postgres://crm_app:dev@127.0.0.1:1/none");
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
   const failed = await send();
+  const logged = JSON.stringify(consoleError.mock.calls);
+  consoleError.mockRestore();
+  expect(logged).toContain("Site interest failed");
+  expect(logged).not.toMatch(/Joana|99111|crm_app/);
   expect(failed).toEqual({ status: "error", error: "Não deu para enviar agora. Chame a loja no WhatsApp.", typed: { name: "Joana Lima", phone: "(83) 99111-2222" } });
 });
 

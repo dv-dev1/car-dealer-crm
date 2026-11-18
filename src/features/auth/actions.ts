@@ -33,7 +33,12 @@ export async function verifyCodeAction(_prev: LoginState, form: FormData): Promi
   const ip = await clientIp();
   if (!ip) return { step: "code", email, error: "captcha_failed" };
 
-  const result = await verifyLoginCode(createAuthDeps(), { email, code: text(form, "code"), ip });
+  const result = await verifyLoginCode(createAuthDeps(), {
+    email,
+    code: text(form, "code"),
+    turnstileToken: text(form, "cf-turnstile-response"),
+    ip,
+  });
   if (!result.ok) return { step: "code", email, error: result.error };
 
   await saveSession(result.session, process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "");

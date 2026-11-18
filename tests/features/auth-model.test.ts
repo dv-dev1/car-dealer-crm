@@ -36,7 +36,7 @@ function makeDeps() {
 }
 
 const request = { email: "  Ana@LojaA.com ", turnstileToken: "tok", ip: "1.2.3.4" };
-const verify = { email: "  Ana@LojaA.com ", code: "123456", ip: "1.2.3.4" };
+const verify = { email: "  Ana@LojaA.com ", code: "123456", turnstileToken: "tok", ip: "1.2.3.4" };
 
 describe("requestLoginCode", () => {
   it("sends a code to an invited email, normalized", async () => {
@@ -178,7 +178,7 @@ describe("verifyLoginCode", () => {
 
   it("rate limits by email", async () => {
     const deps = makeDeps();
-    deps.rateLimit.mockResolvedValue(false);
+    deps.rateLimit.mockImplementation(async (key) => !key.startsWith("verify:email:"));
 
     const result = await verifyLoginCode(deps, verify);
 
@@ -195,6 +195,31 @@ describe("verifyLoginCode", () => {
 
     expect(result).toEqual({ ok: false, error: "rate_limited" });
     expect(deps.loginAttempt).toHaveBeenCalledWith("ana@lojaa.com");
+    expect(deps.authenticateWithMagicAuth).not.toHaveBeenCalled();
+  });
+
+  it("asks for a person before anything is counted, so nobody spends another e-mail's attempts for free", async () => {
+    const deps = makeDeps();
+    deps.verifyTurnstile.mockResolvedValue(false);
+
+    const result = await verifyLoginCode(deps, verify);
+
+    expect(result).toEqual({ ok: false, error: "captcha_failed" });
+    expect(deps.verifyTurnstile).toHaveBeenCalledWith("tok", "1.2.3.4");
+    expect(deps.rateLimit).not.toHaveBeenCalled();
+    expect(deps.loginAttempt).not.toHaveBeenCalled();
+    expect(deps.authenticateWithMagicAuth).not.toHaveBeenCalled();
+  });
+
+  it("limits by ip before the e-mail, so one address trying many e-mails writes nothing", async () => {
+    const deps = makeDeps();
+    deps.rateLimit.mockImplementation(async (key) => !key.startsWith("verify:ip:"));
+
+    const result = await verifyLoginCode(deps, verify);
+
+    expect(result).toEqual({ ok: false, error: "rate_limited" });
+    expect(deps.rateLimit.mock.calls).toEqual([["verify:ip:1.2.3.4"]]);
+    expect(deps.loginAttempt).not.toHaveBeenCalled();
     expect(deps.authenticateWithMagicAuth).not.toHaveBeenCalled();
   });
 

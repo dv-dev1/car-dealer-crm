@@ -8,7 +8,7 @@ import { requestCodeAction, signOutAction, verifyCodeAction, type LoginState } f
 
 const ERRORS: Record<string, string> = {
   invalid_email: "Digite um e-mail válido.",
-  rate_limited: "Muitas tentativas. Espere um minuto e tente de novo.",
+  rate_limited: "Muitas tentativas. Espere alguns minutos e tente de novo.",
   captcha_failed: "Não foi possível confirmar que você é uma pessoa. Recarregue a página.",
   invalid_code: "Código incorreto ou vencido. Peça um novo.",
 };
@@ -86,6 +86,7 @@ export function LoginView({ turnstileSiteKey, googleFailed }: { turnstileSiteKey
                 className={field}
               />
             </div>
+            <Turnstile siteKey={turnstileSiteKey} renewOn={state} />
             <button type="submit" disabled={pending} className={button}>
               Entrar
             </button>

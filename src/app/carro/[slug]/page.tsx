@@ -101,6 +101,9 @@ export default async function CarroPage({ params }: Props) {
                 <h1 className="mt-2 text-2xl font-bold leading-tight text-secondary">
                   {veiculo.titulo}
                 </h1>
+                {veiculo.status === "reservado" && (
+                  <p className="mt-3 inline-block rounded-md bg-primary px-2 py-1 text-xs font-semibold text-white">Reservado</p>
+                )}
 
                 <p className="mt-5 text-xs font-medium uppercase tracking-wider text-muted">
                   Valor

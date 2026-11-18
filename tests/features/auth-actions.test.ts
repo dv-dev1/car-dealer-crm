@@ -133,6 +133,16 @@ describe("verifyCodeAction", () => {
     expect(nav.redirect).toHaveBeenCalledWith("/gestao");
   });
 
+  it("sends the code step's Turnstile token to the check, and stays on the step when it fails", async () => {
+    deps.verifyTurnstile.mockResolvedValue(false);
+
+    const state = await verifyCodeAction(codeStep, form({ email: EMAIL, code: "123456", "cf-turnstile-response": "code-tok" }));
+
+    expect(deps.verifyTurnstile).toHaveBeenCalledWith("code-tok", "1.2.3.4");
+    expect(state).toEqual({ step: "code", email: EMAIL, error: "captcha_failed" });
+    expect(deps.authenticateWithMagicAuth).not.toHaveBeenCalled();
+  });
+
   it("reads the e-mail from the form, not from the previous state", async () => {
     await expect(
       verifyCodeAction({ step: "code", email: "carla@lojab.com", error: null }, form({ email: EMAIL, code: "123456" })),

@@ -51,14 +51,19 @@ export async function requestLoginCode(
 
 export async function verifyLoginCode<S extends AuthSession>(
   deps: AuthDeps<S>,
-  input: { email: string; code: string; ip: string },
-): Promise<{ ok: true; session: S } | { ok: false; error: "invalid_code" | "rate_limited" }> {
+  input: { email: string; code: string; turnstileToken: string; ip: string },
+): Promise<{ ok: true; session: S } | { ok: false; error: "invalid_code" | "rate_limited" | "captcha_failed" }> {
   const email = normalizeEmail(input.email);
   const code = input.code.trim();
   if (!email || !LOGIN_CODE_PATTERN.test(code)) return { ok: false, error: "invalid_code" };
 
+  // A person every time: without it, anyone could spend a known e-mail's attempts below and lock its owner out.
+  if (!(await deps.verifyTurnstile(input.turnstileToken, input.ip))) return { ok: false, error: "captcha_failed" };
+
+  // The ip first: one address trying many e-mails must not reach the database nor WorkOS.
+  if (!(await deps.rateLimit(`verify:ip:${input.ip}`))) return { ok: false, error: "rate_limited" };
   if (!(await deps.rateLimit(`verify:email:${email}`))) return { ok: false, error: "rate_limited" };
-  // After the edge limit, so what it already refused does not spend the e-mail's attempts.
+  // After the edge limits, so what they already refused does not spend the e-mail's attempts.
   if (!(await deps.loginAttempt(email))) return { ok: false, error: "rate_limited" };
 
   try {

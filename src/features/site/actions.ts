@@ -30,7 +30,9 @@ export async function sendInterestAction(_prev: InterestState, form: FormData): 
   let received: boolean;
   try {
     received = await createSiteLead({ vehicleSlug: text(form, "vehicle"), name: typed.name, phone });
-  } catch {
+  } catch (error) {
+    // Fixed fields only: a database message can carry the row, with the visitor's name and phone.
+    console.error("Site interest failed", { name: (error as Error)?.name, code: (error as { code?: unknown })?.code });
     return fail("Não deu para enviar agora. Chame a loja no WhatsApp.");
   }
   return received ? { status: "sent" } : fail("Este carro saiu do site. Veja os outros ou chame no WhatsApp.");

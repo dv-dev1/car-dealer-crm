@@ -280,6 +280,15 @@ describe("verifyTurnstile", () => {
     expect(consoleError).toHaveBeenCalledTimes(1);
   });
 
+  it("logs why Turnstile refused, so a missing secret does not refuse everyone in silence", async () => {
+    fetchMock.mockResolvedValue(ok({ success: false, "error-codes": ["missing-input-secret"] }));
+
+    await createAuthDeps().verifyTurnstile("tok", "1.2.3.4");
+
+    expect(logged()).toContain("missing-input-secret");
+    expect(logged()).not.toContain("1.2.3.4");
+  });
+
   it("logs a non-2xx answer", async () => {
     fetchMock.mockResolvedValue(new Response("", { status: 503 }));
 

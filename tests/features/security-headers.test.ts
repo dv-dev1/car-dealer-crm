@@ -13,6 +13,8 @@ const EXPECTED = {
   "X-Frame-Options": "DENY",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  // The site shows a fictitious store: a real buyer must not find it by search and leave a phone.
+  "X-Robots-Tag": "noindex, nofollow",
 };
 
 it("every page answers with the security headers", async () => {

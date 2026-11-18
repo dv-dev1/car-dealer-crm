@@ -18,7 +18,8 @@ export function Turnstile({ siteKey, renewOn }: { siteKey: string; renewOn: unkn
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!loaded || !container.current || !window.turnstile) return;
+    // No key (a secret that was not set): no widget, and the form is refused by the server instead of the page breaking.
+    if (!loaded || !siteKey || !container.current || !window.turnstile) return;
     const widgetId = window.turnstile.render(container.current, { sitekey: siteKey });
     return () => window.turnstile?.remove(widgetId);
   }, [loaded, siteKey, renewOn]);
