@@ -1,5 +1,7 @@
 # Banco no Neon e Hyperdrive
 
+Publicar o app: `DEPLOY.md`, na raiz do repo.
+
 ## Rodar local
 
 Precisa de Node 22.18 ou mais novo e do Postgres 17 no PATH (o `postgresql@17` do Homebrew não entra

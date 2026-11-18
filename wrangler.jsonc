@@ -7,8 +7,8 @@
 		"nodejs_compat",
 		"global_fetch_strictly_public"
 	],
-	// No public deploy yet: no workers.dev URL and no routes.
-	"workers_dev": false,
+	// Published on the account's workers.dev address; no custom domain yet. See DEPLOY.md.
+	"workers_dev": true,
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"

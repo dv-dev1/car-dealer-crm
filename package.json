@@ -19,6 +19,7 @@
     "demo:photos": "node scripts/demo-photos.ts",
     "ai:key": "node scripts/openai-key.mjs",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && npm run check:secrets && wrangler deploy --var WORKOS_COOKIE_NAME:__Host-wos-session",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "check:secrets": "node scripts/check-bundle-secrets.mjs"
   },
