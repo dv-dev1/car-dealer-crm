@@ -22,6 +22,7 @@ import { NovoClienteModal } from "@/components/gestao/NovoClienteModal";
 import { FecharNegocioDialog } from "@/components/gestao/clientes/FecharNegocioDialog";
 import type { Lead } from "@/features/leads/types";
 import { todayIso } from "@/shared/today";
+import { Anuncio } from "./Anuncio";
 import { Despesas } from "./Despesas";
 import { Documentos } from "./Documentos";
 import { AvisoForaDaLoja, TirarDaLoja } from "./ForaDaLoja";
@@ -313,6 +314,8 @@ export function CarroGestao({
           {canManage && expenses && <Despesas vehicleId={veiculo.id} expenses={expenses} today={today} />}
 
           {documents && <Documentos vehicleId={veiculo.id} documents={documents} canManage={canManage} />}
+
+          {veiculo.status !== "sold" && <Anuncio slug={veiculo.slug} photos={veiculo.photos.map((photo) => photo.url)} />}
 
           {/* Ações: one primary, outline secondaries, a text button for the destructive one. */}
           <div className="grid gap-2.5 sm:grid-cols-2">

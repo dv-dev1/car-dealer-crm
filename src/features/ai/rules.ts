@@ -1,6 +1,7 @@
 // AI rules shared by server and browser: nothing here reads the database or calls the provider.
 
 import { CORES } from "@/data/opcoes-veiculo";
+import type { StockVehicle } from "@/features/stock/model";
 import { CHASSIS, PLATE, RENAVAM, registrationText } from "@/features/stock/rules";
 
 /** AI calls a store may make in a day; it caps what one store can cost. */
@@ -42,4 +43,55 @@ export function cleanDocumentFields(raw: unknown, thisYear: number): DocumentFie
     modelYear: year("modelYear"),
     color: CORES.find((color) => color.toLowerCase() === string("color").toLowerCase()) ?? "",
   };
+}
+
+// The car's ad.
+
+export const AD_FIELDS = ["olxTitle", "olxDescription", "instagram", "whatsapp"] as const;
+export type AdTexts = Record<(typeof AD_FIELDS)[number], string>;
+export const AD_LABEL: Record<keyof AdTexts, string> = {
+  olxTitle: "OLX: título",
+  olxDescription: "OLX: descrição",
+  instagram: "Instagram: legenda",
+  whatsapp: "WhatsApp: mensagem",
+};
+
+const MAX_AD_TITLE = 60;
+const MAX_AD_TEXT = 1500;
+
+/**
+ * What goes to the model for an ad: the car's public sheet and its price, named field by field. The cost, the
+ * cash minimum, the consignor, the plate and the documents are not here for any role, so they cannot leak.
+ */
+export function vehicleFacts(car: StockVehicle): Record<string, string | number | string[]> {
+  const facts: Record<string, string | number | string[] | null> = {
+    carro: car.title,
+    anoFabricacao: car.manufactureYear,
+    anoModelo: car.modelYear,
+    km: car.km,
+    cor: car.color,
+    combustivel: car.fuel,
+    cambio: car.transmission,
+    carroceria: car.bodyType,
+    portas: car.doors,
+    motor: car.engine,
+    potencia: car.power,
+    opcionais: car.features,
+    descricao: car.description,
+    preco: car.price,
+  };
+  return Object.fromEntries(Object.entries(facts).filter(([, value]) => value !== null && value !== "")) as Record<string, string | number | string[]>;
+}
+
+/** The four texts, trimmed and cut to size; null when one is missing or empty. */
+export function cleanAd(raw: unknown): AdTexts | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const read = raw as Record<string, unknown>;
+  const ad = {} as AdTexts;
+  for (const field of AD_FIELDS) {
+    const value = read[field];
+    if (typeof value !== "string" || value.trim() === "") return null;
+    ad[field] = value.trim().slice(0, field === "olxTitle" ? MAX_AD_TITLE : MAX_AD_TEXT);
+  }
+  return ad;
 }
