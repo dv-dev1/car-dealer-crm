@@ -67,6 +67,7 @@ beforeEach(() => {
     googleAuthorizationUrl: vi.fn((state: string) => `https://api.workos.com/user_management/authorize?state=${state}`),
     isLoginEmailAllowed: vi.fn().mockResolvedValue(true),
     rateLimit: vi.fn().mockResolvedValue(true),
+    loginAttempt: vi.fn().mockResolvedValue(true),
     verifyTurnstile: vi.fn().mockResolvedValue(true),
   });
 });
@@ -200,6 +201,18 @@ describe("GET /entrar/google", () => {
     expect(setCookie).toMatch(/Path=\//i);
   });
 
+  it("on https the state cookie is tied to the host: no subdomain nor plain http can set it", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WORKOS_REDIRECT_URI", "https://app.example.workers.dev/callback");
+    const res = await googleStart();
+
+    expect(res.cookies.get("__Host-oauth_state")?.value).toMatch(/^[0-9a-f]{64}$/);
+    expect(res.cookies.get("oauth_state")).toBeUndefined();
+    const setCookie = res.headers.get("set-cookie") ?? "";
+    expect(setCookie).toMatch(/Secure/i);
+    expect(setCookie).toMatch(/Path=\//i);
+    expect(setCookie).not.toMatch(/Domain=/i);
+  });
+
   it("is never prerendered, so every visit gets a fresh state", () => {
     expect(dynamic).toBe("force-dynamic");
   });
@@ -216,6 +229,19 @@ describe("GET /callback", () => {
     const setCookie = res.headers.get("set-cookie") ?? "";
     return /oauth_state=;/.test(setCookie) && /Expires=Thu, 01 Jan 1970/i.test(setCookie);
   }
+
+  it("on https it reads and clears the cookie tied to the host, and ignores the plain one", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WORKOS_REDIRECT_URI", "https://app.example.workers.dev/callback");
+    const request = (cookie: string) => new NextRequest("https://app.example.workers.dev/callback?code=authcode&state=abc", { headers: { cookie } });
+
+    const plain = await callback(request("oauth_state=abc"));
+    expect(plain.headers.get("location")).toBe("https://app.example.workers.dev/entrar?erro=google");
+    expect(deps.authenticateWithCode).not.toHaveBeenCalled();
+
+    const tied = await callback(request("__Host-oauth_state=abc"));
+    expect(tied.headers.get("location")).toBe("https://app.example.workers.dev/gestao");
+    expect(tied.headers.get("set-cookie") ?? "").toMatch(/__Host-oauth_state=;/);
+  });
 
   it.each([
     ["a state that does not match the cookie", "?code=x&state=y", "z"],

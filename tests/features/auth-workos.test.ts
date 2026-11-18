@@ -197,6 +197,18 @@ describe("googleAuthorizationUrl", () => {
   });
 });
 
+describe("loginAttempt", () => {
+  it("refuses the attempt when the database cannot count it, and logs no e-mail", async () => {
+    cloudflare.getCloudflareContext.mockImplementation(() => {
+      throw new Error(`no database for ${EMAIL}`);
+    });
+
+    expect(await createAuthDeps().loginAttempt(EMAIL)).toBe(false);
+    expect(logged()).toContain("Login attempt count failed");
+    expect(logged()).not.toContain(EMAIL);
+  });
+});
+
 describe("isLoginEmailAllowed", () => {
   it("is the database check", () => {
     expect(createAuthDeps().isLoginEmailAllowed).toBe(isLoginEmailAllowed);

@@ -10,6 +10,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ key
     headers: {
       "content-type": object.httpMetadata?.contentType ?? "application/octet-stream",
       "cache-control": "public, max-age=31536000, immutable",
+      // An upload is served as the type it was stored with, never as what the browser guesses from its bytes.
+      "x-content-type-options": "nosniff",
     },
   });
 }

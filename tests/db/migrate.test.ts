@@ -63,7 +63,7 @@ describe("the migrations as a non-superuser owner, like Neon's", () => {
 
   it("cleans a pre-existing app_user that can log in and bypass RLS", async () => {
     await query("alter role app_user login bypassrls");
-    expect(await migrateFresh()).toEqual(["0001_stores_and_memberships.sql", "0002_store_domain.sql", "0003_vehicle_costs.sql", "0004_record_sale.sql", "0005_store_money_rate.sql", "0006_sale_return_trade_in.sql", "0007_sale_profits_managers_only.sql", "0008_sale_commissions.sql", "0009_stale_lead_days.sql", "0010_warranty_days.sql", "0011_ai_usage.sql", "0012_public_site.sql"]);
+    expect(await migrateFresh()).toEqual(["0001_stores_and_memberships.sql", "0002_store_domain.sql", "0003_vehicle_costs.sql", "0004_record_sale.sql", "0005_store_money_rate.sql", "0006_sale_return_trade_in.sql", "0007_sale_profits_managers_only.sql", "0008_sale_commissions.sql", "0009_stale_lead_days.sql", "0010_warranty_days.sql", "0011_ai_usage.sql", "0012_public_site.sql", "0013_login_attempts.sql"]);
     expect(await appUser()).toEqual([{ rolsuper: false, rolbypassrls: false, rolcanlogin: false }]);
   });
 

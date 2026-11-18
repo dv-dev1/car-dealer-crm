@@ -89,3 +89,11 @@ export async function isLoginEmailAllowed(email: string): Promise<boolean> {
   );
   return rows[0].allowed;
 }
+
+/** Counts one login-code attempt for the e-mail, in the whole world; false when the window's limit is reached. */
+export async function useLoginAttempt(email: string, limit: number, minutes: number): Promise<boolean> {
+  const rows = await withoutStore((db) =>
+    db.query<{ allowed: boolean }>("select use_login_attempt($1, $2, $3) as allowed", [email, limit, minutes]),
+  );
+  return rows[0].allowed;
+}

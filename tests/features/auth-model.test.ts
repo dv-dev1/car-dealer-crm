@@ -30,6 +30,7 @@ function makeDeps() {
     googleAuthorizationUrl: vi.fn<AuthDeps["googleAuthorizationUrl"]>().mockReturnValue("https://google.test/auth"),
     isLoginEmailAllowed: vi.fn<AuthDeps["isLoginEmailAllowed"]>().mockResolvedValue(true),
     rateLimit: vi.fn<AuthDeps["rateLimit"]>().mockResolvedValue(true),
+    loginAttempt: vi.fn<AuthDeps["loginAttempt"]>().mockResolvedValue(true),
     verifyTurnstile: vi.fn<AuthDeps["verifyTurnstile"]>().mockResolvedValue(true),
   };
 }
@@ -184,6 +185,27 @@ describe("verifyLoginCode", () => {
     expect(result).toEqual({ ok: false, error: "rate_limited" });
     expect(deps.rateLimit).toHaveBeenCalledWith("verify:email:ana@lojaa.com");
     expect(deps.authenticateWithMagicAuth).not.toHaveBeenCalled();
+  });
+
+  it("stops at the e-mail's attempts in the database, which no change of region resets, without calling WorkOS", async () => {
+    const deps = makeDeps();
+    deps.loginAttempt.mockResolvedValue(false);
+
+    const result = await verifyLoginCode(deps, verify);
+
+    expect(result).toEqual({ ok: false, error: "rate_limited" });
+    expect(deps.loginAttempt).toHaveBeenCalledWith("ana@lojaa.com");
+    expect(deps.authenticateWithMagicAuth).not.toHaveBeenCalled();
+  });
+
+  it("an attempt the edge already refused does not count in the database", async () => {
+    const deps = makeDeps();
+    deps.rateLimit.mockResolvedValue(false);
+
+    await verifyLoginCode(deps, verify);
+    await verifyLoginCode(deps, { ...verify, code: "12" });
+
+    expect(deps.loginAttempt).not.toHaveBeenCalled();
   });
 
   it("lets a rateLimit failure propagate instead of calling it a wrong code", async () => {

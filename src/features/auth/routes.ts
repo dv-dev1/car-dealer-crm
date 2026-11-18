@@ -5,13 +5,19 @@ import { completeGoogleLogin, newOAuthState } from "./model";
 import { createAuthDeps } from "./workos";
 
 // Ties the Google callback to the browser that started the login; it lives only for the round trip.
-const STATE_COOKIE = { name: "oauth_state", httpOnly: true, secure: true, sameSite: "lax", maxAge: 600 } as const;
+const STATE_COOKIE = { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 600 } as const;
+
+// On https the name ties the cookie to this host: a subdomain or plain http cannot set it. Browsers refuse the
+// prefix on http, so the local preview keeps the plain name.
+function stateCookieName(): string {
+  return process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI?.startsWith("https://") ? "__Host-oauth_state" : "oauth_state";
+}
 
 // GET /entrar/google
 export async function startGoogleLogin(): Promise<NextResponse> {
   const state = newOAuthState();
   const response = NextResponse.redirect(createAuthDeps().googleAuthorizationUrl(state));
-  response.cookies.set({ ...STATE_COOKIE, value: state });
+  response.cookies.set({ ...STATE_COOKIE, name: stateCookieName(), value: state });
   return response;
 }
 
@@ -21,7 +27,7 @@ export async function finishGoogleLogin(request: NextRequest): Promise<NextRespo
   const result = await completeGoogleLogin(createAuthDeps(), {
     code: searchParams.get("code"),
     state: searchParams.get("state"),
-    cookieState: request.cookies.get(STATE_COOKIE.name)?.value ?? null,
+    cookieState: request.cookies.get(stateCookieName())?.value ?? null,
   });
 
   let saved = false;
@@ -35,6 +41,6 @@ export async function finishGoogleLogin(request: NextRequest): Promise<NextRespo
     }
   }
   const response = NextResponse.redirect(new URL(saved ? "/gestao" : "/entrar?erro=google", request.url));
-  response.cookies.delete(STATE_COOKIE.name);
+  response.cookies.delete({ name: stateCookieName(), path: "/", secure: true });
   return response;
 }

@@ -18,6 +18,8 @@ export type AuthDeps<S extends AuthSession = AuthSession> = {
   googleAuthorizationUrl(state: string): string;
   isLoginEmailAllowed(email: string): Promise<boolean>;
   rateLimit(key: string): Promise<boolean>; // true = allowed
+  // One count per e-mail for the whole world: rateLimit counts per Cloudflare location. true = allowed
+  loginAttempt(email: string): Promise<boolean>;
   verifyTurnstile(token: string, ip: string): Promise<boolean>;
 };
 
@@ -56,6 +58,8 @@ export async function verifyLoginCode<S extends AuthSession>(
   if (!email || !LOGIN_CODE_PATTERN.test(code)) return { ok: false, error: "invalid_code" };
 
   if (!(await deps.rateLimit(`verify:email:${email}`))) return { ok: false, error: "rate_limited" };
+  // After the edge limit, so what it already refused does not spend the e-mail's attempts.
+  if (!(await deps.loginAttempt(email))) return { ok: false, error: "rate_limited" };
 
   try {
     return { ok: true, session: await deps.authenticateWithMagicAuth(email, code) };

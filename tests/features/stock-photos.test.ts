@@ -117,6 +117,8 @@ it("serves a stored photo with its type and a year of cache", async () => {
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toBe("image/png");
   expect(response.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+  // An upload is served as what it was stored as, never as what a browser guesses from its bytes.
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
   expect(new Uint8Array(await response.arrayBuffer())).toEqual(PNG);
 });
 

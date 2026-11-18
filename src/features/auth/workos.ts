@@ -2,10 +2,14 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getWorkOS, type Session } from "@workos-inc/authkit-nextjs";
 import type { AuthenticationResponse } from "@workos-inc/node";
 
-import { isLoginEmailAllowed } from "@/shared/db/client";
+import { isLoginEmailAllowed, useLoginAttempt } from "@/shared/db/client";
 import type { AuthDeps } from "./model";
 
 type RateLimiter = { limit(options: { key: string }): Promise<{ success: boolean }> };
+
+// A 6-digit code has a million values: 10 tries per e-mail every 15 minutes, counted in the database.
+const LOGIN_ATTEMPTS = 10;
+const LOGIN_ATTEMPTS_MINUTES = 15;
 
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const TURNSTILE_TIMEOUT_MS = 5000;
@@ -71,6 +75,15 @@ export function createAuthDeps(): AuthDeps<Session> {
       } catch (error) {
         // The key holds the e-mail, and the binding's message may repeat it.
         console.error("Login rate limiter failed", { name: (error as Error)?.name });
+        return false;
+      }
+    },
+    async loginAttempt(email) {
+      try {
+        return await useLoginAttempt(email, LOGIN_ATTEMPTS, LOGIN_ATTEMPTS_MINUTES);
+      } catch (error) {
+        // Closed when it cannot count; the message may repeat the e-mail.
+        console.error("Login attempt count failed", { name: (error as Error)?.name });
         return false;
       }
     },

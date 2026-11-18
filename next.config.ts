@@ -5,6 +5,19 @@ const nextConfig: NextConfig = {
   // nunca em produção. Desligado pra o preview local refletir o produto real e
   // não sobrepor conteúdo no tablet/mobile.
   devIndicators: false,
+  // Every answer of the app. The files the Worker serves by itself get the same from public/_headers.
+  headers: async () => [
+    {
+      source: "/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+      ],
+    },
+  ],
   // Hosts autorizados a puxar os recursos /_next/* do servidor de DESENVOLVIMENTO.
   // O Next 16 bloqueia isso por padrão pra qualquer origem que não seja
   // localhost — e o bloqueio é silencioso no navegador: a página chega inteira
