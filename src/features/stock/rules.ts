@@ -121,3 +121,10 @@ export function priceSuggestion(
   const floor = Math.max(Math.ceil((car.money.cost * (100 + MIN_MARGIN * 100)) / 10_000) * 100, car.minCashPrice ?? 0);
   return { moneyCost, depreciation, waitCost, floor, suggested: floor >= car.price ? null : Math.max(car.price - waitCost, floor) };
 }
+
+// The car's registration, as the documents write it: letters in capitals, no hyphen, dot or space.
+export const PLATE = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/;
+export const RENAVAM = /^[0-9]{9,11}$/;
+/** A chassis (VIN) never has I, O or Q. */
+export const CHASSIS = /^[A-HJ-NPR-Z0-9]{17}$/;
+export const registrationText = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");

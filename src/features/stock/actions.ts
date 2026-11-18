@@ -11,7 +11,7 @@ import {
 } from "./model";
 import { setDocument } from "./documents";
 import { addExpense, readExpense, removeExpense } from "./expenses";
-import type { DocumentItem, DocumentStatus } from "./rules";
+import { registrationText, type DocumentItem, type DocumentStatus } from "./rules";
 import { cancelReservation, createReservation } from "./reservations";
 import { addVehiclePhoto, photoBucket, removeVehiclePhoto } from "./photos";
 
@@ -39,6 +39,9 @@ const FIELD_LABEL: Record<keyof VehicleInput, string> = {
   source: "Origem",
   consignorName: "Nome do dono do carro",
   consignorPhone: "WhatsApp do dono do carro",
+  plate: "Placa",
+  renavam: "Renavam",
+  chassis: "Chassi",
 };
 
 const SAVE_ERROR = {
@@ -89,6 +92,9 @@ function readVehicle(form: FormData): { input: VehicleInput } | { field: keyof V
     source: value("source") === "consignment" ? "consignment" : "purchase",
     consignorName: value("consignorName") || null,
     consignorPhone: value("consignorPhone") || null,
+    plate: registrationText(value("plate")) || null,
+    renavam: registrationText(value("renavam")) || null,
+    chassis: registrationText(value("chassis")) || null,
   };
   return { input };
 }

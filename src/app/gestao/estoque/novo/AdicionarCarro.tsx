@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus, X, Star, Lock } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Star, Lock, ScanText } from "lucide-react";
 import {
   CATEGORIAS,
   CAMBIOS,
@@ -13,6 +13,7 @@ import {
   PORTAS,
   OPCIONAIS,
 } from "@/data/opcoes-veiculo";
+import { readDocumentAction } from "@/features/ai/actions";
 import type { StockVehicle } from "@/features/stock/model";
 import { addPhotoAction, removePhotoAction, saveVehicleAction } from "@/features/stock/actions";
 import { syncPhotos, type FormPhoto } from "@/features/stock/photo-sync";
@@ -49,6 +50,7 @@ function dadosIniciais(v: StockVehicle | undefined, today: string) {
     precoVenda: v ? String(v.price) : "", custo: v?.money ? String(v.money.acquisitionCost) : "",
     aquisicao: v?.enteredOn ?? today, descricao: v?.description ?? "",
     donoNome: v?.consignor?.name ?? "", donoTelefone: v?.consignor?.phone ?? "",
+    placa: v?.registration?.plate ?? "", renavam: v?.registration?.renavam ?? "", chassi: v?.registration?.chassis ?? "",
   };
 }
 
@@ -70,6 +72,8 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
   const [salvando, setSalvando] = useState(false);
   const [criado, setCriado] = useState<{ id: string; slug: string } | null>(null);
   // The origin is chosen once, when the car comes in.
+  const [lendo, setLendo] = useState(false);
+  const [avisoDoc, setAvisoDoc] = useState<{ erro: boolean; texto: string } | null>(null);
   const [origem, setOrigem] = useState<"purchase" | "consignment">(vehicle?.source === "consignment" ? "consignment" : "purchase");
   const consignado = origem === "consignment";
 
@@ -78,6 +82,33 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
 
   const set = (campo: keyof typeof dados) => (v: string) =>
     setDados((d) => ({ ...d, [campo]: v }));
+
+  // Reads the car's document with AI: fills only what came back, and the person checks before saving.
+  async function lerDocumento(file: File | undefined) {
+    if (!file || lendo) return;
+    setLendo(true);
+    setAvisoDoc(null);
+    try {
+      const form = new FormData();
+      form.set("document", await prepararFoto(file));
+      const lido = await readDocumentAction(form);
+      if ("error" in lido) return setAvisoDoc({ erro: true, texto: lido.error });
+      const f = lido.fields;
+      const preenchidos = Object.values(f).filter(Boolean).length;
+      if (preenchidos === 0) return setAvisoDoc({ erro: true, texto: "Não deu para ler o documento. Tente uma foto mais nítida ou preencha à mão." });
+      setDados((d) => ({
+        ...d,
+        marca: f.brand || d.marca, modelo: f.model || d.modelo, anoFabricacao: f.manufactureYear || d.anoFabricacao,
+        anoModelo: f.modelYear || d.anoModelo, cor: f.color || d.cor, placa: f.plate || d.placa, renavam: f.renavam || d.renavam,
+        chassi: f.chassis || d.chassi,
+      }));
+      setAvisoDoc({ erro: false, texto: `Documento lido: ${preenchidos} de 8 campos preenchidos. Confira antes de salvar. A foto não foi guardada.` });
+    } catch (e) {
+      setAvisoDoc({ erro: true, texto: e instanceof Error && e.message === FORMATO_INVALIDO ? FORMATO_INVALIDO : "Não deu para ler o documento. Confira a internet e tente de novo." });
+    } finally {
+      setLendo(false);
+    }
+  }
 
   function adicionarFotos(lista: FileList | null) {
     if (!lista) return;
@@ -114,6 +145,7 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
       transmission: dados.cambio, fuel: dados.combustivel, price: dados.precoVenda, acquisitionCost: dados.custo || "0",
       enteredOn: dados.aquisicao, description: dados.descricao, source: origem,
       consignorName: consignado ? dados.donoNome : "", consignorPhone: consignado ? dados.donoTelefone : "",
+      plate: dados.placa, renavam: dados.renavam, chassis: dados.chassi,
     };
     for (const [nome, valor] of Object.entries(campos)) form.set(nome, valor);
     for (const o of opcionais) form.append("features", o);
@@ -254,6 +286,35 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
         <section className={cartao} data-erro={erros.modelo ? "1" : undefined}>
           <h2 className="text-base font-semibold text-secondary">Dados do carro</h2>
 
+          <div className="mt-3 rounded-[var(--radius-control)] border border-dashed border-line p-3">
+            <label
+              htmlFor="documento"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border border-line px-3 py-2 text-sm font-semibold text-secondary hover:border-primary"
+            >
+              <ScanText size={16} strokeWidth={1.8} />
+              {lendo ? "Lendo o documento…" : "Ler o documento"}
+            </label>
+            <input
+              id="documento"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={lendo}
+              onChange={(e) => {
+                void lerDocumento(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <p className="mt-2 text-[0.8125rem] text-muted-strong">
+              Envie uma foto do CRLV-e e a IA preenche placa, renavam, chassi, marca, modelo, ano e cor. A foto não fica guardada.
+            </p>
+            {avisoDoc && (
+              <p role={avisoDoc.erro ? "alert" : "status"} className={`mt-2 text-[0.8125rem] ${avisoDoc.erro ? "text-danger-ink" : "text-secondary"}`}>
+                {avisoDoc.texto}
+              </p>
+            )}
+          </div>
+
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Texto label="Marca" id="marca" value={dados.marca} onChange={set("marca")} placeholder="Chevrolet" />
@@ -290,6 +351,12 @@ export function AdicionarCarro({ vehicle, today }: { vehicle?: StockVehicle; tod
               <Selecao label="Cor" id="cor" value={dados.cor} onChange={set("cor")} opcoes={CORES} />
               <Selecao label="Câmbio" id="cambio" value={dados.cambio} onChange={set("cambio")} opcoes={CAMBIOS} />
               <Selecao label="Combustível" id="combustivel" value={dados.combustivel} onChange={set("combustivel")} opcoes={COMBUSTIVEIS} />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Texto label="Placa" id="placa" value={dados.placa} onChange={(v) => set("placa")(v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7))} placeholder="ABC1D23" />
+              <Texto label="Renavam" id="renavam" value={dados.renavam} onChange={(v) => set("renavam")(v.replace(/\D/g, "").slice(0, 11))} placeholder="00000000000" inputMode="numeric" />
+              <Texto label="Chassi" id="chassi" value={dados.chassi} onChange={(v) => set("chassi")(v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 17))} placeholder="17 letras e números" />
             </div>
 
             <div>

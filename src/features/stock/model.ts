@@ -4,7 +4,7 @@ import { UUID, withStore, type Db, type MemberContext } from "@/shared/db/client
 import { isIsoDate, todayIso } from "@/shared/today";
 
 import { photoUrl } from "./photos";
-import { moneyCost } from "./rules";
+import { CHASSIS, moneyCost, PLATE, RENAVAM } from "./rules";
 
 export type StockStatus = "preparing" | "available" | "reserved" | "away" | "sold";
 export type StockPhoto = { id: string; url: string };
@@ -46,6 +46,8 @@ export type StockVehicle = {
   /** The open reservation (not canceled, not expired); `mine` when the viewer made it. */
   reservation: { id: string; leadName: string | null; deposit: number; expiresOn: string; mine: boolean } | null;
   money: StockMoney | null;
+  /** Plate, renavam and chassis; only for owner and manager. */
+  registration: { plate: string | null; renavam: string | null; chassis: string | null } | null;
   /** Who owns a consigned car; only for owner and manager. */
   consignor: { name: string; phone: string | null } | null;
   /** Documents marked as pending. */
@@ -91,10 +93,12 @@ const SELECT = `
 function select(ctx: MemberContext, where: string): string {
   const cost =
     ctx.role === "seller"
-      ? `null::numeric as cost, null::numeric as "acquisitionCost", null::numeric as "moneyRate", null::json as consignor`
+      ? `null::numeric as cost, null::numeric as "acquisitionCost", null::numeric as "moneyRate", null::json as consignor,
+         null::json as registration`
       : `c.cost, c.acquisition_cost as "acquisitionCost", (select s.money_rate from stores s where s.id = v.store_id) as "moneyRate",
          (select json_build_object('name', f.consignor_name, 'phone', f.consignor_phone) from vehicle_finances f
-           where f.vehicle_id = v.id and v.source = 'consignment') as consignor`;
+           where f.vehicle_id = v.id and v.source = 'consignment') as consignor,
+         json_build_object('plate', v.plate, 'renavam', v.renavam, 'chassis', v.chassis) as registration`;
   const sql = SELECT.replace("%COST%", cost);
   // A car taken in trade costs what was given, and its price starts there: a seller sees it once it is ready.
   return ctx.role === "seller"
@@ -172,6 +176,10 @@ export type VehicleInput = {
   /** The car's owner, for a consigned car; ignored otherwise. The phone is as typed. */
   consignorName: string | null;
   consignorPhone: string | null;
+  /** As the document writes them (capitals, no hyphen). Empty or null clears; all three left out keeps what the car has. */
+  plate?: string | null;
+  renavam?: string | null;
+  chassis?: string | null;
 };
 
 export type SaveVehicleResult =
@@ -210,6 +218,9 @@ export function validateVehicle(input: VehicleInput, today: string): keyof Vehic
     if (!text(input.consignorName ?? "")) return "consignorName";
     if (normalizePhone(input.consignorPhone ?? "") === undefined) return "consignorPhone";
   }
+  if (input.plate && !PLATE.test(input.plate)) return "plate";
+  if (input.renavam && !RENAVAM.test(input.renavam)) return "renavam";
+  if (input.chassis && !CHASSIS.test(input.chassis)) return "chassis";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.enteredOn) || Number.isNaN(Date.parse(input.enteredOn)) || input.enteredOn > today) {
     return "enteredOn";
   }
@@ -244,6 +255,14 @@ const columns = (input: VehicleInput) => [
   input.enteredOn,
 ];
 
+// A caller that names none of the three (a script, an older form) leaves the car's registration alone.
+async function saveRegistration(db: Db, vehicleId: string, input: VehicleInput): Promise<void> {
+  if (input.plate === undefined && input.renavam === undefined && input.chassis === undefined) return;
+  await db.query("update vehicles set plate = $2, renavam = $3, chassis = $4 where id = $1", [
+    vehicleId, input.plate || null, input.renavam || null, input.chassis || null,
+  ]);
+}
+
 const consignorOf = (input: VehicleInput) =>
   input.source === "consignment" ? [input.consignorName!.trim(), normalizePhone(input.consignorPhone ?? "")] : [];
 
@@ -262,6 +281,7 @@ export async function createVehicle(ctx: MemberContext, input: VehicleInput, tod
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
       [...columns(input), id, ctx.storeId, slug, input.ready ? "available" : "preparing", input.source],
     );
+    await saveRegistration(db, id, input);
     await db.query(
       input.source === "consignment"
         ? `insert into vehicle_finances (vehicle_id, store_id, consignor_payout, consignor_name, consignor_phone)
@@ -308,6 +328,7 @@ export async function updateVehicle(
         where id = $17`,
       [...columns(input), vehicleId, input.ready ? "available" : "preparing"],
     );
+    await saveRegistration(db, vehicleId, input);
     await db.query(
       consigned
         ? `insert into vehicle_finances (vehicle_id, store_id, consignor_payout, consignor_name, consignor_phone) values ($1, $2, $3, $4, $5)
