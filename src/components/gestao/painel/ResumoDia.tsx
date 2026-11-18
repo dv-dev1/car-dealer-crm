@@ -7,10 +7,11 @@ import { dailySummaryAction } from "@/features/ai/actions";
 
 /**
  * The day's summary for owner and manager. The lines are computed and written by the server and always show;
- * the AI only rewords them on request, so the panel never waits for it.
+ * the AI only rewords them on request, so the panel never waits for it. Its wording goes above the lines and never
+ * in their place: a text that skips an alert or swaps two numbers is read next to the numbers themselves.
  */
-export function ResumoDia({ linhas }: { linhas: string[] }) {
-  const [texto, setTexto] = useState<string | null>(null);
+export function ResumoDia({ linhas, inicial }: { linhas: string[]; inicial?: string }) {
+  const [texto, setTexto] = useState<string | null>(inicial ?? null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [escrevendo, iniciar] = useTransition();
 
@@ -31,15 +32,17 @@ export function ResumoDia({ linhas }: { linhas: string[] }) {
   return (
     <section className="rounded-[var(--radius)] border border-line bg-surface p-5 shadow-[var(--shadow-soft)]">
       <h2 className="text-base font-semibold text-secondary">Resumo do dia</h2>
-      {texto ? (
-        <p className="mt-2 text-sm text-secondary">{texto}</p>
-      ) : (
-        <ul className="mt-2 space-y-1 text-sm text-secondary">
-          {linhas.map((linha) => (
-            <li key={linha}>{linha}</li>
-          ))}
-        </ul>
+      {texto && (
+        <>
+          <p className="mt-2 text-sm text-secondary">{texto}</p>
+          <p className="mt-2 text-xs text-muted-strong">Texto da IA. Os números do painel são estes:</p>
+        </>
       )}
+      <ul className="mt-2 space-y-1 text-sm text-secondary">
+        {linhas.map((linha) => (
+          <li key={linha}>{linha}</li>
+        ))}
+      </ul>
       <button
         type="button"
         onClick={escrever}

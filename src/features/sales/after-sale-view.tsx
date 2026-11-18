@@ -1,4 +1,5 @@
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
+import { MensagemIA } from "@/components/gestao/clientes/MensagemIA";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { whatsappLinkPara } from "@/lib/loja";
 
@@ -58,6 +59,10 @@ export function AfterSaleView({ data }: { data: { today: FollowUp[]; sales: Afte
                       <WhatsappIcon className="h-4 w-4" />
                       Enviar mensagem
                     </a>
+                  )}
+                  {/* The AI's own wording for this client; the contact is not recorded for a closed client. */}
+                  {f.leadId && f.phone && (
+                    <MensagemIA className="w-full" lead={{ id: f.leadId, nome: f.customer ?? "", telefone: f.phone, canEdit: false }} />
                   )}
                 </li>
               ))}

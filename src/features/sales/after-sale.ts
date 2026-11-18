@@ -6,6 +6,8 @@ export type FollowUp = {
   saleId: string;
   kind: FollowUpKind;
   dueOn: string;
+  /** The client in the funnel, when the sale has one. */
+  leadId: string | null;
   customer: string | null;
   phone: string | null;
   car: string;
@@ -50,7 +52,7 @@ export function followUpMessage(
   }
 }
 
-type Row = Omit<AfterSaleRow, "transferLate" | "canMarkTransfer"> & { phone: string | null; sixMonths: string; oneYear: string; days: number };
+type Row = Omit<AfterSaleRow, "transferLate" | "canMarkTransfer"> & { leadId: string | null; phone: string | null; sixMonths: string; oneYear: string; days: number };
 
 /**
  * The sales of the last year with their warranty and transfer, and today's follow-ups: a warranty ending, six months
@@ -60,7 +62,7 @@ type Row = Omit<AfterSaleRow, "transferLate" | "canMarkTransfer"> & { phone: str
 export async function afterSale(ctx: StoreMember, today: string): Promise<{ today: FollowUp[]; sales: AfterSaleRow[] }> {
   const rows = await withStore(ctx, (db) =>
     db.query<Row>(
-      `select s.id as "saleId", to_char(s.sold_on, 'YYYY-MM-DD') as "soldOn", l.name as customer, l.phone,
+      `select s.id as "saleId", to_char(s.sold_on, 'YYYY-MM-DD') as "soldOn", l.id as "leadId", l.name as customer, l.phone,
               v.brand || ' ' || v.model as car, s.seller_name as "sellerName",
               to_char(s.warranty_until, 'YYYY-MM-DD') as "warrantyUntil", to_char(s.transfer_done_on, 'YYYY-MM-DD') as "transferDoneOn",
               to_char(s.sold_on + interval '6 months', 'YYYY-MM-DD') as "sixMonths",
@@ -76,7 +78,7 @@ export async function afterSale(ctx: StoreMember, today: string): Promise<{ toda
   const followUps: FollowUp[] = [];
   const add = (r: Row, kind: FollowUpKind, dueOn: string, label: string) =>
     followUps.push({
-      saleId: r.saleId, kind, dueOn, customer: r.customer, phone: r.phone, car: r.car, label,
+      saleId: r.saleId, kind, dueOn, leadId: r.leadId, customer: r.customer, phone: r.phone, car: r.car, label,
       message: followUpMessage(kind, { customer: r.customer, car: r.car, store: ctx.storeName, dueOn }),
     });
   for (const r of rows) {
@@ -94,7 +96,7 @@ export async function afterSale(ctx: StoreMember, today: string): Promise<{ toda
   }
   return {
     today: followUps.sort((a, b) => a.dueOn.localeCompare(b.dueOn)),
-    sales: rows.map(({ phone: _phone, sixMonths: _six, oneYear: _year, days, ...row }) => ({
+    sales: rows.map(({ leadId: _lead, phone: _phone, sixMonths: _six, oneYear: _year, days, ...row }) => ({
       ...row,
       transferLate: row.transferDoneOn === null && days >= TRANSFER_ALERT_DAYS,
       canMarkTransfer: ctx.role !== "seller",

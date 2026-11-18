@@ -144,3 +144,11 @@ it("the panel block shows the server's lines and offers the AI wording", () => {
   expect(html).toContain("1 reserva vence até amanhã.");
   expect(html).toContain("Escrever com IA");
 });
+
+it("the AI's wording never replaces the server's lines: both show", () => {
+  const linhas = ["2 carros passaram de 90 dias no pátio.", "1 reserva vence até amanhã."];
+  const html = text(renderToStaticMarkup(createElement(ResumoDia, { linhas, inicial: "Dia tranquilo." })));
+  expect(html).toContain("Dia tranquilo.");
+  for (const linha of linhas) expect(html).toContain(linha);
+  expect(html).toContain("Texto da IA");
+});

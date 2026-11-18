@@ -14,6 +14,8 @@ import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
 
 vi.mock("@opennextjs/cloudflare", () => import("../setup/hyperdrive.ts"));
 vi.mock("@/features/sales/actions", () => ({ setTransferDoneAction: vi.fn() }));
+vi.mock("@/features/ai/actions", () => ({ draftMessageAction: vi.fn() }));
+vi.mock("@/features/leads/actions", () => ({ recordContactAction: vi.fn() }));
 
 const TODAY = "2026-11-13";
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
@@ -142,9 +144,9 @@ it("each reminder has its message with the first name, the car and the store", (
 
 it("the screen shows today's reminders, the WhatsApp link only with a phone, and the transfer button to who manages", () => {
   const today = [
-    { saleId: "s1", kind: "transfer" as const, dueOn: "2026-11-22", customer: "Joana Lima", phone: "5583900001111", car: "Fiat Argo",
+    { saleId: "s1", kind: "transfer" as const, dueOn: "2026-11-22", leadId: "l1", customer: "Joana Lima", phone: "5583900001111", car: "Fiat Argo",
       label: "Transferência pendente há 21 dias", message: "Olá Joana" },
-    { saleId: "s2", kind: "warranty_end" as const, dueOn: TODAY, customer: "Caio Reis", phone: null, car: "VW Polo",
+    { saleId: "s2", kind: "warranty_end" as const, dueOn: TODAY, leadId: "l2", customer: "Caio Reis", phone: null, car: "VW Polo",
       label: "Garantia termina em 13/11/2026", message: "Olá Caio" },
   ];
   const row = {
@@ -157,7 +159,16 @@ it("the screen shows today's reminders, the WhatsApp link only with a phone, and
   expect(text(html)).toContain("Pós-venda de hoje");
   expect(text(html)).toContain("Transferência pendente há 21 dias");
   expect(html.match(/wa\.me\/5583900001111\?text=/g)).toHaveLength(1);
+  // The AI writes the after-sale message only where there is a client with a phone to send it to.
+  expect(text(html).match(/Escrever mensagem com IA/g)).toHaveLength(1);
   expect(text(html)).toContain("Marcar transferência feita");
   expect(text(render(false))).not.toContain("Marcar transferência feita");
   expect(text(renderToStaticMarkup(createElement(AfterSaleView, { data: { today: [], sales: [] } })))).toContain("Nada para hoje");
+});
+
+it("a reminder carries the client it is about, so the AI can write to them", async () => {
+  await set(sales[0], "2026-07-01", TODAY);
+  const [{ lead_id }] = await adminQuery("select lead_id from sales where id = $1", [sales[0]]);
+  const [reminder] = (await afterSale(owner, TODAY)).today.filter((f) => f.saleId === sales[0]);
+  expect(reminder.leadId).toBe(lead_id);
 });
