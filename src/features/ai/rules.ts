@@ -122,3 +122,40 @@ export function cleanMessage(raw: string): string | null {
   const text = raw.trim().replace(/^["“”']+|["“”']+$/g, "").trim().slice(0, MAX_MESSAGE);
   return text === "" ? null : text;
 }
+
+// The day's summary: the server computes every number and can write the summary alone; the AI only rewords it.
+
+export type DailyFacts = {
+  salesToday: number;
+  newLeadsNoResponse: number;
+  /** Cars 60 to 90 days in the yard, and cars over 90. */
+  carsOver60: number;
+  carsOver90: number;
+  /** Open reservations that expire today or tomorrow. */
+  reservationsExpiring: number;
+  /** Cars with a pending document. */
+  pendingDocs: number;
+  priceSuggestions: number;
+};
+
+const LINES: [keyof DailyFacts, one: string, many: string][] = [
+  ["salesToday", "venda hoje.", "vendas hoje."],
+  ["newLeadsNoResponse", "cliente novo sem resposta.", "clientes novos sem resposta."],
+  ["carsOver90", "carro passou de 90 dias no pátio.", "carros passaram de 90 dias no pátio."],
+  ["carsOver60", "carro entre 60 e 90 dias no pátio.", "carros entre 60 e 90 dias no pátio."],
+  ["reservationsExpiring", "reserva vence até amanhã.", "reservas vencem até amanhã."],
+  ["pendingDocs", "carro com documento pendente.", "carros com documento pendente."],
+  ["priceSuggestions", "carro com sugestão de baixar o preço.", "carros com sugestão de baixar o preço."],
+];
+
+/** The summary as the server writes it: one line per number above zero. */
+export function plainSummary(facts: DailyFacts): string[] {
+  const lines = LINES.filter(([key]) => facts[key] > 0).map(([key, one, many]) => `${facts[key]} ${facts[key] === 1 ? one : many}`);
+  return lines.length ? lines : ["Dia tranquilo: nada pedindo atenção."];
+}
+
+/** True when every number written in the text is one of the day's numbers, or the 60 and 90 of the yard's limits. */
+export function onlyKnownNumbers(text: string, facts: DailyFacts): boolean {
+  const known = new Set([...Object.values(facts), 60, 90].map(String));
+  return (text.match(/[0-9]+(?:[.,][0-9]+)*/g) ?? []).every((written) => known.has(written));
+}

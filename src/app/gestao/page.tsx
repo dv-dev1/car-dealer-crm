@@ -2,6 +2,8 @@ import Link from "next/link";
 import { BarChart3, ArrowRight } from "lucide-react";
 import { MESES, diaPorExtenso } from "@/lib/hoje";
 import { resumoMetaMes } from "@/lib/metas";
+import { dailyCounts, dailyFactsFrom } from "@/features/ai/daily";
+import { plainSummary } from "@/features/ai/rules";
 import { loadGoal } from "@/features/reports/model";
 import { staleLeads } from "@/features/leads/contacts";
 import { monthBreakEven } from "@/features/store/expenses";
@@ -13,6 +15,7 @@ import { AvisoMeta, AvisoSemMargem } from "@/components/gestao/painel/PainelAvis
 import { AvisoMes } from "@/components/gestao/painel/AvisoMes";
 import { ClientesParados } from "@/components/gestao/painel/ClientesParados";
 import { LojaAgora } from "@/components/gestao/painel/LojaAgora";
+import { ResumoDia } from "@/components/gestao/painel/ResumoDia";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 import { AoEntrar } from "@/components/gestao/motion/AoEntrar";
 import { requireMember } from "@/features/auth/guard";
@@ -20,12 +23,13 @@ import { requireMember } from "@/features/auth/guard";
 export default async function PainelPage() {
   const member = await requireMember();
   const today = todayIso();
-  const [estoque, goal, mes, parados, ajustes] = await Promise.all([
+  const [estoque, goal, mes, parados, ajustes, contagens] = await Promise.all([
     listStock(member, today),
     loadGoal(member, today),
     monthBreakEven(member, today),
     staleLeads(member, today),
     getStoreSettings(member),
+    dailyCounts(member, today),
   ]);
   const loja = stockSummary(estoque);
   const giro = oldestInStock(estoque, 3);
@@ -52,6 +56,8 @@ export default async function PainelPage() {
           {gestor && <AvisoSemMargem quantidade={loja.noMargin} />}
           <ClientesParados leads={parados} days={ajustes.staleLeadDays} />
         </div>
+
+        {contagens && <ResumoDia linhas={plainSummary(dailyFactsFrom(estoque, contagens))} />}
 
         <LojaAgora resumo={loja} giro={giro} pedemAtencao={pedemAtencao} />
 

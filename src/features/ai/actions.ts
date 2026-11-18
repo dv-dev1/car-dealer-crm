@@ -4,6 +4,7 @@ import { requireMember } from "@/features/auth/guard";
 import { todayIso } from "@/shared/today";
 
 import { generateAd } from "./ads";
+import { dailySummary } from "./daily";
 import { readVehicleDocument } from "./document";
 import { draftMessage } from "./messages";
 import { AI_ERROR, type AdTexts, type DocumentFields, type MessageKind } from "./rules";
@@ -40,4 +41,17 @@ export async function draftMessageAction(leadId: string): Promise<{ error: strin
   const member = await requireMember();
   const result = await draftMessage(member, todayIso(), String(leadId), member.storeName);
   return result.ok ? { kind: result.kind, text: result.text } : { error: MESSAGE_ERROR[result.reason] };
+}
+
+/** The day's summary worded by the AI, for owner and manager. `byAi` false means the server's text stands. */
+export async function dailySummaryAction(): Promise<{ error: string } | { text: string; byAi: boolean; aviso?: string }> {
+  const member = await requireMember();
+  const summary = await dailySummary(member, todayIso());
+  if (!summary) return { error: "Só o dono e o gerente veem o resumo do dia." };
+  if (summary.byAi) return { text: summary.text, byAi: true };
+  const aviso =
+    summary.reason === "numbers"
+      ? "A IA citou um número que o servidor não calculou. O resumo acima segue valendo."
+      : `${AI_ERROR[summary.reason ?? "failed"]} O resumo acima segue valendo.`;
+  return { text: summary.text, byAi: false, aviso };
 }
