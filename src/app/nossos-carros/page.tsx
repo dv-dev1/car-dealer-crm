@@ -5,6 +5,9 @@ import { getVeiculos } from "@/lib/veiculos";
 import { loja } from "@/lib/loja";
 import { ListaVeiculos } from "./ListaVeiculos";
 
+// Read from the database at every visit: a car reserved or sold in the panel changes here at once.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Nossos carros",
   description:

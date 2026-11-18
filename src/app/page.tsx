@@ -9,6 +9,9 @@ import { Garantia } from "@/components/home/Garantia";
 import { Contato } from "@/components/home/Contato";
 import { getDestaques, contarVeiculos } from "@/lib/veiculos";
 
+// Read from the database at every visit: a car reserved or sold in the panel changes here at once.
+export const dynamic = "force-dynamic";
+
 /**
  * Ordem da home pela escada de decisão de compra:
  * Hero (atenção + promessa) → Selos (remove medo) → Estoque (o que ele veio

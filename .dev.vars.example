@@ -11,3 +11,5 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
 # AI features (server only). `npm run ai:key` writes the key from ../secrets/openai.local.json. Without it the AI is off.
 OPENAI_API_KEY=
 # OPENAI_MODEL=gpt-5-mini
+# The store the public site shows (stores.slug). Empty means mare-veiculos.
+# SITE_STORE_SLUG=mare-veiculos

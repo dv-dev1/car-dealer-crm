@@ -8,9 +8,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { VeiculoCard } from "@/components/VeiculoCard";
 import { WhatsappProvider } from "@/components/whatsapp/WhatsappProvider";
-import { veiculosMock } from "@/data/veiculos-mock";
-import { MODELS } from "@/features/demo/catalog";
-import { getVeiculoBySlug } from "@/lib/veiculos";
+import type { Veiculo } from "@/types/veiculo";
 
 // The prototype was made for a real store whose sale did not happen: none of its data may ship.
 const REAL_STORE = /cassiano|37\.203\.730|99607|trevo auto|supabase/i;
@@ -25,22 +23,18 @@ it("no trace of the real store in the code or the public files", () => {
   expect(files.filter((f) => /^public\/(logo-cv|veiculos\/|equipe|concessionaria)/.test(f))).toEqual([]);
 });
 
+const CAR: Veiculo = {
+  id: "1", slug: "fiat-argo-drive-1-0", marca: "Fiat", modelo: "Argo", titulo: "Fiat Argo Drive 1.0", ano: 2023, km: 30000, preco: 68900,
+  cambio: "Manual", combustivel: "Flex", fotos: [], equipamentos: [], fichaTecnica: {}, status: "disponivel", destaque: false,
+};
+
 it("a car without photos shows a placeholder", () => {
-  const html = renderToStaticMarkup(createElement(VeiculoCard, { veiculo: { ...veiculosMock[0], fotos: [] } }));
+  const html = renderToStaticMarkup(createElement(VeiculoCard, { veiculo: CAR }));
   expect(html).toContain("Sem foto");
   expect(html).not.toContain("<img");
   const galeria = renderToStaticMarkup(createElement(Galeria, { fotos: [], titulo: "Fiat Argo Drive 1.0" }));
   expect(galeria).toContain("Sem foto");
   expect(galeria).not.toContain("<img");
-});
-
-it("the site's cars are the demo catalog's, without photos", async () => {
-  expect(veiculosMock.length).toBeGreaterThanOrEqual(4);
-  for (const v of veiculosMock) {
-    expect(MODELS.some((m) => m.brand === v.marca && m.model === v.modelo)).toBe(true);
-    expect(v.fotos).toEqual([]);
-  }
-  expect(await getVeiculoBySlug("toyota-sw4-diamond")).toBeNull();
 });
 
 it("the menus only link to sections the home still has", () => {

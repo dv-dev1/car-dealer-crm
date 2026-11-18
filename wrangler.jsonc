@@ -41,6 +41,10 @@
 			"bucket_name": "car-dealer-crm-photos"
 		}
 	],
+	"vars": {
+		// The store the public site shows (stores.slug).
+		"SITE_STORE_SLUG": "mare-veiculos"
+	},
 	"ratelimits": [
 		{
 			"name": "LOGIN_RATE_LIMITER",

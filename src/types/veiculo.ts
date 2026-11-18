@@ -1,5 +1,4 @@
-// Tipos do domínio usados pelo site e pelos mocks; o banco ainda não tem tabela de veículos.
-// O site consome `Veiculo`; o admin (Fase 2) usa também Lead.
+// The car as the public site shows it. It comes from the database through features/site, with the public sheet only.
 
 export type StatusVeiculo = "disponivel" | "reservado" | "vendido";
 

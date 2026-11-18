@@ -18,7 +18,7 @@ import { VeiculoCard } from "@/components/VeiculoCard";
 import { Reveal } from "@/components/Reveal";
 import { WhatsappIcon } from "@/components/WhatsappIcon";
 import { WhatsappTrigger } from "@/components/whatsapp/WhatsappTrigger";
-import { getVeiculoBySlug, getOutrosVeiculos, getVeiculos } from "@/lib/veiculos";
+import { getVeiculoBySlug, getOutrosVeiculos } from "@/lib/veiculos";
 import { formatKm, formatPreco } from "@/lib/format";
 import { loja } from "@/lib/loja";
 import { Galeria } from "./Galeria";
@@ -27,10 +27,8 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateStaticParams() {
-  const veiculos = await getVeiculos();
-  return veiculos.map((v) => ({ slug: v.slug }));
-}
+// Read from the database at every visit: a car reserved or sold in the panel changes here at once.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
