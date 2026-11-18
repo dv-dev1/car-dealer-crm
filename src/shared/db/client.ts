@@ -58,6 +58,14 @@ export async function withStore<T>(
   return transaction(ENTER_STORE, [ctx.storeId, ctx.role, ctx.membershipId], fn);
 }
 
+/**
+ * A transaction with no store in the session: the login and the public site. RLS gives it no row of any table,
+ * so everything it reads or writes goes through a security definer function.
+ */
+export function withoutStore<T>(fn: (db: Db) => Promise<T>): Promise<T> {
+  return transaction(ENTER_LOGIN, [], fn);
+}
+
 // Login runs before any store is known; the SQL functions are security definer for that reason.
 export async function resolveMembership(identity: {
   workosUserId: string;
