@@ -13,7 +13,7 @@ export function Galeria({ fotos, titulo }: { fotos: string[]; titulo: string }) 
 
   if (total === 0) {
     return (
-      <div className="grid aspect-[4/3] place-items-center rounded-[var(--radius)] bg-sand text-sm font-medium text-muted">
+      <div className="grid aspect-[4/3] w-full place-items-center self-start rounded-[var(--radius)] bg-sand text-sm font-medium text-muted">
         Sem foto
       </div>
     );

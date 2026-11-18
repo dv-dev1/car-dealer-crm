@@ -90,7 +90,7 @@ export default async function CarroPage({ params }: Props) {
           </nav>
 
           {/* Galeria + card de specs */}
-          <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             <Galeria fotos={veiculo.fotos} titulo={veiculo.titulo} />
 
             <aside className="lg:sticky lg:top-24 lg:self-start">

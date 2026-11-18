@@ -35,6 +35,8 @@ it("a car without photos shows a placeholder", () => {
   const galeria = renderToStaticMarkup(createElement(Galeria, { fotos: [], titulo: "Fiat Argo Drive 1.0" }));
   expect(galeria).toContain("Sem foto");
   expect(galeria).not.toContain("<img");
+  // Stretched to the row, its 4/3 ratio turns the side card's height into width and pushes the card off the page.
+  expect(galeria).toMatch(/class="[^"]*\bself-start\b/);
 });
 
 it("the menus only link to sections the home still has", () => {
