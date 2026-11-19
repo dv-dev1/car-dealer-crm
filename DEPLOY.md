@@ -33,11 +33,10 @@ O site mostra a loja de `SITE_STORE_SLUG` (`vars` do `wrangler.jsonc`, hoje `mar
 linha acima mostrou for outro, troque ali antes de publicar: com slug errado o site abre sem nenhum carro e sem erro.
 Em 2026-11-17 a Maré do Neon tinha o slug `mare-veiculos`.
 
-## 2. Fotos (R2)
+## 2. Fotos (Workers KV)
 
-```bash
-npx wrangler r2 bucket create car-dealer-crm-photos
-```
+O namespace `car-dealer-crm-photos` já existe desde 2026-11-19 (id no `kv_namespaces` do `wrangler.jsonc`).
+Em outra conta da Cloudflare: `npx wrangler kv namespace create car-dealer-crm-photos` e troque o id ali.
 
 ## 3. Contas de fora (só o fundador faz)
 

@@ -1,18 +1,19 @@
-import type { PhotoBucket } from "@/features/stock/photos";
-
-// An in-memory R2 bucket with the three calls the app makes.
-export function fakeBucket(): PhotoBucket & { objects: Map<string, { bytes: Uint8Array; contentType: string }> } {
+// An in-memory Workers KV namespace with the three calls the photo store makes.
+export function fakeKv() {
   const objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
   return {
     objects,
-    async put(key, value, options) {
-      objects.set(key, { bytes: value, contentType: options.httpMetadata.contentType });
+    async put(key: string, value: Uint8Array, options: { metadata: { contentType: string } }) {
+      objects.set(key, { bytes: value, contentType: options.metadata.contentType });
     },
-    async get(key) {
+    async getWithMetadata(key: string, options: { type: "stream" }) {
+      if (options.type !== "stream") throw new Error("the photo store reads streams");
       const object = objects.get(key);
-      return object ? { body: new Blob([object.bytes as Uint8Array<ArrayBuffer>]).stream(), httpMetadata: { contentType: object.contentType } } : null;
+      return object
+        ? { value: new Blob([object.bytes as Uint8Array<ArrayBuffer>]).stream(), metadata: { contentType: object.contentType } }
+        : { value: null, metadata: null };
     },
-    async delete(key) {
+    async delete(key: string) {
       objects.delete(key);
     },
   };

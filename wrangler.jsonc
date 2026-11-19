@@ -36,11 +36,12 @@
 			"localConnectionString": "postgresql://crm_app:dev@localhost:54328/crm_dev"
 		}
 	],
-	"r2_buckets": [
+	"kv_namespaces": [
 		{
-			// Car photos, served by /fotos/<key>. Local dev and preview use wrangler's local copy.
+			// Car photos, served by /fotos/<key> (decisions/2026-11-19-car-photos-in-kv.md). Local dev and preview
+			// use wrangler's local copy.
 			"binding": "PHOTOS",
-			"bucket_name": "car-dealer-crm-photos"
+			"id": "f833e3100baa4e9abab7b8ba2511d853"
 		}
 	],
 	"vars": {

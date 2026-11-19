@@ -22,10 +22,10 @@ a partir de hoje. Para transformar uma loja que já existe na Maré, troque os t
 `--store-id <uuid>`: as pessoas reais ficam, os dados da loja são trocados pelos da demo. Loja de cliente
 de verdade se cria com `npm run store:create -- --name ... --slug ... --owner-name ... --owner-email ...`.
 
-As fotos dos carros ficam no R2 (bucket `car-dealer-crm-photos`, binding `PHOTOS`) e o app as serve em
-`/fotos/<chave>`. No preview, o R2 é local (pasta `.wrangler/`). As fotos da Maré moram em
+As fotos dos carros ficam no Workers KV (namespace `car-dealer-crm-photos`, binding `PHOTOS`) e o app as
+serve em `/fotos/<chave>`. No preview, o KV é local (pasta `.wrangler/`). As fotos da Maré moram em
 `db/demo-photos/<modelo>/`, listadas em `src/features/demo/photos.ts`, com créditos em
-`db/demo-photos/CREDITS.md`; `npm run demo:photos -- --local` sobe elas para o R2 local e `--remote` para o
+`db/demo-photos/CREDITS.md`; `npm run demo:photos -- --local` sobe elas para o KV local e `--remote` para o
 da Cloudflare. Enquanto a lista estiver vazia, os carros da demo mostram "Sem foto".
 
 No `.dev.vars`, preencha `WORKOS_API_KEY`, `WORKOS_CLIENT_ID` e `WORKOS_COOKIE_PASSWORD` (32+ caracteres)

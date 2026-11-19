@@ -2,7 +2,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 import { UUID, withStore, type MemberContext } from "@/shared/db/client";
 
-// Car photos live in R2 (binding PHOTOS); the app serves them from /fotos/<key>.
+// Car photos live in Workers KV (binding PHOTOS, decisions/2026-11-19-car-photos-in-kv.md); the app serves them from
+// /fotos/<key>. The calls keep R2's shape, so going back to R2 is a change in photoBucket() only.
 export type PhotoBucket = {
   put(key: string, value: Uint8Array, options: { httpMetadata: { contentType: string } }): Promise<unknown>;
   get(key: string): Promise<{ body: ReadableStream; httpMetadata?: { contentType?: string } } | null>;
@@ -22,8 +23,22 @@ export function photoUrl(path: string): string {
   return `/fotos/${path}`;
 }
 
+type PhotoKv = {
+  put(key: string, value: Uint8Array, options: { metadata: { contentType: string } }): Promise<void>;
+  getWithMetadata(key: string, options: { type: "stream" }): Promise<{ value: ReadableStream | null; metadata: { contentType?: string } | null }>;
+  delete(key: string): Promise<void>;
+};
+
 export function photoBucket(): PhotoBucket {
-  return (getCloudflareContext().env as { PHOTOS: PhotoBucket }).PHOTOS;
+  const kv = (getCloudflareContext().env as { PHOTOS: PhotoKv }).PHOTOS;
+  return {
+    put: (key, value, options) => kv.put(key, value, { metadata: { contentType: options.httpMetadata.contentType } }),
+    async get(key) {
+      const { value, metadata } = await kv.getWithMetadata(key, { type: "stream" });
+      return value ? { body: value, httpMetadata: { contentType: metadata?.contentType } } : null;
+    },
+    delete: (key) => kv.delete(key),
+  };
 }
 
 /** The image type by the file's first bytes, never by its name. */

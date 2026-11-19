@@ -4,13 +4,12 @@ import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { DEMO_PHOTOS } from "../src/features/demo/photos.ts";
 
-const BUCKET = "car-dealer-crm-photos"; // wrangler.jsonc, binding PHOTOS
 const ROOT = "db/demo-photos";
 const DEMO_KEY = /^demo\/[a-z0-9-]+\/[a-z0-9-]+\.webp$/; // a subset of PHOTO_KEY in src/features/stock/photos.ts
 
 const USAGE = "Usage: node scripts/demo-photos.ts --local | --remote";
 
-/** One R2 object per photo in the manifest; `root` holds the files as <model key>/<file>. */
+/** One KV value (binding PHOTOS) per photo in the manifest; `root` holds the files as <model key>/<file>. */
 export function photoUploads(manifest: Record<string, string[]>, root: string): { key: string; file: string }[] {
   return Object.entries(manifest).flatMap(([model, files]) =>
     files.map((name) => {
@@ -36,7 +35,10 @@ if (import.meta.main) {
   for (const { key, file } of uploads) {
     execFileSync(
       "npx",
-      ["wrangler", "r2", "object", "put", `${BUCKET}/${key}`, "--file", file, "--content-type", "image/webp", values.local ? "--local" : "--remote"],
+      [
+        "wrangler", "kv", "key", "put", key, "--binding", "PHOTOS", "--path", file,
+        "--metadata", JSON.stringify({ contentType: "image/webp" }), values.local ? "--local" : "--remote",
+      ],
       { stdio: "inherit" },
     );
   }

@@ -3,10 +3,10 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { GET } from "@/app/fotos/[...key]/route";
 import { restoreDemoStore } from "@/features/demo/model";
 import { getVehicle, listStock, type StockVehicle } from "@/features/stock/model";
-import { MAX_PHOTO_BYTES, PHOTO_KEY, addVehiclePhoto, removeVehiclePhoto, sniffImageType } from "@/features/stock/photos";
+import { MAX_PHOTO_BYTES, PHOTO_KEY, addVehiclePhoto, photoBucket, removeVehiclePhoto, sniffImageType, type PhotoBucket } from "@/features/stock/photos";
 import type { StoreMember } from "@/shared/db/client";
 import { seedTwoStores } from "../db/fixtures.ts";
-import { fakeBucket } from "../setup/bucket.ts";
+import { fakeKv } from "../setup/bucket.ts";
 import { useDatabase, usePhotoBucket } from "../setup/hyperdrive.ts";
 import { TEST_ADMIN_URL, TEST_APP_URL } from "../setup/urls.ts";
 
@@ -33,11 +33,13 @@ let owner: StoreMember;
 let seller: StoreMember;
 let carla: StoreMember;
 let car: StockVehicle;
-let bucket: ReturnType<typeof fakeBucket>;
+let kv: ReturnType<typeof fakeKv>;
+let bucket: PhotoBucket;
 beforeEach(async () => {
   useDatabase(TEST_APP_URL);
-  bucket = fakeBucket();
-  usePhotoBucket(bucket);
+  kv = fakeKv();
+  usePhotoBucket(kv);
+  bucket = photoBucket(); // the KV namespace of the Worker, as the app sees it
   const seed = await seedTwoStores();
   await adminQuery("update stores set is_demo = true where id = $1", [seed.a.storeId]);
   owner = { membershipId: seed.a.ana.id, storeId: seed.a.storeId, role: "owner", name: "Ana", storeName: "Loja A", isDemo: true };
@@ -53,12 +55,12 @@ it("stores a webp photo under the store and the car, at the next position", asyn
   const first = await addVehiclePhoto(owner, bucket, car.id, WEBP);
   const second = await addVehiclePhoto(owner, bucket, car.id, WEBP);
   expect(first.ok && second.ok).toBe(true);
-  const keys = [...bucket.objects.keys()];
+  const keys = [...kv.objects.keys()];
   expect(keys).toHaveLength(2);
   for (const key of keys) {
     expect(key).toMatch(PHOTO_KEY);
     expect(key.startsWith(`stores/${owner.storeId}/vehicles/${car.id}/`)).toBe(true);
-    expect(bucket.objects.get(key)!.contentType).toBe("image/webp");
+    expect(kv.objects.get(key)!.contentType).toBe("image/webp");
   }
   const photos = await photosOf(car.slug);
   expect(photos.map((photo) => photo.id)).toEqual([first.ok && first.id, second.ok && second.id]);
@@ -70,31 +72,31 @@ it("accepts JPEG and PNG and refuses bytes that are not an image, whatever the n
   expect((await addVehiclePhoto(owner, bucket, car.id, JPEG)).ok).toBe(true);
   expect((await addVehiclePhoto(owner, bucket, car.id, PNG)).ok).toBe(true);
   expect(await addVehiclePhoto(owner, bucket, car.id, PDF)).toEqual({ ok: false, error: "not_image" });
-  expect([...bucket.objects.keys()].map((key) => key.split(".").pop()).sort()).toEqual(["jpg", "png"]);
+  expect([...kv.objects.keys()].map((key) => key.split(".").pop()).sort()).toEqual(["jpg", "png"]);
 });
 
 it("refuses a photo over 2 MB", async () => {
   const big = new Uint8Array(MAX_PHOTO_BYTES + 1);
   big.set(JPEG);
   expect(await addVehiclePhoto(owner, bucket, car.id, big)).toEqual({ ok: false, error: "too_big" });
-  expect(bucket.objects.size).toBe(0);
+  expect(kv.objects.size).toBe(0);
 });
 
 it("refuses the 21st photo", async () => {
   for (let i = 0; i < 20; i++) expect((await addVehiclePhoto(owner, bucket, car.id, WEBP)).ok).toBe(true);
   expect(await addVehiclePhoto(owner, bucket, car.id, WEBP)).toEqual({ ok: false, error: "too_many" });
-  expect(bucket.objects.size).toBe(20);
+  expect(kv.objects.size).toBe(20);
 });
 
 it("refuses a seller and a car of another store", async () => {
   expect(await addVehiclePhoto(seller, bucket, car.id, WEBP)).toEqual({ ok: false, error: "forbidden" });
   expect(await addVehiclePhoto(carla, bucket, car.id, WEBP)).toEqual({ ok: false, error: "not_found" });
   expect(await addVehiclePhoto(owner, bucket, "not-a-uuid", WEBP)).toEqual({ ok: false, error: "not_found" });
-  expect(bucket.objects.size).toBe(0);
+  expect(kv.objects.size).toBe(0);
   const added = await addVehiclePhoto(owner, bucket, car.id, WEBP);
   expect(await removeVehiclePhoto(seller, bucket, added.ok ? added.id : "")).toEqual({ ok: false, error: "forbidden" });
   expect(await removeVehiclePhoto(carla, bucket, added.ok ? added.id : "")).toEqual({ ok: false, error: "not_found" });
-  expect(bucket.objects.size).toBe(1);
+  expect(kv.objects.size).toBe(1);
 });
 
 it("removing a photo deletes the row and the object and closes the gap in positions", async () => {
@@ -105,14 +107,14 @@ it("removing a photo deletes the row and the object and closes the gap in positi
   }
   expect(await removeVehiclePhoto(owner, bucket, ids[0])).toEqual({ ok: true });
   expect((await photosOf(car.slug)).map((photo) => photo.id)).toEqual(ids.slice(1));
-  expect(bucket.objects.size).toBe(2);
+  expect(kv.objects.size).toBe(2);
   const rows = await adminQuery("select position from vehicle_photos where vehicle_id = $1 order by position", [car.id]);
   expect(rows.map((row) => row.position)).toEqual([0, 1]);
 });
 
 it("serves a stored photo with its type and a year of cache", async () => {
   await addVehiclePhoto(owner, bucket, car.id, PNG);
-  const [key] = bucket.objects.keys();
+  const [key] = kv.objects.keys();
   const response = await GET(new Request(`http://x/fotos/${key}`), { params: Promise.resolve({ key: key.split("/") }) });
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toBe("image/png");
@@ -130,12 +132,12 @@ it("answers 404 for a key outside the photo folders or missing", async () => {
 });
 
 it("removing a demo photo keeps the shared object, used by every car of the model", async () => {
-  bucket.objects.set("demo/chevrolet-onix/01.webp", { bytes: WEBP, contentType: "image/webp" });
+  kv.objects.set("demo/chevrolet-onix/01.webp", { bytes: WEBP, contentType: "image/webp" });
   const [row] = await adminQuery(
     "insert into vehicle_photos (store_id, vehicle_id, position, path) values ($1, $2, 0, 'demo/chevrolet-onix/01.webp') returning id",
     [owner.storeId, car.id],
   );
   expect(await removeVehiclePhoto(owner, bucket, row.id)).toEqual({ ok: true });
   expect(await photosOf(car.slug)).toEqual([]);
-  expect(bucket.objects.has("demo/chevrolet-onix/01.webp")).toBe(true);
+  expect(kv.objects.has("demo/chevrolet-onix/01.webp")).toBe(true);
 });
