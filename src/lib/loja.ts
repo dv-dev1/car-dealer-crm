@@ -7,6 +7,9 @@ export const loja = {
   slogan: "Seu próximo veículo com tranquilidade.",
   descricao:
     "Seminovos selecionados, procedência garantida e atendimento de quem entende de carro.",
+  // Fictitious store: the interest form says so. A real store also drops the noindex in
+  // next.config.ts and public/_headers.
+  demonstracao: true,
   whatsapp: "558390000000",
   whatsappLabel: "(83) 9000-0000",
   endereco: "João Pessoa - PB",

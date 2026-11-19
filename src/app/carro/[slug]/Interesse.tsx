@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { sendInterestAction } from "@/features/site/actions";
+import { loja } from "@/lib/loja";
 import type { InterestState } from "@/features/site/rules";
 import { Turnstile } from "@/shared/Turnstile";
 
@@ -47,7 +48,11 @@ export function Interesse({ slug, siteKey }: { slug: string; siteKey: string }) 
       >
         {pending ? "Enviando…" : "Tenho interesse"}
       </button>
-      <p className="mt-2 text-xs text-muted">Seu nome e WhatsApp vão só para a loja, para ela falar com você sobre este carro.</p>
+      <p className="mt-2 text-xs text-muted">
+        {loja.demonstracao
+          ? "Loja de demonstração: o contato vai para o painel de teste e é apagado depois. Não envie dados de verdade."
+          : "Seu nome e WhatsApp vão só para a loja, para ela falar com você sobre este carro."}
+      </p>
     </form>
   );
 }

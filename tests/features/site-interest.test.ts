@@ -107,6 +107,12 @@ it("a car that left the site answers so, and a database failure asks for WhatsAp
   expect(failed).toEqual({ status: "error", error: "Não deu para enviar agora. Chame a loja no WhatsApp.", typed: { name: "Joana Lima", phone: "(83) 99111-2222" } });
 });
 
+it("on the demo store the form says so, so nobody leaves a real phone expecting a call", () => {
+  const html = renderToStaticMarkup(createElement(Interesse, { slug: "fiat-argo", siteKey: "site-key" }));
+  expect(html).toContain("Loja de demonstração");
+  expect(html).toContain("Não envie dados de verdade");
+});
+
 it("the form asks for a name and a WhatsApp and carries the car", () => {
   const html = renderToStaticMarkup(createElement(Interesse, { slug: "fiat-argo", siteKey: "site-key" }));
   expect(html).toContain('name="name"');
