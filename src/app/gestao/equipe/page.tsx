@@ -4,5 +4,5 @@ import { TeamView } from "@/features/team/view";
 
 export default async function TeamPage() {
   const member = await requireMember();
-  return <TeamView members={await listMembers(member)} role={member.role} />;
+  return <TeamView members={await listMembers(member)} role={member.role} selfId={member.membershipId} />;
 }

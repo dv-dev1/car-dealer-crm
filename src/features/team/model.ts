@@ -51,8 +51,10 @@ export async function addMember(
 export async function removeMember(
   ctx: MemberContext,
   membershipId: string,
-): Promise<{ ok: true } | { ok: false; error: "forbidden" | "owner_only" | "last_owner" | "not_found" }> {
+): Promise<{ ok: true } | { ok: false; error: "forbidden" | "owner_only" | "last_owner" | "not_found" | "self" }> {
   if (ctx.role === "seller") return { ok: false, error: "forbidden" };
+  // Removing yourself locks you out of the panel on the next page; another owner does it.
+  if (membershipId === ctx.membershipId) return { ok: false, error: "self" };
   if (!UUID.test(membershipId)) return { ok: false, error: "not_found" }; // PostgreSQL would raise 22P02
 
   return withStore(ctx, async (db) => {

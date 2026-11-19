@@ -33,19 +33,19 @@ function AddMemberForm({ role }: { role: Role }) {
           <label htmlFor="team-name" className="block text-secondary">
             Nome
           </label>
-          <input id="team-name" name="name" required maxLength={120} autoComplete="off" className={field} />
+          <input id="team-name" name="name" required maxLength={120} autoComplete="off" defaultValue={state.typed?.name} className={field} />
         </div>
         <div className="space-y-1">
           <label htmlFor="team-email" className="block text-secondary">
             E-mail
           </label>
-          <input id="team-email" name="email" type="email" required autoComplete="off" className={field} />
+          <input id="team-email" name="email" type="email" required autoComplete="off" defaultValue={state.typed?.email} className={field} />
         </div>
         <div className="space-y-1">
           <label htmlFor="team-role" className="block text-secondary">
             Papel
           </label>
-          <select id="team-role" name="role" defaultValue="seller" className={field}>
+          <select id="team-role" name="role" defaultValue={state.typed?.role ?? "seller"} className={field}>
             {roles.map((value) => (
               <option key={value} value={value}>
                 {ROLE_LABEL[value]}
@@ -67,9 +67,16 @@ function RemoveMemberForm({ member }: { member: Member }) {
   return (
     <form action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="membershipId" value={member.id} />
-      <button type="submit" disabled={pending} aria-label={`Remover ${member.name}`} className={removeButton}>
-        Remover
-      </button>
+      {/* Two steps: the first click only asks. */}
+      <details className="text-right">
+        <summary aria-label={`Remover ${member.name}`} className={`${removeButton} cursor-pointer list-none`}>Remover</summary>
+        <div className="mt-2 space-y-2">
+          <p className="text-sm text-secondary">{member.name} perde o acesso à Central de Gestão.</p>
+          <button type="submit" disabled={pending} className={removeButton}>
+            Sim, remover {member.name}
+          </button>
+        </div>
+      </details>
       {state.error && (
         <p role="alert" className="text-sm text-danger-ink">
           {state.error}
@@ -79,7 +86,7 @@ function RemoveMemberForm({ member }: { member: Member }) {
   );
 }
 
-export function TeamView({ members, role }: { members: Member[]; role: Role }) {
+export function TeamView({ members, role, selfId }: { members: Member[]; role: Role; selfId: string }) {
   const canManage = role === "owner" || role === "manager";
 
   return (
@@ -102,7 +109,7 @@ export function TeamView({ members, role }: { members: Member[]; role: Role }) {
               </p>
             </div>
             {/* A manager only removes sellers; the button would end in an error for the others. */}
-            {(role === "owner" || (role === "manager" && member.role === "seller")) && (
+            {member.id !== selfId && (role === "owner" || (role === "manager" && member.role === "seller")) && (
               <RemoveMemberForm member={member} />
             )}
           </li>

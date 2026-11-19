@@ -138,9 +138,11 @@ it("throws on a role outside owner, manager and seller", async () => {
   expect(await names(ana)).toEqual(["Ana", "Beto", "Marta"]);
 });
 
-it("cannot remove the last owner", async () => {
-  expect(await removeMember(ana, ana.membershipId)).toEqual({ ok: false, error: "last_owner" });
-  expect(await names(ana)).toEqual(["Ana", "Beto"]);
+it("an owner cannot remove themselves, alone or with another owner", async () => {
+  expect(await removeMember(ana, ana.membershipId)).toEqual({ ok: false, error: "self" });
+  await seedMember("owner", "Olga", "olga@lojaa.com");
+  expect(await removeMember(ana, ana.membershipId)).toEqual({ ok: false, error: "self" });
+  expect(await names(ana)).toEqual(["Ana", "Beto", "Olga"]);
 });
 
 it("owner removes another owner while one remains", async () => {
@@ -153,8 +155,10 @@ it("never leaves the store without an owner when two owners remove each other at
   // A single attempt may not overlap, so it runs several times.
   for (let round = 0; round < 6; round++) {
     await seedMember("owner", `Olga ${round}`, `olga${round}@lojaa.com`);
-    const [first, second] = (await listMembers(ana)).filter((member) => member.role === "owner");
-    const results = await Promise.all([removeMember(ana, second.id), removeMember(ana, first.id)]);
+    const owners = (await listMembers(ana)).filter((member) => member.role === "owner");
+    const [first, second] = owners.map((member) => ({ ...ana, membershipId: member.id, name: member.name }));
+    // Each one removes the other: nobody removes themselves.
+    const results = await Promise.all([removeMember(first, second.membershipId), removeMember(second, first.membershipId)]);
     expect(results.map(outcome).sort()).toEqual(["last_owner", "ok"]);
     expect((await listMembers(ana)).filter((member) => member.role === "owner")).toHaveLength(1);
   }
@@ -163,7 +167,7 @@ it("never leaves the store without an owner when two owners remove each other at
 it("manager cannot remove an owner", async () => {
   const marta = await seedMember("manager", "Marta", "marta@lojaa.com");
   expect(await removeMember(marta, ana.membershipId)).toEqual({ ok: false, error: "owner_only" });
-  expect(await removeMember(marta, marta.membershipId)).toEqual({ ok: false, error: "owner_only" });
+  expect(await removeMember(marta, marta.membershipId)).toEqual({ ok: false, error: "self" });
   expect(await names(ana)).toEqual(["Ana", "Beto", "Marta"]);
 });
 

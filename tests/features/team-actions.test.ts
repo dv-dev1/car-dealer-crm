@@ -31,6 +31,23 @@ beforeEach(() => {
   model.removeMember.mockResolvedValue({ ok: true });
 });
 
+describe("errors the person can act on", () => {
+  it("keeps what was typed when adding fails, so the role does not go back to Vendedor", async () => {
+    model.addMember.mockResolvedValue({ ok: false, error: "duplicate" });
+    expect(await addMemberAction(NO_ERROR, form({ ...dani, role: "manager" }))).toEqual({
+      error: "Este e-mail já está na equipe.",
+      typed: { name: "Dani", email: "dani@lojaa.com", role: "manager" },
+    });
+  });
+
+  it("says why an owner cannot remove themselves", async () => {
+    model.removeMember.mockResolvedValue({ ok: false, error: "self" });
+    expect(await removeMemberAction(NO_ERROR, form({ membershipId: "member-a" }))).toEqual({
+      error: "Você não pode se remover. Peça a outro dono.",
+    });
+  });
+});
+
 describe("addMemberAction", () => {
   it("asks for the member before anything else and stops when the guard redirects", async () => {
     guard.requireMember.mockRejectedValue(new Error("NEXT_REDIRECT"));
@@ -81,7 +98,7 @@ describe("addMemberAction", () => {
     ["duplicate", "Este e-mail já está na equipe."],
   ])("maps %s to its message and does not revalidate", async (error, message) => {
     model.addMember.mockResolvedValue({ ok: false, error });
-    expect(await addMemberAction(NO_ERROR, form(dani))).toEqual({ error: message });
+    expect(await addMemberAction(NO_ERROR, form(dani))).toEqual({ error: message, typed: dani });
     expect(cache.revalidatePath).not.toHaveBeenCalled();
   });
 
