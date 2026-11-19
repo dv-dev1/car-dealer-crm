@@ -45,8 +45,9 @@ Em outra conta da Cloudflare: `npx wrangler kv namespace create car-dealer-crm-p
   staging foi colada num chat: troque-a também no painel do staging.
 - **Google.** Cliente OAuth próprio ligado na WorkOS de produção (as credenciais compartilhadas da WorkOS só
   valem no staging).
-- **Turnstile.** Um widget com o domínio `car-dealer-crm.<subdomínio>.workers.dev`. As chaves de teste do
-  `.dev.vars.example` passam qualquer robô: nunca em produção.
+- **Turnstile.** Feito em 2026-11-19: widget `car-dealer-crm` (modo managed, só `car-dealer-crm.green-grid.workers.dev`),
+  criado pela API com o token do wrangler e com as chaves já nos segredos do Worker. Num endereço novo, acrescente o
+  domínio ao widget. As chaves de teste do `.dev.vars.example` passam qualquer robô: só no local.
 - **OpenAI.** Uma chave nova (a antiga foi colada num chat). Sem ela o app funciona e a IA fica desligada.
 
 ## 4. Segredos do Worker
