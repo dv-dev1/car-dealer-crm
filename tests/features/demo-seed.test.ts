@@ -38,12 +38,42 @@ it("is deterministic and fills every table", () => {
   expect(d.leads.every((row) => !("store_id" in row))).toBe(true);
 });
 
-it("keeps 22 cars in stock between R$ 35 mil and R$ 150 mil", () => {
+it("keeps 22 cars in stock between R$ 35 mil and R$ 170 mil", () => {
   expect(inStock).toHaveLength(22);
   for (const v of d.vehicles) {
     expect(v.price as number).toBeGreaterThanOrEqual(35_000);
-    expect(v.price as number).toBeLessThanOrEqual(150_000);
+    expect(v.price as number).toBeLessThanOrEqual(170_000);
   }
+});
+
+// A dealer knows the FIPE table by heart: an inflated price reads as a lie.
+it("has one FIPE price per model year, never cheaper for a newer year", () => {
+  for (const m of MODELS) {
+    expect(m.prices, m.model).toHaveLength(m.years[1] - m.years[0] + 1);
+    m.prices.forEach((price, i) => i > 0 && expect(price, m.model).toBeGreaterThanOrEqual(m.prices[i - 1]));
+  }
+});
+
+it("asks the FIPE price of the car's model year", () => {
+  for (const v of d.vehicles) {
+    const m = MODELS.find((m) => m.brand === v.brand && m.model === v.model)!;
+    const fipe = m.prices[(v.model_year as number) - m.years[0]];
+    expect(Math.abs((v.price as number) - fipe), `${v.slug}`).toBeLessThanOrEqual(1_000);
+  }
+});
+
+it("sells at the market's margin: 8% to 11% of the sale price on average, before the bank's return", () => {
+  const spent = new Map<string, number>();
+  for (const e of d.vehicle_expenses) spent.set(e.vehicle_id as string, (spent.get(e.vehicle_id as string) ?? 0) + (e.amount as number));
+  const margins = d.sales.map((sale) => {
+    const f = finances.get(sale.vehicle_id as string)!;
+    const cost = ((f.consignor_payout ?? f.purchase_price) as number) + (spent.get(sale.vehicle_id as string) ?? 0);
+    return ((sale.price as number) - cost) / (sale.price as number);
+  });
+  const average = margins.reduce((a, b) => a + b, 0) / margins.length;
+  expect(average).toBeGreaterThanOrEqual(0.08);
+  expect(average).toBeLessThanOrEqual(0.11);
+  expect(Math.min(...margins)).toBeGreaterThan(0);
 });
 
 it("has exactly 2 cars in stock for more than 90 days", () => {

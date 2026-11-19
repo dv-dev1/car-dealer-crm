@@ -42,13 +42,12 @@ beforeEach(async () => {
   await restoreDemoStore(owner, TODAY);
 });
 
-it("the example reference price runs between the catalog's two years", () => {
+it("the example reference price is the catalog's FIPE price for that year", () => {
   const onix = MODELS[0];
   expect(referencePrice("chevrolet", " ONIX ", onix.years[0])).toBe(onix.prices[0]);
-  expect(referencePrice(onix.brand, onix.model, onix.years[1])).toBe(onix.prices[1]);
-  const middle = referencePrice(onix.brand, onix.model, onix.years[0] + 1)!;
-  expect(middle).toBeGreaterThan(onix.prices[0]);
-  expect(middle).toBeLessThan(onix.prices[1]);
+  expect(referencePrice(onix.brand, onix.model, onix.years[0] + 1)).toBe(onix.prices[1]);
+  expect(referencePrice(onix.brand, onix.model, onix.years[1])).toBe(onix.prices.at(-1));
+  expect(referencePrice(onix.brand, onix.model, onix.years[1] + 1)).toBeNull();
   expect(referencePrice("Marca Inexistente", "Carro", 2020)).toBeNull();
   expect(referencePrice(onix.brand, onix.model, onix.years[0] - 10)).toBeNull();
 });

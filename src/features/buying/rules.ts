@@ -42,13 +42,11 @@ export const CONDITION: Record<Condition, { label: string; factor: number; prep:
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
-/** The example table's price for the model in that year, between its oldest and newest year. Null outside the table. */
+/** The example table's price for the model in that year: the catalog's FIPE price. Null outside the table. */
 export function referencePrice(brand: string, model: string, year: number): number | null {
   const found = MODELS.find((m) => same(m.brand, brand) && same(m.model, model));
   if (!found || year < found.years[0] || year > found.years[1]) return null;
-  const [firstYear, lastYear] = found.years;
-  const [oldest, newest] = found.prices;
-  return firstYear === lastYear ? newest : Math.round(oldest + ((newest - oldest) * (year - firstYear)) / (lastYear - firstYear));
+  return found.prices[year - found.years[0]];
 }
 
 export type Appraisal = { offer: number; salePrice: number; profit: number; days: number; prep: number; moneyCost: number };

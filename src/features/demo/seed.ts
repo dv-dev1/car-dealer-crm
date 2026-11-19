@@ -112,8 +112,7 @@ export function buildDemoData(input: {
     const n = ++vehicleCount;
     const [firstYear, lastYear] = model.years;
     const modelYear = int(firstYear, lastYear);
-    const share = lastYear === firstYear ? 1 : (modelYear - firstYear) / (lastYear - firstYear);
-    const price = round(model.prices[0] + share * (model.prices[1] - model.prices[0]), 1000) - 10;
+    const price = round(model.prices[modelYear - firstYear], 1000) - 10; // the FIPE of its year, ending in 990
     const km = Math.max(1, Number(today.slice(0, 4)) - modelYear + 1) * int(8, 15) * 1000 + int(0, 999);
     const color = pick(COLORS);
     const row: DemoRow = {
@@ -162,7 +161,8 @@ export function buildDemoData(input: {
       consignor_payout: payout,
     });
   }
-  const purchaseOf = (vehicle: DemoRow) => round((vehicle.price as number) * (0.82 + rand() * 0.07), 500);
+  // bought at 85% to 92% of the asking price: after expenses, the discount and the bank's return, about 10.5% margin, what the market reports
+  const purchaseOf = (vehicle: DemoRow) => round((vehicle.price as number) * (0.85 + rand() * 0.07), 500);
 
   function expenses(vehicle: DemoRow, from: string, to: string, count: number) {
     for (let i = 0; i < count; i++) {
@@ -278,7 +278,7 @@ export function buildDemoData(input: {
     if (financed) data.sale_finances.push({ sale_id: sale.id, financing_return_pct: 0.02 + 0.005 * int(0, 8) });
 
     if (i % 6 === 3) {
-      const tradeIn = newVehicle(soldOn, "preparing", "trade_in", pick(MODELS.filter((m) => m.prices[1] <= 100_000)));
+      const tradeIn = newVehicle(soldOn, "preparing", "trade_in", pick(MODELS.filter((m) => m.prices.at(-1)! <= 100_000)));
       const value = round((tradeIn.price as number) * 0.84, 500);
       tradeIn.acquired_in_sale_id = sale.id;
       sale.trade_in_vehicle_id = tradeIn.id;
@@ -291,7 +291,7 @@ export function buildDemoData(input: {
 
   // Stock: trade-ins not sold yet, 2 parked for months, 3 consigned, 1 away for service, the rest bought.
   const stock: DemoRow[] = [...tradeInsWaiting];
-  const expensive = MODELS.filter((m) => m.prices[1] >= 120_000);
+  const expensive = MODELS.filter((m) => m.prices.at(-1)! >= 110_000);
   for (const daysAgo of [131, 104]) {
     const car = newVehicle(addDays(today, -daysAgo), "available", "purchase", pick(expensive));
     finance(car, purchaseOf(car));
