@@ -16,7 +16,8 @@ import { staleLevel, stockSummary, priceSuggestion } from "@/features/stock/rule
 import { CarThumb, GestaoCarCard, diasNoPatio } from "@/components/gestao/GestaoCarCard";
 import { CabecalhoGestao } from "@/components/gestao/CabecalhoGestao";
 
-type Filtro = "todos" | "sem-margem" | "girar" | "preparacao" | "documento" | "baixar-preco";
+const FILTROS = ["todos", "sem-margem", "girar", "preparacao", "reservados", "documento", "baixar-preco"] as const;
+type Filtro = (typeof FILTROS)[number];
 type Ordem = "relevancia" | "preco-asc" | "preco-desc" | "patio-desc" | "lucro-desc";
 type Modo = "grade" | "lista";
 
@@ -32,15 +33,31 @@ function pertence(v: StockVehicle, f: Filtro) {
   if (f === "sem-margem") return v.minCashPrice === null;
   if (f === "girar") return staleLevel(v.daysInStock) === "stale";
   if (f === "preparacao") return v.status === "preparing";
+  if (f === "reservados") return v.status === "reserved";
   if (f === "documento") return v.pendingDocs > 0;
   if (f === "baixar-preco") return priceSuggestion(v)?.suggested != null;
   return true;
 }
 
-export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicle[]; canManage: boolean }) {
+export function EstoqueGestao({
+  cars: veiculos,
+  canManage,
+  filtroInicial,
+  ordemInicial,
+}: {
+  cars: StockVehicle[];
+  canManage: boolean;
+  /** From the address (?filtro=, ?ordem=), as the panel's cards link it; a value this viewer has no chip for is ignored. */
+  filtroInicial?: string;
+  ordemInicial?: string;
+}) {
   const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState<Filtro>("todos");
-  const [ordem, setOrdem] = useState<Ordem>("relevancia");
+  const [filtro, setFiltro] = useState<Filtro>(
+    () => FILTROS.find((f) => f === filtroInicial && (canManage || f !== "baixar-preco")) ?? "todos",
+  );
+  const [ordem, setOrdem] = useState<Ordem>(
+    () => ORDENS.find((o) => o.valor === ordemInicial && (canManage || o.valor !== "lucro-desc"))?.valor ?? "relevancia",
+  );
   const [modo, setModo] = useState<Modo>("grade");
 
   const resumo = useMemo(() => stockSummary(veiculos), [veiculos]);
@@ -51,6 +68,7 @@ export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicl
       "sem-margem": veiculos.filter((v) => pertence(v, "sem-margem")).length,
       girar: veiculos.filter((v) => pertence(v, "girar")).length,
       preparacao: veiculos.filter((v) => pertence(v, "preparacao")).length,
+      reservados: veiculos.filter((v) => pertence(v, "reservados")).length,
       documento: veiculos.filter((v) => pertence(v, "documento")).length,
       "baixar-preco": veiculos.filter((v) => pertence(v, "baixar-preco")).length,
     }),
@@ -90,6 +108,7 @@ export function EstoqueGestao({ cars: veiculos, canManage }: { cars: StockVehicl
     { valor: "sem-margem", label: "Sem margem", n: contagem["sem-margem"] },
     { valor: "girar", label: "Girar (+90d)", n: contagem.girar },
     { valor: "preparacao", label: "Em preparação", n: contagem.preparacao },
+    { valor: "reservados", label: "Reservados", n: contagem.reservados },
     { valor: "documento", label: "Documento pendente", n: contagem.documento },
     // Only who reads the cost gets a suggestion.
     ...(canManage ? [{ valor: "baixar-preco" as const, label: "Baixar preço", n: contagem["baixar-preco"] }] : []),

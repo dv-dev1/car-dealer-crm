@@ -64,3 +64,37 @@ it("names the cost with expenses as such on the car page", async () => {
   expect(html).toMatch(/Custo com despesas R\$\s?53\.000/);
   expect(html).not.toContain("Custo de aquisição");
 });
+
+const pressed = (html: string) => [...html.matchAll(/aria-pressed="true"[^>]*>([^<(]+)/g)].map((match) => match[1].trim());
+
+it("opens on the filter the address asks for, as the panel's cards link it", () => {
+  const cars = [car({ title: "Com pendência", pendingDocs: 2 }), car({ title: "Em dia" })];
+  const html = renderToStaticMarkup(createElement(EstoqueGestao, { cars, canManage: true, filtroInicial: "documento" }));
+  expect(pressed(html)).toEqual(["Documento pendente"]);
+  expect(text(html)).toContain("Com pendência");
+  expect(text(html)).not.toContain("Em dia");
+});
+
+it("lists the reserved cars under their own filter", () => {
+  const cars = [car({ title: "Separado", status: "reserved" }), car({ title: "Livre" })];
+  const html = renderToStaticMarkup(createElement(EstoqueGestao, { cars, canManage: true, filtroInicial: "reservados" }));
+  expect(pressed(html)).toEqual(["Reservados"]);
+  expect(text(html)).toContain("Separado");
+  expect(text(html)).not.toContain("Livre");
+});
+
+it("falls back to every car on an unknown filter, and on the price filter for a seller", () => {
+  for (const [filtroInicial, canManage] of [["qualquer", true], ["baixar-preco", false]] as const) {
+    const html = renderToStaticMarkup(
+      createElement(EstoqueGestao, { cars: [car({ money: null })], canManage, filtroInicial }),
+    );
+    expect(pressed(html)).toEqual(["Todos"]);
+  }
+});
+
+it("opens on the order the address asks for, and ignores an unknown one", () => {
+  const ordered = renderToStaticMarkup(createElement(EstoqueGestao, { cars: [car()], canManage: true, ordemInicial: "patio-desc" }));
+  expect(ordered).toMatch(/<option value="patio-desc" selected="">/);
+  const unknown = renderToStaticMarkup(createElement(EstoqueGestao, { cars: [car()], canManage: true, ordemInicial: "x" }));
+  expect(unknown).toMatch(/<option value="relevancia" selected="">/);
+});

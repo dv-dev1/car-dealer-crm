@@ -3,7 +3,6 @@ import { BarChart3, ArrowRight } from "lucide-react";
 import { MESES, diaPorExtenso } from "@/lib/hoje";
 import { resumoMetaMes } from "@/lib/metas";
 import { dailyCounts, dailyFactsFrom } from "@/features/ai/daily";
-import { plainSummary } from "@/features/ai/rules";
 import { loadGoal } from "@/features/reports/model";
 import { staleLeads } from "@/features/leads/contacts";
 import { monthBreakEven } from "@/features/store/expenses";
@@ -57,7 +56,7 @@ export default async function PainelPage() {
           <ClientesParados leads={parados} days={ajustes.staleLeadDays} />
         </div>
 
-        {contagens && <ResumoDia linhas={plainSummary(dailyFactsFrom(estoque, contagens))} />}
+        {contagens && <ResumoDia facts={dailyFactsFrom(estoque, contagens)} />}
 
         <LojaAgora resumo={loja} giro={giro} pedemAtencao={pedemAtencao} />
 

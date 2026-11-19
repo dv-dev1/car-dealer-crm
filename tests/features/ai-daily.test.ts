@@ -137,18 +137,50 @@ it("the action is for owner and manager", async () => {
   expect(await dailySummaryAction()).toEqual({ text: "Dia tranquilo.", byAi: true });
 });
 
-it("the panel block shows the server's lines and offers the AI wording", () => {
-  const html = text(renderToStaticMarkup(createElement(ResumoDia, { linhas: ["2 vendas hoje.", "1 reserva vence até amanhã."] })));
-  expect(html).toContain("Resumo do dia");
-  expect(html).toContain("2 vendas hoje.");
-  expect(html).toContain("1 reserva vence até amanhã.");
-  expect(html).toContain("Escrever com IA");
+const DAY: DailyFacts = { salesToday: 2, newLeadsNoResponse: 3, carsOver60: 4, carsOver90: 2, reservationsExpiring: 1, pendingDocs: 4, priceSuggestions: 6 };
+const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1].replace(/&amp;/g, "&"));
+
+it("the panel block turns each number of the day into a card that opens the list to solve it", () => {
+  const html = renderToStaticMarkup(createElement(ResumoDia, { facts: DAY }));
+  expect(text(html)).toContain("Pra resolver hoje");
+  expect(text(html)).toContain("2 vendas hoje");
+  for (const card of [
+    "3 clientes novos sem resposta",
+    "2 carros passaram de 90 dias",
+    "4 carros entre 60 e 90 dias",
+    "1 reserva vence até amanhã",
+    "4 carros com documento pendente",
+    "6 carros para baixar o preço",
+  ])
+    expect(text(html)).toContain(card);
+  expect(hrefs(html)).toEqual([
+    "/gestao/estoque?filtro=girar",
+    "/gestao/clientes",
+    "/gestao/estoque?filtro=reservados",
+    "/gestao/estoque?ordem=patio-desc",
+    "/gestao/estoque?filtro=baixar-preco",
+    "/gestao/estoque?filtro=documento",
+  ]);
+  expect(text(html)).toContain("Escrever com IA");
 });
 
-it("the AI's wording never replaces the server's lines: both show", () => {
-  const linhas = ["2 carros passaram de 90 dias no pátio.", "1 reserva vence até amanhã."];
-  const html = text(renderToStaticMarkup(createElement(ResumoDia, { linhas, inicial: "Dia tranquilo." })));
-  expect(html).toContain("Dia tranquilo.");
-  for (const linha of linhas) expect(html).toContain(linha);
-  expect(html).toContain("Texto da IA");
+it("a number at zero has no card, and one reads in the singular", () => {
+  const html = renderToStaticMarkup(createElement(ResumoDia, { facts: { ...ZERO, pendingDocs: 1 } }));
+  expect(hrefs(html)).toEqual(["/gestao/estoque?filtro=documento"]);
+  expect(text(html)).toContain("1 carro com documento pendente");
+  expect(text(html)).toContain("Nenhuma venda ainda hoje");
+});
+
+it("a day with nothing to solve says so, with no card", () => {
+  const html = renderToStaticMarkup(createElement(ResumoDia, { facts: { ...ZERO, salesToday: 1 } }));
+  expect(hrefs(html)).toEqual([]);
+  expect(text(html)).toContain("1 venda hoje");
+  expect(text(html)).toContain("Nada pedindo atenção");
+});
+
+it("the AI's wording never replaces the cards: both show", () => {
+  const html = renderToStaticMarkup(createElement(ResumoDia, { facts: DAY, inicial: "Dia corrido." }));
+  expect(text(html)).toContain("Dia corrido.");
+  expect(text(html)).toContain("Texto da IA");
+  expect(hrefs(html)).toHaveLength(6);
 });
