@@ -67,7 +67,7 @@ export function ResumoDia({ facts, inicial }: { facts: DailyFacts; inicial?: str
           type="button"
           onClick={escrever}
           disabled={escrevendo}
-          className="-mr-2.5 inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-1.5 text-sm font-medium text-secondary/75 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary disabled:opacity-60"
+          className="-mx-2.5 inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-1.5 text-sm font-medium text-secondary/75 transition-colors duration-[var(--dur-rapida)] hover:bg-sand hover:text-secondary disabled:opacity-60"
         >
           <Sparkles size={15} strokeWidth={1.8} />
           {escrevendo ? "Escrevendo…" : texto ? "Escrever de novo" : "Escrever com IA"}
@@ -81,8 +81,9 @@ export function ResumoDia({ facts, inicial }: { facts: DailyFacts; inicial?: str
         </div>
       )}
 
+      {/* As many columns as fit: the row fills the width with any count of cards, and two fit on a 360 px phone. */}
       {cartoes.length > 0 ? (
-        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <ul className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-3">
           {cartoes.map((cartao) => {
             const n = facts[cartao.chave];
             return (
